@@ -1,0 +1,7 @@
+Setup Required:
+1. Install Stripe package: npm install stripe in apps/backend
+2. Get your Stripe keys from https://dashboard.stripe.com/test/apikeys
+3. Update .env with your keys:
+◦  STRIPE_SECRET_KEY="sk_test_..."
+◦  STRIPE_WEBHOOK_SECRET="whsec_..." (from Stripe webhook settings)
+4. Restart your backend server

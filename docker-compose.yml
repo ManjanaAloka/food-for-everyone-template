@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # Backend API
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: food-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: mysql://root:root@infra-mysql-1:3306/ffe
+      REDIS_URL: redis://infra-redis-1:6379
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      JWT_EXPIRES_IN: 7d
+      REFRESH_TOKEN_TTL: 30d
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
+      WS_PORT: 4001
+      WS_URL: http://backend:4001
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_SUCCESS_URL: ${STRIPE_SUCCESS_URL:-http://localhost/checkout/success}
+      STRIPE_CANCEL_URL: ${STRIPE_CANCEL_URL:-http://localhost/checkout/cancel}
+      SMTP_HOST: infra-mailhog-1
+      SMTP_PORT: 1025
+      MINIO_ENDPOINT: infra-minio-1:9000
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+    ports:
+      - "4000:4000"
+      - "4001:4001"
+    volumes:
+      - backend_uploads:/app/uploads
+    networks:
+      - food-network
+      - infra_default
+    command: sh -c "npx prisma migrate deploy && npx tsx src/index.ts"
+
+  # Frontend Web App
+  frontend:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:4000/api}
+        VITE_WS_URL: ${VITE_WS_URL:-http://localhost:4001}
+    container_name: food-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - food-network
+
+networks:
+  food-network:
+    driver: bridge
+  infra_default:
+    external: true
+
+volumes:
+  backend_uploads:

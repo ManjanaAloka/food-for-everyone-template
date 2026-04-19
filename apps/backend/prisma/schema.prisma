@@ -1,0 +1,280 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+  PROVIDER
+  DONATION_CENTER
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  SOLD_OUT
+  EXPIRED
+  HIDDEN
+}
+
+enum OrderType {
+  PERSONAL
+  DONATION
+}
+
+enum FulfillmentMode {
+  PICKUP
+  DELIVERY
+}
+
+enum OrderStatus {
+  CREATED
+  RESERVED
+  AWAITING_PAYMENT
+  PAID
+  PREPARING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELED
+  EXPIRED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  INITIATED
+  SUCCEEDED
+  FAILED
+  CANCELED
+  REFUNDED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PaymentMethod {
+  ONLINE
+  COD
+}
+
+enum DonationRequestStatus {
+  OPEN
+  FULFILLED
+  CLOSED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  phone        String?    @unique
+  passwordHash String
+  role         Role
+  status       UserStatus @default(PENDING)
+  name         String
+  totpSecret   String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  providerProfile       ServiceProvider?
+  donationCenterProfile DonationCenter?
+  reviews               Review[]
+  orders                Order[] @relation("UserOrders")
+  notifications         Notification[]
+  refreshTokens         RefreshToken[]
+}
+
+model ServiceProvider {
+  userId        String   @id
+  user          User     @relation(fields: [userId], references: [id])
+  businessName  String
+  brNo          String?
+  tin           String?
+  address       String?
+  city          String?
+  lat           Float?
+  lng           Float?
+  deliveryOptions Json?
+  verifiedAt    DateTime?
+  ratingAvg     Float     @default(0)
+  ratingCount   Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  listings      Listing[]
+  orders        Order[]   @relation("ProviderOrders")
+}
+
+model DonationCenter {
+  userId         String   @id
+  user           User     @relation(fields: [userId], references: [id])
+  name           String
+  registrationNo String?
+  address        String?
+  lat            Float?
+  lng            Float?
+  needsProfile   Json?
+  verifiedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  donationOrders Order[]  @relation("DonationCenterOrders")
+  requests       DonationRequest[]
+}
+
+model Listing {
+  id            String         @id @default(cuid())
+  providerId    String
+  provider      ServiceProvider @relation(fields: [providerId], references: [userId])
+  title         String
+  description   String?
+  category      String
+  ingredients   String?
+  unitPrice     Decimal        @db.Decimal(10,2)
+  discountPrice Decimal        @db.Decimal(10,2)
+  qtyAvailable  Int
+  weightGrams   Int?
+  expiresAt     DateTime
+  status        ListingStatus  @default(ACTIVE)
+  images        Json?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  orderItems    OrderItem[]
+  @@index([expiresAt])
+  @@index([providerId])
+}
+
+model DonationRequest {
+  id          String   @id @default(cuid())
+  centerId    String
+  center      DonationCenter @relation(fields: [centerId], references: [userId])
+  title       String
+  description String?
+  targetQty   Int
+  fulfilledQty Int     @default(0)
+  status      DonationRequestStatus @default(OPEN)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders      Order[]
+}
+
+model Order {
+  id                 String           @id @default(cuid())
+  buyerId            String
+  buyer              User             @relation("UserOrders", fields: [buyerId], references: [id])
+  providerId         String
+  provider           ServiceProvider  @relation("ProviderOrders", fields: [providerId], references: [userId])
+  type               OrderType
+  fulfillmentMode    FulfillmentMode
+  paymentMethod      PaymentMethod
+  donationCenterId   String?
+  donationCenter     DonationCenter?  @relation("DonationCenterOrders", fields: [donationCenterId], references: [userId])
+  donationRequestId  String?
+  donationRequest    DonationRequest? @relation(fields: [donationRequestId], references: [id])
+  status             OrderStatus      @default(CREATED)
+  scheduledTime      DateTime?
+  addressLine        String?
+  city               String?
+  lat                Float?
+  lng                Float?
+  deliveryFee        Decimal?         @db.Decimal(10,2)
+  subtotal           Decimal          @db.Decimal(10,2)
+  total              Decimal          @db.Decimal(10,2)
+  reservedUntil      DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  items              OrderItem[]
+  payment            Payment?
+  review             Review?
+  @@index([status])
+  @@index([providerId])
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id])
+  providerId  String
+  qty         Int
+  unitPrice   Decimal  @db.Decimal(10,2)
+  snapshotExpiresAt DateTime
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  orderId     String        @unique
+  order       Order         @relation(fields: [orderId], references: [id])
+  provider    String
+  method      String?
+  amount      Decimal       @db.Decimal(10,2)
+  currency    String        @default("LKR")
+  status      PaymentStatus @default(INITIATED)
+  txnRef      String?       @unique
+  gatewayPayload Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Review {
+  id          String       @id @default(cuid())
+  orderId     String       @unique
+  order       Order        @relation(fields: [orderId], references: [id])
+  reviewerId  String
+  reviewer    User         @relation(fields: [reviewerId], references: [id])
+  providerId  String
+  rating      Int
+  comment     String?
+  providerResponse String?
+  status      ReviewStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  channel   String
+  payload   Json?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  tokenHash  String
+  revoked    Boolean  @default(false)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now())
+}

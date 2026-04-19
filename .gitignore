@@ -1,0 +1,21 @@
+# Node
+node_modules
+dist
+coverage
+*.log
+
+# Env
+.env
+.env.*
+apps/**/.env
+
+# Prisma
+prisma/*.db
+.prisma
+
+# Editor/OS
+.vscode
+.DS_Store
+
+# Build
+apps/**/dist

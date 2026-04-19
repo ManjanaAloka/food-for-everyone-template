@@ -1,0 +1,13 @@
+{
+  "name": "food-for-everyone-template",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev": "concurrently -n backend,web -c cyan,magenta \"npm:dev --workspace apps/backend\" \"npm:dev --workspace apps/web\"",
+    "build": "npm run build --workspace apps/backend && npm run build --workspace apps/web",
+    "postinstall": "npm run prisma:generate --workspace apps/backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

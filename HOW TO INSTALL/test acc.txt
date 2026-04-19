@@ -1,0 +1,17 @@
+Admin 
+admin@test.com
+password123
+
+
+
+Customer:
+  Email: customer@test.com
+  Password: password123
+
+Service Provider:
+  Email: provider@test.com
+  Password: password123
+
+Donation Center:
+  Email: center@test.com
+  Password: password123
