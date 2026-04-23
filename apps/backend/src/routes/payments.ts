@@ -5,6 +5,8 @@ import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
 import { getPaymentProvider } from '../services/payments/index.js';
 import { ah } from '../utils/asyncHandler.js';
+import { createNotification, notifyEmail } from '../services/notifications.js';
+
 
 export const router = Router();
 
@@ -82,7 +84,24 @@ async function handlePaymentEvent(event: any) {
           if (updated.count !== 1) throw new Error('Stock decrement failed');
         }
         await tx.order.update({ where: { id: order.id }, data: { status: 'PAID' } });
+
+        // Notify customer
+        const buyer = await tx.user.findUnique({ where: { id: order.buyerId } });
+        if (buyer) {
+          await createNotification(buyer.id, 'PAYMENT_SUCCESS', 'IN_APP', { 
+            orderId: order.id, 
+            message: `Payment successful for Order #${order.id}. You can now download your receipt.`,
+            action: 'VIEW_ORDER'
+          });
+          await notifyEmail(buyer.email, `Payment Received: Order #${order.id}`, `
+            <h1>Thank you for your order!</h1>
+            <p>We have received your payment of LKR ${Number(order.total).toFixed(2)}.</p>
+            <p>Order ID: <strong>${order.id}</strong></p>
+            <p>You can view your order details and download the receipt here: ${process.env.CORS_ORIGIN}/orders/${order.id}</p>
+          `);
+        }
       } else {
+
         await tx.payment.upsert({
           where: { orderId: order.id },
           create: { orderId: order.id, provider: process.env.PAYMENT_PROVIDER || 'payhere', method: 'card', amount: order.total, status: 'SUCCEEDED', txnRef: event.txnRef, gatewayPayload: event.raw as any },

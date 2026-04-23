@@ -2,22 +2,41 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useState, useEffect } from 'react';
 import { useCart } from '../state/cart';
+import { useAuth } from '../state/auth';
 import { io } from 'socket.io-client';
 import { WS_URL } from '../env';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
+
+function getUrgencyBadge(expiresAt: string) {
+  const diffHours = (new Date(expiresAt).getTime() - Date.now()) / 3600000;
+  if (diffHours <= 0) return null;
+  if (diffHours <= 24) return { label: 'Expiring Soon 🔴', cls: 'bg-red-500 text-white' };
+  if (diffHours <= 72) return { label: 'Almost Gone 🟠', cls: 'bg-orange-500 text-white' };
+  return null;
+}
 
 export function ListingsPage() {
   const [searchParams] = useSearchParams();
   const providerId = searchParams.get('provider');
   const [q, setQ] = useState('');
+  const [category, setCategory] = useState('');
+  const [city, setCity] = useState('');
+  const [urgency, setUrgency] = useState('');
+  const [sort, setSort] = useState('soonest');
+  const [showFilters, setShowFilters] = useState(false);
   const { add } = useCart();
+  const { user } = useAuth();
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['listings', q, providerId],
+    queryKey: ['listings', q, providerId, category, city, urgency, sort],
     queryFn: async () => {
       const params: any = {};
       if (q) params.q = q;
       if (providerId) params.providerId = providerId;
+      if (category) params.category = category;
+      if (city) params.city = city;
+      if (urgency) params.urgency = urgency;
+      if (sort) params.sort = sort;
       return (await api.get('/listings', { params })).data;
     }
   });
@@ -53,9 +72,9 @@ export function ListingsPage() {
           )}
         </div>
 
-        {/* Search Bar */}
+        {/* Search & Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
             <input 
               value={q} 
               onChange={(e)=>setQ(e.target.value)} 
@@ -63,13 +82,43 @@ export function ListingsPage() {
               className="w-full sm:flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-50 border border-gray-300 text-gray-900 placeholder-gray-500 text-sm sm:text-base rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all outline-none" 
             />
             <button 
-              className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white text-sm sm:text-base font-semibold rounded-lg hover:shadow-lg transform hover:scale-105 transition-all"
-              onClick={()=>refetch()}
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-6 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors flex justify-center items-center gap-2"
             >
-              🔍 Search
+              ⚙️ Filters
             </button>
           </div>
+
+          {/* Expanded Filters */}
+          {showFilters && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-100">
+              <select value={category} onChange={e => setCategory(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white">
+                <option value="">All Categories</option>
+                <option value="Vegetables">Vegetables</option>
+                <option value="Fruits">Fruits</option>
+                <option value="Bakery">Bakery</option>
+                <option value="Prepared Meals">Prepared Meals</option>
+                <option value="Dairy">Dairy</option>
+              </select>
+              
+              <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="City (e.g. Colombo)" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" />
+              
+              <select value={urgency} onChange={e => setUrgency(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white">
+                <option value="">Any Time</option>
+                <option value="expiring-soon">Expiring Soon (&lt; 24h)</option>
+                <option value="almost-gone">Almost Gone (&lt; 3d)</option>
+              </select>
+
+              <select value={sort} onChange={e => setSort(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white">
+                <option value="soonest">Soonest Expiry</option>
+                <option value="newest">Newly Added</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+              </select>
+            </div>
+          )}
         </div>
+
 
         {/* Listings Grid */}
         {isLoading ? (
@@ -98,11 +147,15 @@ export function ListingsPage() {
                   <div className="absolute top-3 left-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-full px-3 py-1 text-xs font-bold shadow-lg">
                     {Math.round((1 - Number(l.discountPrice) / Number(l.unitPrice)) * 100)}% OFF
                   </div>
+                {/* Urgency Badge */}
+                  {(() => { const u = getUrgencyBadge(l.expiresAt); return u ? <div className={`absolute bottom-3 left-3 ${u.cls} rounded-full px-2 py-0.5 text-xs font-bold shadow`}>{u.label}</div> : null; })()}
                 </div>
 
                 {/* Content */}
                 <div className="p-4 sm:p-6">
-                  <h3 className="font-bold text-base sm:text-lg text-gray-900 mb-2 sm:mb-3 line-clamp-2">{l.title}</h3>
+                  <Link to={`/listings/${l.id}`}>
+                    <h3 className="font-bold text-base sm:text-lg text-gray-900 mb-2 sm:mb-3 line-clamp-2 hover:text-green-600 transition-colors">{l.title}</h3>
+                  </Link>
                   
                   {/* Description */}
                   {l.description && (
@@ -129,15 +182,35 @@ export function ListingsPage() {
                     </div>
                   </div>
 
-                  {/* Add to Cart Button */}
-                  <button 
-                    className="w-full px-4 py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white text-sm sm:text-base font-semibold rounded-lg hover:shadow-lg transform hover:scale-105 transition-all"
-                    onClick={() => add({ listingId: l.id, title: l.title, providerId: l.providerId, price: Number(l.discountPrice), expiresAt: l.expiresAt }, 1)}
-                  >
-                    🛍️ Add to Cart
-                  </button>
+                  {/* Action Buttons */}
+                  <div className="space-y-2">
+                    {user?.role === 'DONATION_CENTER' ? (
+                      <Link
+                        to={`/listings/${l.id}`}
+                        className="block text-center w-full px-4 py-2.5 sm:py-3 bg-orange-100 hover:bg-orange-200 text-orange-700 font-bold rounded-lg transition-colors border border-orange-200"
+                      >
+                        🏥 Request Donation
+                      </Link>
+                    ) : (
+                      <>
+                        <button 
+                          className="w-full px-4 py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white text-sm sm:text-base font-semibold rounded-lg hover:shadow-lg transform hover:scale-105 transition-all"
+                          onClick={() => add({ listingId: l.id, title: l.title, providerId: l.providerId, price: Number(l.discountPrice), expiresAt: l.expiresAt }, 1)}
+                        >
+                          🛍️ Add to Cart
+                        </button>
+                        <Link
+                          to={`/listings/${l.id}`}
+                          className="block text-center w-full px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors border border-green-200 text-sm"
+                        >
+                          🤝 Donate this item
+                        </Link>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
+
             ))}
           </div>
         )}

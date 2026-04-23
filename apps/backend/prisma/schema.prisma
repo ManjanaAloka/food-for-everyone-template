@@ -43,7 +43,7 @@ enum OrderStatus {
   RESERVED
   AWAITING_PAYMENT
   PAID
-  PREPARING
+  PENDING
   READY_FOR_PICKUP
   OUT_FOR_DELIVERY
   DELIVERED
@@ -51,6 +51,7 @@ enum OrderStatus {
   EXPIRED
   REFUNDED
 }
+
 
 enum PaymentStatus {
   INITIATED
@@ -95,6 +96,9 @@ model User {
   orders                Order[] @relation("UserOrders")
   notifications         Notification[]
   refreshTokens         RefreshToken[]
+  donations             Donation[]
+  customerProfile       CustomerProfile?
+  savedPaymentMethods   SavedPaymentMethod[]
 }
 
 model ServiceProvider {
@@ -135,6 +139,31 @@ model DonationCenter {
   requests       DonationRequest[]
 }
 
+model CustomerProfile {
+  userId        String   @id
+  user          User     @relation(fields: [userId], references: [id])
+  idNumber      String?
+  address       String?
+  city          String?
+  lat           Float?
+  lng           Float?
+  verificationDoc Json? 
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SavedPaymentMethod {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  cardType  String?  
+  last4     String?
+  expiry    String?
+  token     String?  
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
 model Listing {
   id            String         @id @default(cuid())
   providerId    String
@@ -153,24 +182,32 @@ model Listing {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
-  orderItems    OrderItem[]
+  orderItems        OrderItem[]
+  donationRequests  DonationRequest[]
   @@index([expiresAt])
   @@index([providerId])
 }
 
 model DonationRequest {
-  id          String   @id @default(cuid())
-  centerId    String
-  center      DonationCenter @relation(fields: [centerId], references: [userId])
-  title       String
-  description String?
-  targetQty   Int
-  fulfilledQty Int     @default(0)
-  status      DonationRequestStatus @default(OPEN)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  centerId     String
+  center       DonationCenter @relation(fields: [centerId], references: [userId])
+  listingId    String?
+  listing      Listing?  @relation(fields: [listingId], references: [id])
+  title        String
+  description  String?
+  targetQty    Int       @default(0)
+  fulfilledQty Int       @default(0)
+  targetAmount Decimal   @db.Decimal(10,2) @default(0)
+  raisedAmount Decimal   @db.Decimal(10,2) @default(0)
+  donorCount   Int       @default(0)
+  closesAt     DateTime?
+  status       DonationRequestStatus @default(OPEN)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  orders      Order[]
+  orders       Order[]
+  donations    Donation[]
 }
 
 model Order {
@@ -187,7 +224,9 @@ model Order {
   donationRequestId  String?
   donationRequest    DonationRequest? @relation(fields: [donationRequestId], references: [id])
   status             OrderStatus      @default(CREATED)
+  orderNumber        Int              @unique @default(autoincrement())
   scheduledTime      DateTime?
+
   addressLine        String?
   city               String?
   lat                Float?
@@ -278,3 +317,19 @@ model AuditLog {
   after     Json?
   createdAt DateTime @default(now())
 }
+
+model Donation {
+  id                String        @id @default(cuid())
+  customerId        String
+  customer          User          @relation(fields: [customerId], references: [id])
+  donationRequestId String
+  donationRequest   DonationRequest @relation(fields: [donationRequestId], references: [id])
+  amount            Decimal       @db.Decimal(10,2)
+  stripeSessionId   String?
+  stripePaymentId   String?
+  status            PaymentStatus @default(INITIATED)
+  createdAt         DateTime      @default(now())
+
+  @@index([donationRequestId])
+  @@index([customerId])
+}

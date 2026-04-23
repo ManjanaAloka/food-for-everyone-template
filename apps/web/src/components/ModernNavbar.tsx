@@ -1,8 +1,10 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+
 import { useAuth } from '../state/auth';
 import { useCart } from '../state/cart';
 import { useState } from 'react';
 import { AdminLogoutModal } from './AdminLogoutModal';
+import { NotificationsDropdown } from './NotificationsDropdown';
 
 export function ModernNavbar() {
   const { user, logout } = useAuth();
@@ -38,12 +40,21 @@ export function ModernNavbar() {
                 <NavLink to="/provider/listings/new">New Listing</NavLink>
                 <NavLink to="/provider/dashboard">My Listings</NavLink>
               </>
+            ) : user?.role === 'DONATION_CENTER' ? (
+              <>
+                <NavLink to="/dashboard/center">Center Dashboard</NavLink>
+                <NavLink to="/give-back">Give Back</NavLink>
+                <NavLink to="/browse">Browse Food</NavLink>
+
+              </>
             ) : (
               <>
                 <NavLink to="/browse">Browse Food</NavLink>
                 <NavLink to="/donation-centers">Donation Centers</NavLink>
+                <NavLink to="/give-back">Give Back</NavLink>
                 <NavLink to="/impact">Impact</NavLink>
-                <NavLink to="/providers">🏪 Providers</NavLink>
+                <NavLink to="/providers">Providers</NavLink>
+
               </>
             )}
           </div>
@@ -74,13 +85,22 @@ export function ModernNavbar() {
                     {user.role}
                   </span>
                 </div>
+                <NotificationsDropdown />
                 {user.role !== 'ADMIN' && (
-                  <Link 
-                    to="/orders" 
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
-                  >
-                    My Orders
-                  </Link>
+                  <>
+                    <Link 
+                      to="/orders" 
+                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
+                    >
+                      My Orders
+                    </Link>
+                    <Link 
+                      to="/profile" 
+                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
+                    >
+                      Profile
+                    </Link>
+                  </>
                 )}
                 <button
                   onClick={() => {
@@ -140,17 +160,35 @@ export function ModernNavbar() {
                   My Listings
                 </MobileNavLink>
               </>
+            ) : user?.role === 'DONATION_CENTER' ? (
+              <>
+                <MobileNavLink to="/dashboard/center" onClick={() => setMobileMenuOpen(false)}>
+                  Center Dashboard
+                </MobileNavLink>
+                <MobileNavLink to="/give-back" onClick={() => setMobileMenuOpen(false)}>
+                  Give Back
+                </MobileNavLink>
+
+              </>
             ) : user?.role !== 'ADMIN' && (
               <>
                 <MobileNavLink to="/donation-centers" onClick={() => setMobileMenuOpen(false)}>
                   Donation Centers
                 </MobileNavLink>
+                <MobileNavLink to="/give-back" onClick={() => setMobileMenuOpen(false)}>
+                  Give Back
+                </MobileNavLink>
+                <MobileNavLink to="/profile" onClick={() => setMobileMenuOpen(false)}>
+                  Profile
+                </MobileNavLink>
+
                 <MobileNavLink to="/impact" onClick={() => setMobileMenuOpen(false)}>
                   Impact
                 </MobileNavLink>
                 <MobileNavLink to="/providers" onClick={() => setMobileMenuOpen(false)}>
-                  🏪 Providers
+                  Providers
                 </MobileNavLink>
+
               </>
             )}
             
@@ -187,15 +225,23 @@ export function ModernNavbar() {
 }
 
 function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
+  const location = useLocation();
+  const isActive = location.pathname === to;
+
   return (
     <Link
       to={to}
-      className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
+      className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+        isActive 
+          ? 'text-green-700 bg-green-50 border border-green-100 shadow-sm' 
+          : 'text-gray-700 hover:text-green-600 hover:bg-green-50'
+      }`}
     >
       {children}
     </Link>
   );
 }
+
 
 function MobileNavLink({ to, onClick, children }: { to: string; onClick: () => void; children: React.ReactNode }) {
   return (

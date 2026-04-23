@@ -257,6 +257,17 @@ export function AdminDashboardPage() {
                 <p className="text-xs text-gray-500">Manage all food listings</p>
               </div>
             </a>
+
+            <a
+              href="/admin/audit"
+              className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all group"
+            >
+              <span className="text-2xl">📜</span>
+              <div>
+                <p className="font-semibold text-gray-900 group-hover:text-green-700">System Audit Log</p>
+                <p className="text-xs text-gray-500">View admin activity logs</p>
+              </div>
+            </a>
           </div>
         </div>
       </div>

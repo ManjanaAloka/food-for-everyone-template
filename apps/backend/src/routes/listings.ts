@@ -8,20 +8,66 @@ import { ah } from '../utils/asyncHandler.js';
 export const router = Router();
 
 router.get('/', ah(async (req, res) => {
-  const { q, category, providerId } = req.query;
-  const where: any = { status: 'ACTIVE', expiresAt: { gt: new Date() } };
-  if (q) where.OR = [{ title: { contains: String(q) }}, { description: { contains: String(q) }}];
+  const { q, category, providerId, city, urgency, minPrice, maxPrice, sort } = req.query;
+  const now = new Date();
+
+  const where: any = { status: 'ACTIVE', expiresAt: { gt: now } };
+  if (q) where.OR = [{ title: { contains: String(q) } }, { description: { contains: String(q) } }];
   if (category) where.category = String(category);
   if (providerId) where.providerId = String(providerId);
-  const listings = await prisma.listing.findMany({ where, orderBy: { expiresAt: 'asc' }, take: 100 });
+  if (city) where.provider = { city: { contains: String(city) } };
+  if (minPrice) where.discountPrice = { ...where.discountPrice, gte: Number(minPrice) };
+  if (maxPrice) where.discountPrice = { ...where.discountPrice, lte: Number(maxPrice) };
+
+  // Urgency filter
+  if (urgency === 'expiring-soon') {
+    const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    where.expiresAt = { gt: now, lte: in24h };
+  } else if (urgency === 'almost-gone') {
+    const in3d = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    where.expiresAt = { gt: now, lte: in3d };
+  }
+
+  // Sort options
+  let orderBy: any = { expiresAt: 'asc' }; // default: soonest first
+  if (sort === 'newest') orderBy = { createdAt: 'desc' };
+  else if (sort === 'price-asc') orderBy = { discountPrice: 'asc' };
+  else if (sort === 'price-desc') orderBy = { discountPrice: 'desc' };
+
+  const listings = await prisma.listing.findMany({
+    where,
+    orderBy,
+    take: 100,
+    include: { provider: { select: { businessName: true, city: true, ratingAvg: true, ratingCount: true } } }
+  });
   res.json({ listings });
 }));
 
+
 router.get('/:id', ah(async (req, res) => {
-  const listing = await prisma.listing.findUnique({ where: { id: req.params.id } });
+  const listing = await prisma.listing.findUnique({
+    where: { id: req.params.id },
+    include: {
+      provider: {
+        include: {
+          user: { select: { name: true, email: true } }
+        }
+      }
+    }
+  });
   if (!listing) return res.status(404).json({ error: 'Listing not found' });
-  res.json({ listing });
+
+  // Fetch approved reviews for the provider
+  const reviews = await prisma.review.findMany({
+    where: { providerId: listing.providerId, status: 'APPROVED' },
+    include: { reviewer: { select: { name: true } } },
+    orderBy: { createdAt: 'desc' },
+    take: 10
+  });
+
+  res.json({ listing, reviews });
 }));
+
 
 const listingSchema = z.object({
   title: z.string().min(3),

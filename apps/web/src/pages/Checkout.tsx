@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useCart } from '../state/cart';
 import { useForm } from 'react-hook-form';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
 import { AutoSubmitForm } from '../components/AutoSubmitForm';
 import { useTranslation } from 'react-i18next';
 
@@ -15,9 +16,39 @@ export function CheckoutPage() {
   const [session, setSession] = useState<{ method: 'POST'|'GET'; url: string; fields: Record<string,string> } | null>(null);
 
   const centersQ = useQuery({ queryKey: ['centers'], queryFn: async () => (await api.get('/donation-centers')).data, enabled: true });
+  const profileQ = useQuery({ queryKey: ['customerMe'], queryFn: async () => (await api.get('/customers/me')).data, enabled: true });
+  const [editingAddress, setEditingAddress] = useState(false);
 
-  const { register, handleSubmit, watch } = useForm<Form>({ defaultValues: { type: 'PERSONAL', fulfillmentMode: 'PICKUP', paymentMethod: 'ONLINE' } });
+  const { register, handleSubmit, watch, reset, setValue } = useForm<Form>({ defaultValues: { type: 'PERSONAL', fulfillmentMode: 'PICKUP', paymentMethod: 'ONLINE' } });
   const type = watch('type');
+  const fulfillmentMode = watch('fulfillmentMode');
+
+  // Pre-fill address
+  useState(() => {
+    if (profileQ.data?.profile) {
+      const p = profileQ.data.profile;
+      reset({
+        type: 'PERSONAL',
+        fulfillmentMode: 'PICKUP',
+        paymentMethod: 'ONLINE',
+        addressLine: p.address || '',
+        city: p.city || ''
+      });
+    }
+  });
+
+  useEffect(() => {
+    if (profileQ.data?.profile) {
+      const p = profileQ.data.profile;
+      reset({
+        type: 'PERSONAL',
+        fulfillmentMode: 'PICKUP',
+        paymentMethod: 'ONLINE',
+        addressLine: p.address || '',
+        city: p.city || ''
+      });
+    }
+  }, [profileQ.data, reset]);
 
   if (!items.length) {
     return (
@@ -176,23 +207,68 @@ export function CheckoutPage() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Address (for delivery)</label>
-                    <input 
-                      {...register('addressLine')} 
-                      placeholder="Street address" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">City (for delivery)</label>
-                    <input 
-                      {...register('city')} 
-                      placeholder="City" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
-                    />
-                  </div>
                 </div>
+
+                {/* Delivery Address Section */}
+                {fulfillmentMode === 'DELIVERY' && (
+                  <div className="space-y-4">
+                    {profileQ.data?.profile?.address && !editingAddress ? (
+                      <div className="p-4 bg-green-50 border border-green-100 rounded-xl flex justify-between items-start">
+                        <div>
+                          <p className="text-xs font-bold text-green-700 uppercase tracking-wider mb-1">Deliver to Saved Address</p>
+                          <p className="text-gray-900 font-medium">{profileQ.data.profile.address}</p>
+                          <p className="text-gray-600 text-sm">{profileQ.data.profile.city}</p>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => setEditingAddress(true)}
+                          className="text-xs font-bold text-green-600 hover:underline"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">Address (for delivery)</label>
+                          <input 
+                            {...register('addressLine')} 
+                            placeholder="Street address" 
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">City (for delivery)</label>
+                          <input 
+                            {...register('city')} 
+                            placeholder="City" 
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
+                          />
+                        </div>
+                        {profileQ.data?.profile?.address && (
+                          <button type="button" onClick={() => setEditingAddress(false)} className="text-xs text-gray-500 hover:underline">Cancel editing</button>
+                        )}
+                      </>
+                    )}
+                    
+                    {/* Map Picker Placeholder */}
+                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700">Delivery Location</span>
+                        <button 
+                          type="button"
+                          onClick={() => alert('Google Maps API key required to enable map picker.')}
+                          className="text-xs font-bold text-green-600 hover:text-green-700 underline"
+                        >
+                          📍 Pin on Map
+                        </button>
+                      </div>
+                      <div className="h-32 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-xs italic">
+                        Map View
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <button className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white font-medium rounded-lg hover:shadow-lg transform hover:scale-105 transition-all">
                   Place Order

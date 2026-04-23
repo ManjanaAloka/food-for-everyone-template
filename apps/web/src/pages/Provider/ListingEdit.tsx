@@ -3,6 +3,7 @@ import { api } from '../../lib/api';
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 type Form = { 
   title: string; 
@@ -77,19 +78,19 @@ export function ListingEditPage() {
   const onSubmit = async (data: Form) => {
     setLoading(true);
     try {
-      // Upload new images first (if any)
+      // Upload new images to Cloudinary via backend
       let newImageUrls: string[] = [];
       
       if (imageFiles.length > 0) {
-        // Convert to base64
-        const imagePromises = imageFiles.map(file => {
-          return new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(file);
+        const uploadPromises = imageFiles.map(async (file) => {
+          const formData = new FormData();
+          formData.append('image', file);
+          const res = await api.post('/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
           });
+          return res.data.url;
         });
-        newImageUrls = await Promise.all(imagePromises);
+        newImageUrls = await Promise.all(uploadPromises);
       }
 
       // Combine existing images with new ones
@@ -104,10 +105,10 @@ export function ListingEditPage() {
       };
 
       await api.patch(`/listings/${id}`, payload);
-      alert('✅ Listing updated successfully!');
+      toast.success('✅ Listing updated successfully!');
       nav('/provider/dashboard');
     } catch (error: any) {
-      alert('❌ Error: ' + (error.response?.data?.error || 'Failed to update listing'));
+      toast.error('❌ Error: ' + (error.response?.data?.error || 'Failed to update listing'));
     } finally {
       setLoading(false);
     }

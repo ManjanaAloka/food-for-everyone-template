@@ -9,11 +9,7 @@ export function HomePage() {
       <div className="min-h-screen pt-16">
       {/* Dark Hero Section */}
       <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-black min-h-[90vh] overflow-hidden flex items-center">
-        {/* Animated Emojis */}
-        <div className="absolute top-20 right-1/4 text-6xl animate-float">🍽️</div>
-        <div className="absolute bottom-40 right-1/3 text-4xl animate-float animation-delay-2000">🚀</div>
-        <div className="absolute top-1/2 right-20 text-5xl animate-float animation-delay-4000">❤️</div>
-        <div className="absolute bottom-20 left-1/3 text-4xl animate-float animation-delay-1000">🌱</div>
+
         
         <div className="max-w-7xl mx-auto px-4 py-16">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -114,9 +110,7 @@ export function HomePage() {
                 </div>
               </div>
               
-              {/* Floating emoji decorations */}
-              <div className="absolute -top-4 -right-4 text-4xl animate-bounce">🚀</div>
-              <div className="absolute -bottom-4 -left-4 text-4xl animate-pulse">❤️</div>
+
             </div>
           </div>
         </div>
@@ -465,10 +459,6 @@ export function HomePage() {
                 Fighting food waste and feeding communities across Sri Lanka. Together, we're building a more sustainable future.
               </p>
               <div className="flex gap-4">
-                <a href="#" className="text-2xl hover:text-green-400 transition">📘</a>
-                <a href="#" className="text-2xl hover:text-green-400 transition">📷</a>
-                <a href="#" className="text-2xl hover:text-green-400 transition">🐦</a>
-                <a href="#" className="text-2xl hover:text-green-400 transition">💼</a>
               </div>
             </div>
 

@@ -11,7 +11,10 @@ router.post('/', requireAuth, ah(async (req: any, res) => {
   const order = await prisma.order.findUnique({ where: { id: body.orderId } });
   if (!order) return res.status(404).json({ error: 'Order not found' });
   if (order.buyerId !== req.user!.sub) return res.status(403).json({ error: 'Forbidden' });
-  if (order.status !== 'DELIVERED') return res.status(400).json({ error: 'Can only review delivered orders' });
+  const validStatuses = ['PAID', 'PREPARING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED'];
+  if (!validStatuses.includes(order.status)) {
+    return res.status(400).json({ error: 'You can only review after completing the payment for the order' });
+  }
 
   const review = await prisma.review.create({ data: { orderId: order.id, reviewerId: req.user!.sub, providerId: order.providerId, rating: body.rating, comment: body.comment } });
   res.json({ review });

@@ -45,8 +45,10 @@ router.patch('/me', requireAuth, requireRole('PROVIDER'), ah(async (req: any, re
 router.get('/me/listings', requireAuth, requireRole('PROVIDER'), ah(async (req: any, res) => {
   const status = req.query.status as string | undefined;
   const where: any = { providerId: req.user!.sub };
+  console.log('🔍 Fetching listings for providerId:', req.user!.sub);
   if (status) where.status = status;
   const listings = await prisma.listing.findMany({ where, orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }], take: 200 });
+  console.log('✅ Found listings:', listings.length);
   res.json({ listings });
 }));
 
@@ -59,4 +61,44 @@ router.get('/me/orders', requireAuth, requireRole('PROVIDER'), ah(async (req: an
     select: { id: true, status: true, type: true, fulfillmentMode: true, total: true, createdAt: true, updatedAt: true }
   });
   res.json({ orders });
+}));
+
+router.get('/me/stats', requireAuth, requireRole('PROVIDER'), ah(async (req: any, res) => {
+  const providerId = req.user!.sub;
+
+  const [totalOrders, pendingOrders, completedOrders] = await Promise.all([
+    prisma.order.count({ where: { providerId, status: { not: 'CANCELED' } } }),
+    prisma.order.count({ where: { providerId, status: { in: ['CREATED', 'PAID', 'PREPARING'] } } }),
+    prisma.order.count({ where: { providerId, status: 'DELIVERED' } })
+  ]);
+
+  const orders = await prisma.order.findMany({
+    where: { providerId, status: { not: 'CANCELED' } },
+    select: { total: true, status: true, paymentMethod: true }
+  });
+
+  let totalEarnings = 0;
+  let pendingEarnings = 0;
+  let codEarnings = 0;
+
+  for (const o of orders) {
+    const val = Number(o.total);
+    if (o.status === 'DELIVERED') {
+      totalEarnings += val;
+      if (o.paymentMethod === 'COD') codEarnings += val;
+    } else {
+      pendingEarnings += val;
+    }
+  }
+
+  res.json({
+    stats: {
+      totalOrders,
+      pendingOrders,
+      completedOrders,
+      totalEarnings,
+      pendingEarnings,
+      codEarnings
+    }
+  });
 }));

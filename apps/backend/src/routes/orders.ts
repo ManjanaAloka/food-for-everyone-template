@@ -23,7 +23,11 @@ router.get('/:id', requireAuth, ah(async (req: any, res) => {
   const order = await prisma.order.findUnique({ 
     where: { id: req.params.id }, 
     include: { 
-      items: true, 
+      items: {
+        include: {
+          listing: true
+        }
+      }, 
       payment: true,
       review: true
     } 
@@ -32,6 +36,48 @@ router.get('/:id', requireAuth, ah(async (req: any, res) => {
   if (order.buyerId !== req.user!.sub && req.user!.role !== 'ADMIN' && order.providerId !== req.user!.sub) return res.status(403).json({ error: 'Forbidden' });
   res.json({ order });
 }));
+
+router.get('/', requireAuth, ah(async (req: any, res) => {
+  const orders = await prisma.order.findMany({
+    where: { 
+      OR: [
+        { buyerId: req.user!.sub },
+        { providerId: req.user!.sub }
+      ]
+    },
+    include: {
+      items: {
+        include: {
+          listing: true
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json({ orders });
+}));
+
+router.get('/center', requireAuth, requireRole('DONATION_CENTER'), ah(async (req: any, res) => {
+  const orders = await prisma.order.findMany({
+    where: { 
+      donationCenterId: req.user!.sub,
+      status: { notIn: ['CANCELED'] }
+    },
+    include: {
+      items: {
+        include: {
+          listing: true
+        }
+      },
+      buyer: {
+        select: { name: true, email: true, phone: true }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json({ orders });
+}));
+
 
 router.post('/', requireAuth, ah(async (req: any, res) => {
   const body = createOrderSchema.parse(req.body);
@@ -89,7 +135,8 @@ router.post('/', requireAuth, ah(async (req: any, res) => {
 // Provider/admin fulfillment updates
 router.patch('/:id/status', requireAuth, requireRole('PROVIDER', 'ADMIN'), ah(async (req: any, res) => {
   const { id } = req.params;
-  const { status } = z.object({ status: z.enum(['PREPARING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELED']) }).parse(req.body);
+  const { status } = z.object({ status: z.enum(['PENDING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELED']) }).parse(req.body);
+
 
   const order = await prisma.order.findUnique({ where: { id }, include: { buyer: true, provider: { include: { user: true } }, donationCenter: { include: { user: true } } } });
   if (!order) return res.status(404).json({ error: 'Order not found' });
@@ -130,22 +177,65 @@ router.post('/:id/confirm-received', requireAuth, requireRole('DONATION_CENTER',
   res.json({ ok: true, status: updated.status });
 }));
 
+// Customer cancels own order within 30 mins
+router.post('/:id/cancel', requireAuth, ah(async (req: any, res) => {
+  const { id } = req.params;
+  const order = await prisma.order.findUnique({ 
+    where: { id }, 
+    include: { items: true } 
+  });
+
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  if (order.buyerId !== req.user!.sub) return res.status(403).json({ error: 'Forbidden' });
+
+  // Check 30 min window
+  const now = new Date();
+  const diffMs = now.getTime() - order.createdAt.getTime();
+  const diffMins = diffMs / (1000 * 60);
+  if (diffMins > 30) {
+    return res.status(400).json({ error: 'Cancellation window (30 mins) has expired' });
+  }
+
+  // Check status
+  if (!['AWAITING_PAYMENT', 'PAID', 'RESERVED', 'PENDING'].includes(order.status)) {
+    return res.status(400).json({ error: `Cannot cancel order in ${order.status} status` });
+  }
+
+
+  await prisma.$transaction(async (tx) => {
+    await tx.order.update({ where: { id }, data: { status: 'CANCELED' } });
+    for (const item of order.items) {
+      await tx.listing.update({ 
+        where: { id: item.listingId }, 
+        data: { qtyAvailable: { increment: item.qty }, status: 'ACTIVE' } 
+      });
+    }
+  });
+
+  await notifyStatusChange(order, 'CANCELED');
+  res.json({ ok: true, status: 'CANCELED' });
+}));
+
+
 function canTransition(current: string, next: string, mode: string) {
   const fromTo: Record<string, string[]> = {
     AWAITING_PAYMENT: ['CANCELED'],
-    PAID: ['PREPARING', 'CANCELED'],
-    RESERVED: ['PREPARING', 'CANCELED'],
-    PREPARING: mode === 'PICKUP' ? ['READY_FOR_PICKUP', 'CANCELED'] : ['OUT_FOR_DELIVERY', 'CANCELED'],
+    PAID: ['PENDING', 'CANCELED'],
+    RESERVED: ['PENDING', 'CANCELED'],
+    PENDING: mode === 'PICKUP' ? ['READY_FOR_PICKUP', 'CANCELED'] : ['OUT_FOR_DELIVERY', 'CANCELED'],
     READY_FOR_PICKUP: ['DELIVERED', 'CANCELED'],
     OUT_FOR_DELIVERY: ['DELIVERED', 'CANCELED']
   };
+
   if (!fromTo[current]) return false;
   return fromTo[current].includes(next);
 }
 async function notifyStatusChange(order: any, status: string, byCenter = false) {
-  const subject = `Order ${order.id} status: ${status}`;
-  const msg = `<p>Status update for your order <strong>${order.id}</strong>: <strong>${status}</strong>.</p>`;
+  const displayId = order.orderNumber ? `OR_${order.orderNumber}` : order.id;
+  const subject = `Order ${displayId} status: ${status}`;
+  const msg = `<p>Status update for your order <strong>${displayId}</strong>: <strong>${status}</strong>.</p>`;
   await notifyEmail(order.buyer?.email, subject, msg);
+
   if (order.type === 'DONATION') {
     await notifyEmail(order.donationCenter?.user?.email, subject, msg);
     await notifyEmail(order.provider?.user?.email, subject, msg);

@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 type Form = { 
   title: string; 
@@ -39,19 +40,19 @@ export function ListingCreatePage() {
   const onSubmit = async (data: Form) => {
     setLoading(true);
     try {
-      // Upload images first (if any)
+      // Upload images to Cloudinary via backend
       let imageUrls: string[] = [];
       
       if (imageFiles.length > 0) {
-        // For now, convert to base64 (in production, upload to cloud storage like Cloudinary/S3)
-        const imagePromises = imageFiles.map(file => {
-          return new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(file);
+        const uploadPromises = imageFiles.map(async (file) => {
+          const formData = new FormData();
+          formData.append('image', file);
+          const res = await api.post('/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
           });
+          return res.data.url;
         });
-        imageUrls = await Promise.all(imagePromises);
+        imageUrls = await Promise.all(uploadPromises);
       }
 
       const payload = {
@@ -64,14 +65,15 @@ export function ListingCreatePage() {
       };
 
       await api.post('/listings', payload);
-      alert('✅ Listing published successfully!');
+      toast.success('✅ Listing published successfully!');
       nav('/provider/dashboard');
     } catch (error: any) {
-      alert('❌ Error: ' + (error.response?.data?.error || 'Failed to create listing'));
+      toast.error('❌ Error: ' + (error.response?.data?.error || 'Failed to create listing'));
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20 pb-12">
