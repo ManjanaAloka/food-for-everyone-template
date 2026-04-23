@@ -154,7 +154,8 @@ export function OrderDetailPage() {
 
       
       {/* Review Section for Customers */}
-      {user?.role === 'CUSTOMER' && o.status === 'DELIVERED' && (
+      {user?.role === 'CUSTOMER' && ['AWAITING_PAYMENT', 'RESERVED', 'PAID', 'PENDING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(o.status) && (
+
         <div className="border rounded p-4 mt-4">
           {o.review ? (
             // Show existing review

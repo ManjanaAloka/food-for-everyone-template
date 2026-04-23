@@ -136,9 +136,11 @@ export function CheckoutPage() {
               setSession(sess);
             }
           } else {
-            alert('Order placed with Cash on Delivery.');
+            alert('Order placed successfully!');
             clear();
+            window.location.href = `/orders/${order.orderId}`;
           }
+
               })} className="space-y-6">
                 {/* Order Type */}
                 <div>
