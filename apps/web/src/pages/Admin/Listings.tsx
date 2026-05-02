@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 export function AdminListingsPage() {
   const qc = useQueryClient();
@@ -8,16 +9,7 @@ export function AdminListingsPage() {
 
   const listingsQ = useQuery({
     queryKey: ['adminListings'],
-    queryFn: async () => {
-      try {
-        const res = await api.get('/admin/listings');
-        console.log('Admin listings response:', res.data);
-        return res.data;
-      } catch (error: any) {
-        console.error('Error fetching admin listings:', error);
-        throw error;
-      }
-    }
+    queryFn: async () => (await api.get('/admin/listings')).data
   });
 
   const toggleStatus = useMutation({
@@ -26,18 +18,18 @@ export function AdminListingsPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['adminListings'] });
-      alert('✅ Listing status updated!');
+      toast.success('Listing status updated!');
     },
-    onError: () => alert('❌ Failed to update listing')
+    onError: () => toast.error('Failed to update listing')
   });
 
   const deleteListing = useMutation({
     mutationFn: async (id: string) => api.delete(`/admin/listings/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['adminListings'] });
-      alert('✅ Listing deleted!');
+      toast.success('Listing deleted!');
     },
-    onError: () => alert('❌ Failed to delete listing')
+    onError: () => toast.error('Failed to delete listing')
   });
 
   const listings = listingsQ.data?.listings || [];
@@ -51,187 +43,143 @@ export function AdminListingsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-emerald-700 text-white py-8 shadow-lg">
-        <div className="max-w-7xl mx-auto px-6">
-          <h1 className="text-3xl font-bold">🍽️ All Listings</h1>
-          <p className="text-green-100 mt-1">View and manage all food listings on the platform</p>
+    <div className="space-y-6">
+      {/* Filter Tabs */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+        <div className="flex gap-2 flex-wrap">
+          {(['all', 'active', 'hidden', 'expired'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                filter === f
+                  ? 'bg-green-600 text-white shadow-lg shadow-green-100'
+                  : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+              }`}
+            >
+              {f.charAt(0).toUpperCase() + f.slice(1)} ({
+                f === 'all' ? listings.length : 
+                f === 'active' ? listings.filter((l: any) => l.status === 'ACTIVE').length :
+                f === 'hidden' ? listings.filter((l: any) => l.status === 'HIDDEN').length :
+                listings.filter((l: any) => l.status === 'EXPIRED' || new Date(l.expiresAt) < new Date()).length
+              })
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Filter Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                filter === 'all'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              All ({listings.length})
-            </button>
-            <button
-              onClick={() => setFilter('active')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                filter === 'active'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Active ({listings.filter((l: any) => l.status === 'ACTIVE').length})
-            </button>
-            <button
-              onClick={() => setFilter('hidden')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                filter === 'hidden'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Hidden ({listings.filter((l: any) => l.status === 'HIDDEN').length})
-            </button>
-            <button
-              onClick={() => setFilter('expired')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                filter === 'expired'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Expired ({listings.filter((l: any) => l.status === 'EXPIRED' || new Date(l.expiresAt) < new Date()).length})
-            </button>
-          </div>
+      {listingsQ.isError ? (
+        <div className="bg-red-50 border border-red-200 rounded-3xl p-12 text-center">
+          <div className="text-6xl mb-4">❌</div>
+          <h2 className="text-xl font-bold text-red-900 mb-2">Error Loading Listings</h2>
+          <p className="text-red-700">Please try refreshing the page or contact support.</p>
         </div>
-
-        {/* Error State */}
-        {listingsQ.isError && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-            <div className="text-4xl mb-3">❌</div>
-            <h2 className="text-xl font-semibold text-red-900 mb-2">Error Loading Listings</h2>
-            <p className="text-red-700">Failed to fetch listings. Please check the console for details.</p>
-          </div>
-        )}
-
-        {/* Listings Grid */}
-        {!listingsQ.isError && listingsQ.isLoading ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">Loading listings...</p>
-          </div>
-        ) : !listingsQ.isError && filteredListings.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <div className="text-6xl mb-4">🍽️</div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">No listings found</h2>
-            <p className="text-gray-600">No listings match the current filter.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredListings.map((listing: any) => {
-              const isExpired = new Date(listing.expiresAt) < new Date();
-              
-              return (
-                <div
-                  key={listing.id}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
-                >
-                  {/* Listing Image */}
+      ) : listingsQ.isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1,2,3,4,5,6].map(i => <div key={i} className="animate-pulse bg-gray-100 h-96 rounded-3xl" />)}
+        </div>
+      ) : filteredListings.length === 0 ? (
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-20 text-center">
+          <div className="text-8xl mb-6">🍽️</div>
+          <h2 className="text-2xl font-black text-gray-900 mb-2">No listings found</h2>
+          <p className="text-gray-500">No items match the current filter criteria.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredListings.map((listing: any) => {
+            const isExpired = new Date(listing.expiresAt) < new Date();
+            
+            return (
+              <div
+                key={listing.id}
+                className="group bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:shadow-green-900/5 transition-all duration-500 transform hover:-translate-y-1"
+              >
+                <div className="relative h-56 bg-gray-50 overflow-hidden">
                   {listing.images && listing.images.length > 0 ? (
-                    <img
-                      src={listing.images[0]}
-                      alt={listing.title}
-                      className="w-full h-48 object-cover"
-                    />
+                    <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   ) : (
-                    <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
-                      <span className="text-6xl">🍽️</span>
-                    </div>
+                    <div className="w-full h-full flex items-center justify-center text-7xl bg-gradient-to-br from-green-50 to-emerald-50">🍽️</div>
                   )}
-
-                  <div className="p-4">
-                    {/* Status Badge */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                          listing.status === 'ACTIVE' && !isExpired
-                            ? 'bg-green-100 text-green-700'
-                            : listing.status === 'HIDDEN'
-                            ? 'bg-gray-100 text-gray-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {isExpired ? 'EXPIRED' : listing.status}
-                      </span>
-                      <span className="text-xs text-gray-500">{listing.category}</span>
-                    </div>
-
-                    {/* Title & Description */}
-                    <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1">
-                      {listing.title}
-                    </h3>
-                    {listing.description && (
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                        {listing.description}
-                      </p>
-                    )}
-
-                    {/* Provider Info */}
-                    <div className="text-xs text-gray-500 mb-3">
-                      <p>Provider: {listing.provider?.businessName || 'Unknown'}</p>
-                      <p>Available: {listing.qtyAvailable} units</p>
-                      <p>Expires: {new Date(listing.expiresAt).toLocaleDateString()}</p>
-                    </div>
-
-                    {/* Pricing */}
-                    <div className="flex items-center gap-2 mb-4">
-                      <span className="text-sm text-gray-500 line-through">
-                        LKR {Number(listing.unitPrice).toFixed(2)}
-                      </span>
-                      <span className="text-lg font-bold text-green-600">
-                        LKR {Number(listing.discountPrice).toFixed(2)}
-                      </span>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                      {listing.status === 'HIDDEN' ? (
-                        <button
-                          onClick={() => toggleStatus.mutate({ id: listing.id, status: 'ACTIVE' })}
-                          disabled={toggleStatus.isPending}
-                          className="flex-1 px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-                        >
-                          Show
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => toggleStatus.mutate({ id: listing.id, status: 'HIDDEN' })}
-                          disabled={toggleStatus.isPending}
-                          className="flex-1 px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
-                        >
-                          Hide
-                        </button>
-                      )}
-                      <button
-                        onClick={() => {
-                          if (window.confirm('Are you sure you want to delete this listing?')) {
-                            deleteListing.mutate(listing.id);
-                          }
-                        }}
-                        disabled={deleteListing.isPending}
-                        className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                  <div className="absolute top-4 left-4 flex gap-2">
+                    <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg ${
+                      listing.status === 'ACTIVE' && !isExpired ? 'bg-green-600 text-white' : 
+                      listing.status === 'HIDDEN' ? 'bg-gray-600 text-white' : 'bg-red-600 text-white'
+                    }`}>
+                      {isExpired ? 'EXPIRED' : listing.status}
+                    </span>
+                    <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-[10px] font-black uppercase tracking-widest text-gray-700 rounded-full shadow-lg">
+                      {listing.category}
+                    </span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+
+                <div className="p-6">
+                  <h3 className="font-black text-xl text-gray-900 mb-2 truncate group-hover:text-green-600 transition-colors">{listing.title}</h3>
+                  <p className="text-sm text-gray-500 mb-4 line-clamp-2 h-10 italic">
+                    {listing.description || 'No description provided'}
+                  </p>
+
+                  <div className="space-y-3 mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-gray-400 uppercase tracking-widest">Provider</span>
+                      <span className="font-bold text-gray-900">{listing.provider?.businessName || 'Unknown'}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-gray-400 uppercase tracking-widest">Available</span>
+                      <span className="font-bold text-gray-900">{listing.qtyAvailable} units</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-gray-400 uppercase tracking-widest">Expires</span>
+                      <span className="font-bold text-red-600">{new Date(listing.expiresAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Price</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-black text-green-600">LKR {Number(listing.discountPrice).toFixed(0)}</span>
+                        <span className="text-xs text-gray-400 line-through">LKR {Number(listing.unitPrice).toFixed(0)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {listing.status === 'HIDDEN' ? (
+                      <button
+                        onClick={() => toggleStatus.mutate({ id: listing.id, status: 'ACTIVE' })}
+                        disabled={toggleStatus.isPending}
+                        className="flex-1 py-3 bg-green-600 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-green-700 disabled:opacity-50 transition-all shadow-lg shadow-green-100"
+                      >
+                        Publish
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => toggleStatus.mutate({ id: listing.id, status: 'HIDDEN' })}
+                        disabled={toggleStatus.isPending}
+                        className="flex-1 py-3 bg-gray-100 text-gray-700 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-gray-200 disabled:opacity-50 transition-all"
+                      >
+                        Hide
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Permanently delete this listing?')) {
+                          deleteListing.mutate(listing.id);
+                        }
+                      }}
+                      disabled={deleteListing.isPending}
+                      className="px-4 py-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all border border-red-100"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

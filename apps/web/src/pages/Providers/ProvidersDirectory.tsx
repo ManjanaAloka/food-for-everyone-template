@@ -16,8 +16,9 @@ export function ProvidersDirectoryPage() {
 
   const providers = providersQ.data?.providers || [];
   
-  // Get unique cities for filter
-  const cities = [...new Set(providers.map((p: any) => p.city).filter(Boolean))];
+  // Get unique cities for filter + some defaults for better UX
+  const defaultCities = ['Colombo', 'Kandy', 'Galle', 'Jaffna', 'Matara', 'Mawanella', 'Negombo', 'Ratnapura'];
+  const cities = [...new Set([...defaultCities, ...providers.map((p: any) => p.city).filter(Boolean)])].sort();
 
   // Filter providers
   const filteredProviders = providers.filter((p: any) => {

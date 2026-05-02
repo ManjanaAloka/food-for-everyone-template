@@ -5,7 +5,7 @@ import { useCart } from '../state/cart';
 import { useAuth } from '../state/auth';
 import { io } from 'socket.io-client';
 import { WS_URL } from '../env';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 
 function getUrgencyBadge(expiresAt: string) {
   const diffHours = (new Date(expiresAt).getTime() - Date.now()) / 3600000;
@@ -16,6 +16,7 @@ function getUrgencyBadge(expiresAt: string) {
 }
 
 export function ListingsPage() {
+  const nav = useNavigate();
   const [searchParams] = useSearchParams();
   const providerId = searchParams.get('provider');
   const [q, setQ] = useState('');
@@ -24,11 +25,13 @@ export function ListingsPage() {
   const [urgency, setUrgency] = useState('');
   const [sort, setSort] = useState('soonest');
   const [showFilters, setShowFilters] = useState(false);
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [radius, setRadius] = useState<string>('');
   const { add } = useCart();
   const { user } = useAuth();
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['listings', q, providerId, category, city, urgency, sort],
+    queryKey: ['listings', q, providerId, category, city, urgency, sort, userLocation, radius],
     queryFn: async () => {
       const params: any = {};
       if (q) params.q = q;
@@ -37,6 +40,11 @@ export function ListingsPage() {
       if (city) params.city = city;
       if (urgency) params.urgency = urgency;
       if (sort) params.sort = sort;
+      if (userLocation) {
+        params.lat = userLocation.lat;
+        params.lng = userLocation.lng;
+        if (radius) params.radius = radius;
+      }
       return (await api.get('/listings', { params })).data;
     }
   });
@@ -83,9 +91,9 @@ export function ListingsPage() {
             />
             <button 
               onClick={() => setShowFilters(!showFilters)}
-              className="px-6 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors flex justify-center items-center gap-2"
+              className={`px-6 py-2.5 font-medium rounded-lg transition-colors flex justify-center items-center gap-2 ${showFilters ? 'bg-green-600 text-white shadow-lg shadow-green-100' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
             >
-              ⚙️ Filters
+              ⚙️ Filters {(category || city || urgency || radius) && <span className="w-2 h-2 bg-red-500 rounded-full" />}
             </button>
           </div>
 
@@ -101,7 +109,21 @@ export function ListingsPage() {
                 <option value="Dairy">Dairy</option>
               </select>
               
-              <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="City (e.g. Colombo)" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" />
+              <select 
+                value={city} 
+                onChange={e => setCity(e.target.value)} 
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+              >
+                <option value="">All Locations</option>
+                <option value="Colombo">Colombo</option>
+                <option value="Kandy">Kandy</option>
+                <option value="Galle">Galle</option>
+                <option value="Jaffna">Jaffna</option>
+                <option value="Matara">Matara</option>
+                <option value="Mawanella">Mawanella</option>
+                <option value="Negombo">Negombo</option>
+                <option value="Ratnapura">Ratnapura</option>
+              </select>
               
               <select value={urgency} onChange={e => setUrgency(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white">
                 <option value="">Any Time</option>
@@ -115,6 +137,38 @@ export function ListingsPage() {
                 <option value="price-asc">Price: Low to High</option>
                 <option value="price-desc">Price: High to Low</option>
               </select>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (userLocation) {
+                      setUserLocation(null);
+                      setRadius('');
+                    } else {
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                        (err) => alert('Please enable location access to use this feature.')
+                      );
+                    }
+                  }}
+                  className={`flex-1 px-4 py-2 rounded-lg font-bold text-sm transition-all border ${userLocation ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300 hover:border-green-500'}`}
+                >
+                  {userLocation ? '📍 My Location Set' : '📍 Set My Location'}
+                </button>
+                {userLocation && (
+                  <select 
+                    value={radius} 
+                    onChange={e => setRadius(e.target.value)}
+                    className="w-24 px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white text-sm"
+                  >
+                    <option value="">Radius</option>
+                    <option value="2">2 km</option>
+                    <option value="5">5 km</option>
+                    <option value="10">10 km</option>
+                    <option value="25">25 km</option>
+                  </select>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -153,9 +207,22 @@ export function ListingsPage() {
 
                 {/* Content */}
                 <div className="p-4 sm:p-6">
-                  <Link to={`/listings/${l.id}`}>
-                    <h3 className="font-bold text-base sm:text-lg text-gray-900 mb-2 sm:mb-3 line-clamp-2 hover:text-green-600 transition-colors">{l.title}</h3>
-                  </Link>
+                  <div className="flex flex-col gap-1 mb-2">
+                    <Link to={`/listings/${l.id}`}>
+                      <h3 className="font-bold text-base sm:text-lg text-gray-900 line-clamp-1 hover:text-green-600 transition-colors">{l.title}</h3>
+                    </Link>
+                    {l.provider && (
+                      <div className="flex items-center justify-between text-xs font-medium">
+                        <Link to={`/providers/${l.providerId}`} className="text-emerald-600 hover:underline">
+                          🏪 {l.provider.businessName}
+                        </Link>
+                        <div className="flex items-center gap-1 text-gray-500">
+                          <span>⭐</span>
+                          <span>{l.provider.ratingAvg?.toFixed(1) || '0.0'}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   
                   {/* Description */}
                   {l.description && (
@@ -195,7 +262,10 @@ export function ListingsPage() {
                       <>
                         <button 
                           className="w-full px-4 py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white text-sm sm:text-base font-semibold rounded-lg hover:shadow-lg transform hover:scale-105 transition-all"
-                          onClick={() => add({ listingId: l.id, title: l.title, providerId: l.providerId, price: Number(l.discountPrice), expiresAt: l.expiresAt }, 1)}
+                          onClick={() => {
+                            add({ listingId: l.id, title: l.title, providerId: l.providerId, price: Number(l.discountPrice), expiresAt: l.expiresAt }, 1);
+                            nav('/checkout');
+                          }}
                         >
                           🛍️ Add to Cart
                         </button>

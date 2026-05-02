@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { ModernNavbar } from '../components/ModernNavbar';
+import { useAuth } from '../state/auth';
 
 export function HomePage() {
+  const { user } = useAuth();
 
   return (
     <>
@@ -23,7 +25,12 @@ export function HomePage() {
               </div>
               
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
-                <div className="text-white mb-2">Start Making a</div>
+                <div className="text-white mb-2 flex items-center gap-4">
+                  Start Making a
+                  <span className="text-xs md:text-sm bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-white/80 font-normal">
+                    📍 Sri Lanka
+                  </span>
+                </div>
                 <div>
                   <span className="bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">Difference</span>
                   {' '}
@@ -36,21 +43,52 @@ export function HomePage() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link 
-                  to="/register" 
-                  className="group flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-green-500/50 hover:shadow-xl hover:shadow-green-500/70 transform hover:scale-105"
-                >
-                  <span>👥</span>
-                  <span>Start Your Journey</span>
-                  <span className="group-hover:translate-x-1 transition-transform">→</span>
-                </Link>
-                <Link 
-                  to="/browse" 
-                  className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-green-400 border border-green-500/30 px-8 py-4 rounded-xl font-semibold transition-all duration-300 backdrop-blur-sm"
-                >
-                  <span>🔍</span>
-                  <span>Explore Food Near You</span>
-                </Link>
+                {user?.role === 'DONATION_CENTER' ? (
+                  <Link 
+                    to="/browse" 
+                    className="group flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-orange-500/50 hover:shadow-xl hover:shadow-orange-500/70 transform hover:scale-105"
+                  >
+                    <span>🍔</span>
+                    <span>Request Food</span>
+                    <span className="group-hover:translate-x-1 transition-transform">→</span>
+                  </Link>
+                ) : user?.role === 'PROVIDER' ? (
+                  <Link 
+                    to="/provider/dashboard" 
+                    className="group flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-500/50 hover:shadow-xl hover:shadow-blue-500/70 transform hover:scale-105"
+                  >
+                    <span>📊</span>
+                    <span>Go to Dashboard</span>
+                    <span className="group-hover:translate-x-1 transition-transform">→</span>
+                  </Link>
+                ) : user?.role === 'CUSTOMER' ? (
+                  <Link 
+                    to="/browse" 
+                    className="group flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-green-500/50 hover:shadow-xl hover:shadow-green-500/70 transform hover:scale-105"
+                  >
+                    <span>🔍</span>
+                    <span>Explore Food Near You</span>
+                    <span className="group-hover:translate-x-1 transition-transform">→</span>
+                  </Link>
+                ) : (
+                  <>
+                    <Link 
+                      to="/register" 
+                      className="group flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-green-500/50 hover:shadow-xl shadow-green-500/70 transform hover:scale-105"
+                    >
+                      <span>👥</span>
+                      <span>Start Your Journey</span>
+                      <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    </Link>
+                    <Link 
+                      to="/browse" 
+                      className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-green-400 border border-green-500/30 px-8 py-4 rounded-xl font-semibold transition-all duration-300 backdrop-blur-sm"
+                    >
+                      <span>🔍</span>
+                      <span>Explore Food Near You</span>
+                    </Link>
+                  </>
+                )}
               </div>
               
               {/* Feature Badges */}
@@ -83,35 +121,40 @@ export function HomePage() {
             </div>
             
             {/* Right Side - Food Cards */}
-            <div className="relative animate-fadeInUp animation-delay-400">
-              <div className="space-y-4">
-                <div className="bg-white rounded-2xl p-6 shadow-xl transform hover:scale-105 transition-transform duration-300">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center text-3xl">
-                      🍕
+            {user?.role !== 'PROVIDER' && (
+              <div className="relative animate-fadeInUp animation-delay-400">
+                <div className="space-y-4">
+                  <div className="bg-white rounded-2xl p-6 shadow-xl transform hover:scale-105 transition-transform duration-300">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center text-3xl">
+                        🍕
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-lg font-bold text-gray-900">Fresh Pizza Available!</div>
+                        <div className="text-sm text-gray-600">Tony's Pizzeria - 200m away</div>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <div className="text-lg font-bold text-gray-900">Fresh Pizza Available!</div>
-                      <div className="text-sm text-gray-600">Tony's Pizzeria - 200m away</div>
+                  </div>
+                  
+                  <div className="bg-white rounded-2xl p-6 shadow-xl transform hover:scale-105 transition-transform duration-300 ml-12">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-xl flex items-center justify-center text-3xl">
+                        🥐
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-lg font-bold text-gray-900">Bakery Items - 50% Off</div>
+                        <div className="text-sm text-gray-600">Sweet Dreams Bakery</div>
+                      </div>
                     </div>
                   </div>
                 </div>
                 
-                <div className="bg-white rounded-2xl p-6 shadow-xl transform hover:scale-105 transition-transform duration-300 ml-12">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-xl flex items-center justify-center text-3xl">
-                      🥐
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-lg font-bold text-gray-900">Bakery Items - 50% Off</div>
-                      <div className="text-sm text-gray-600">Sweet Dreams Bakery</div>
-                    </div>
-                  </div>
+                {/* Floating Plate & Fork Icon */}
+                <div className="absolute -top-12 -right-12 w-24 h-24 bg-white/10 backdrop-blur-md rounded-3xl flex items-center justify-center text-5xl animate-slideInRight shadow-2xl border border-white/20 z-10">
+                  🍽️
                 </div>
               </div>
-              
-
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -203,7 +246,7 @@ export function HomePage() {
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3 text-center">Browse Nearby Food</h3>
               <p className="text-gray-600 text-center">
-                Discover surplus food from local restaurants, bakeries, and grocery stores near you at discounted prices.
+                Discover surplus food from local bakeries and supermarkets near you at discounted prices.
               </p>
             </div>
 
@@ -217,7 +260,7 @@ export function HomePage() {
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3 text-center">Place Your Order</h3>
               <p className="text-gray-600 text-center">
-                Select what you want and choose between pickup or delivery. Pay securely online or with cash on delivery.
+                Pick your favorites, decide on pickup or delivery, and pay safely online or with cash on delivery.
               </p>
             </div>
 
@@ -452,14 +495,15 @@ export function HomePage() {
             {/* Brand */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <span className="text-3xl">🍽️</span>
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <span className="text-2xl">🍽️</span>
+                </div>
                 <span className="font-bold text-xl">Food for Everyone</span>
               </div>
-              <p className="text-gray-400 mb-4">
+              <p className="text-gray-400 mb-6">
                 Fighting food waste and feeding communities across Sri Lanka. Together, we're building a more sustainable future.
               </p>
-              <div className="flex gap-4">
-              </div>
+              {/* Social icons removed */}
             </div>
 
             {/* Quick Links */}

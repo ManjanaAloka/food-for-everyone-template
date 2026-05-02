@@ -200,7 +200,7 @@ export function ListingEditPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Original Price ($) <span className="text-red-500">*</span>
+                Original Price (LKR) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -214,7 +214,7 @@ export function ListingEditPage() {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Discount Price ($) <span className="text-red-500">*</span>
+                Discount Price (LKR) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"

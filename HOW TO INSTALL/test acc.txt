@@ -15,6 +15,3 @@ Service Provider:
 Donation Center:
   Email: center@test.com
   Password: password123
-
-
-  

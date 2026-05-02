@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../state/auth';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export function LoginPage() {
   const { register, handleSubmit } = useForm<{ email: string; password: string }>();
@@ -9,8 +10,21 @@ export function LoginPage() {
   const loc = useLocation() as any;
   
   const handleLogin = async (values: { email: string; password: string }) => {
-    await login(values.email, values.password);
-    nav(loc.state?.from?.pathname || '/');
+    try {
+      const { user } = await login(values.email, values.password);
+      
+      // Success feedback
+      toast.success(`Welcome back, ${user?.name}!`);
+
+      // Role-based redirection
+      if (user?.role === 'ADMIN') {
+        nav('/admin/users');
+      } else {
+        nav(loc.state?.from?.pathname || '/');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Login failed. Please check your credentials.');
+    }
   };
   
   return (
@@ -35,6 +49,7 @@ export function LoginPage() {
                 {...register('email', { required: true })} 
                 type="email"
                 placeholder="you@example.com" 
+                autoComplete="email"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all outline-none" 
               />
             </div>
@@ -45,6 +60,7 @@ export function LoginPage() {
                 {...register('password', { required: true })} 
                 placeholder="••••••••" 
                 type="password" 
+                autoComplete="current-password"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all outline-none" 
               />
             </div>

@@ -8,7 +8,7 @@ import { ah } from '../utils/asyncHandler.js';
 export const router = Router();
 
 router.get('/', ah(async (req, res) => {
-  const { q, category, providerId, city, urgency, minPrice, maxPrice, sort } = req.query;
+  const { q, category, providerId, city, urgency, minPrice, maxPrice, sort, lat, lng, radius } = req.query;
   const now = new Date();
 
   const where: any = { status: 'ACTIVE', expiresAt: { gt: now } };
@@ -34,12 +34,36 @@ router.get('/', ah(async (req, res) => {
   else if (sort === 'price-asc') orderBy = { discountPrice: 'asc' };
   else if (sort === 'price-desc') orderBy = { discountPrice: 'desc' };
 
-  const listings = await prisma.listing.findMany({
+  let listings = await prisma.listing.findMany({
     where,
     orderBy,
     take: 100,
-    include: { provider: { select: { businessName: true, city: true, ratingAvg: true, ratingCount: true } } }
+    include: { provider: { select: { businessName: true, city: true, ratingAvg: true, ratingCount: true, lat: true, lng: true } } }
   });
+
+  // Spatial filtering (Radius in KM)
+  if (lat && lng && radius) {
+    const userLat = Number(lat);
+    const userLng = Number(lng);
+    const rad = Number(radius);
+
+    listings = listings.filter((l: any) => {
+      if (!l.provider?.lat || !l.provider?.lng) return false;
+      
+      const R = 6371; // Earth's radius in km
+      const dLat = (l.provider.lat - userLat) * Math.PI / 180;
+      const dLng = (l.provider.lng - userLng) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(userLat * Math.PI / 180) * Math.cos(l.provider.lat * Math.PI / 180) * 
+        Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c;
+      
+      return distance <= rad;
+    });
+  }
+
   res.json({ listings });
 }));
 

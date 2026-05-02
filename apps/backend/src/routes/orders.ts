@@ -16,7 +16,8 @@ const createOrderSchema = z.object({
   donationRequestId: z.string().optional(),
   scheduledTime: z.string().optional(),
   addressLine: z.string().optional(),
-  city: z.string().optional()
+  city: z.string().optional(),
+  deliveryFee: z.coerce.number().optional()
 });
 
 router.get('/:id', requireAuth, ah(async (req: any, res) => {
@@ -96,7 +97,8 @@ router.post('/', requireAuth, ah(async (req: any, res) => {
     if (item.qty > l.qtyAvailable) return res.status(400).json({ error: `Insufficient qty for ${l.title}` });
     subtotal += Number(l.discountPrice) * item.qty;
   }
-  const total = subtotal;
+  const deliveryFee = body.deliveryFee || 0;
+  const total = subtotal + deliveryFee;
 
   const order = await prisma.$transaction(async (tx) => {
     const o = await tx.order.create({
@@ -112,6 +114,7 @@ router.post('/', requireAuth, ah(async (req: any, res) => {
         scheduledTime: body.scheduledTime ? new Date(body.scheduledTime) : null,
         addressLine: body.addressLine,
         city: body.city,
+        deliveryFee: deliveryFee.toFixed(2),
         subtotal: subtotal.toFixed(2),
         total: total.toFixed(2)
       }
@@ -231,7 +234,7 @@ function canTransition(current: string, next: string, mode: string) {
   return fromTo[current].includes(next);
 }
 async function notifyStatusChange(order: any, status: string, byCenter = false) {
-  const displayId = order.orderNumber ? `OR_${order.orderNumber}` : order.id;
+  const displayId = order.orderNumber ? `O-${order.orderNumber.toString().padStart(4, '0')}` : order.id;
   const subject = `Order ${displayId} status: ${status}`;
   const msg = `<p>Status update for your order <strong>${displayId}</strong>: <strong>${status}</strong>.</p>`;
   await notifyEmail(order.buyer?.email, subject, msg);

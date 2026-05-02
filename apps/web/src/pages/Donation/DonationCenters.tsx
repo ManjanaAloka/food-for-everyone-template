@@ -1,8 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useState } from 'react';
+import { useAuth } from '../../state/auth';
 
 export function DonationCentersPage() {
+  const { user } = useAuth();
   const centers = useQuery({ queryKey: ['centers'], queryFn: async () => (await api.get('/donation-centers')).data });
   const requests = useQuery({ queryKey: ['requests'], queryFn: async () => (await api.get('/donation-centers/requests')).data });
   const [activeTab, setActiveTab] = useState<'centers' | 'requests'>('centers');
@@ -197,20 +198,22 @@ export function DonationCentersPage() {
         )}
 
         {/* Info Banner */}
-        <div className="mt-12 bg-gradient-to-r from-orange-600 to-red-600 rounded-xl p-8 text-white">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-2xl font-bold mb-3">🤝 Help Make a Difference</h2>
-            <p className="text-orange-100 mb-6">
-              When you donate food through our platform, you're helping fight hunger in your community while reducing food waste.
-            </p>
-            <a
-              href="/browse"
-              className="inline-block px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg hover:bg-orange-50 transition-all transform hover:scale-105 shadow-lg"
-            >
-              Browse Food to Donate
-            </a>
+        {user?.role !== 'DONATION_CENTER' && (
+          <div className="mt-12 bg-gradient-to-r from-orange-600 to-red-600 rounded-xl p-8 text-white">
+            <div className="max-w-3xl mx-auto text-center">
+              <h2 className="text-2xl font-bold mb-3">🤝 Help Make a Difference</h2>
+              <p className="text-orange-100 mb-6">
+                When you donate food through our platform, you're helping fight hunger in your community while reducing food waste.
+              </p>
+              <a
+                href="/browse"
+                className="inline-block px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg hover:bg-orange-50 transition-all transform hover:scale-105 shadow-lg"
+              >
+                Browse Food to Donate
+              </a>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

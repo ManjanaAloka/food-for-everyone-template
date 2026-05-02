@@ -60,7 +60,7 @@ export function MyOrdersPage() {
                       <div className="font-bold text-gray-900 line-clamp-1">
                         {o.items.length > 1 ? `${listing?.title} + ${o.items.length - 1} more` : listing?.title}
                       </div>
-                      <div className="text-xs text-gray-400 font-mono mb-1">OR_{o.orderNumber}</div>
+                      <div className="text-xs text-green-600 font-bold font-mono mb-1">O-{o.orderNumber.toString().padStart(4, '0')}</div>
 
                       <div className="flex items-center gap-2">
                         <span className={`text-[10px] px-2 py-0.5 font-bold rounded-full uppercase ${
@@ -73,8 +73,19 @@ export function MyOrdersPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-green-600 font-bold text-sm flex items-center gap-1">
-                    Details <span className="text-lg">→</span>
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="text-green-600 font-bold text-sm flex items-center gap-1">
+                      Details <span className="text-lg">→</span>
+                    </div>
+                    {o.status === 'DELIVERED' && !o.review && (
+                      <Link 
+                        to={`/orders/${o.id}/review`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="px-4 py-1.5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-xs font-bold rounded-lg transition-colors shadow-sm"
+                      >
+                        ⭐ Rate & Review
+                      </Link>
+                    )}
                   </div>
                 </Link>
               );

@@ -97,6 +97,12 @@ export function ProviderDashboardPage() {
                       >
                         Edit
                       </Link>
+                      <Link 
+                        className="px-4 py-2 bg-green-50 border border-green-200 text-green-700 font-medium text-sm rounded-lg hover:bg-green-100 transition-all flex-1 text-center flex items-center justify-center gap-2" 
+                        to={`/provider/listings/${l.id}/orders`}
+                      >
+                        <span>📦</span> Orders
+                      </Link>
                       {l.status === 'HIDDEN'
                         ? <button className="px-4 py-2 bg-green-600 text-white font-medium text-sm rounded-lg hover:bg-green-700 transition-all flex-1" onClick={()=>unhideListing.mutate(l.id)}>Activate</button>
                         : <button className="px-4 py-2 bg-gray-800 text-white font-medium text-sm rounded-lg hover:bg-gray-900 transition-all flex-1" onClick={()=>hideListing.mutate(l.id)}>Hide</button>}

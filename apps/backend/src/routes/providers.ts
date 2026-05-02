@@ -63,6 +63,24 @@ router.get('/me/orders', requireAuth, requireRole('PROVIDER'), ah(async (req: an
   res.json({ orders });
 }));
 
+router.get('/me/listings/:id/orders', requireAuth, requireRole('PROVIDER'), ah(async (req: any, res) => {
+  const { id } = req.params;
+  const orders = await prisma.order.findMany({
+    where: { 
+      providerId: req.user!.sub,
+      items: {
+        some: { listingId: id }
+      }
+    },
+    include: {
+      buyer: { select: { name: true, email: true, phone: true } },
+      items: { include: { listing: true } }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json({ orders });
+}));
+
 router.get('/me/stats', requireAuth, requireRole('PROVIDER'), ah(async (req: any, res) => {
   const providerId = req.user!.sub;
 

@@ -22,6 +22,24 @@ export function CheckoutPage() {
   const { register, handleSubmit, watch, reset, setValue } = useForm<Form>({ defaultValues: { type: 'PERSONAL', fulfillmentMode: 'PICKUP', paymentMethod: 'ONLINE' } });
   const type = watch('type');
   const fulfillmentMode = watch('fulfillmentMode');
+  const donationCenterId = watch('donationCenterId');
+
+  // Handle Donation Center Selection
+  useEffect(() => {
+    if (type === 'DONATION' && donationCenterId) {
+      const center = centersQ.data?.centers?.find((c: any) => c.userId === donationCenterId);
+      if (center) {
+        setValue('fulfillmentMode', 'DELIVERY');
+        setValue('addressLine', center.address || '');
+        setValue('city', center.city || '');
+        setEditingAddress(false);
+      }
+    }
+  }, [donationCenterId, type, centersQ.data, setValue]);
+
+  // Delivery Fee Calculation
+  const deliveryFee = fulfillmentMode === 'DELIVERY' ? 250 : 0;
+  const grandTotal = subtotal + deliveryFee;
 
   // Pre-fill address
   useState(() => {
@@ -117,7 +135,8 @@ export function CheckoutPage() {
             donationCenterId: v.type === 'DONATION' ? v.donationCenterId : undefined,
             scheduledTime: v.scheduledTime,
             addressLine: v.fulfillmentMode === 'DELIVERY' ? v.addressLine : undefined,
-            city: v.fulfillmentMode === 'DELIVERY' ? v.city : undefined
+            city: v.fulfillmentMode === 'DELIVERY' ? v.city : undefined,
+            deliveryFee
           };
           const order = await api.post('/orders', payload).then(r => r.data);
           try {
@@ -136,7 +155,10 @@ export function CheckoutPage() {
               setSession(sess);
             }
           } else {
-            alert('Order placed successfully!');
+            const successMsg = v.fulfillmentMode === 'PICKUP' 
+              ? 'Your order has been reserved successfully!' 
+              : 'Your order has been confirmed and will be delivered soon!';
+            alert(successMsg);
             clear();
             window.location.href = `/orders/${order.orderId}`;
           }
@@ -173,8 +195,8 @@ export function CheckoutPage() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Fulfillment Mode</label>
                   <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" value="PICKUP" {...register('fulfillmentMode')} className="text-green-600 focus:ring-green-500" />
+                    <label className={`flex items-center gap-2 cursor-pointer ${type === 'DONATION' ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <input type="radio" value="PICKUP" {...register('fulfillmentMode')} disabled={type === 'DONATION'} className="text-green-600 focus:ring-green-500" />
                       <span className="text-gray-700">Pickup</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -232,17 +254,17 @@ export function CheckoutPage() {
                     ) : (
                       <>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">Address (for delivery)</label>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">Address (for delivery) *</label>
                           <input 
-                            {...register('addressLine')} 
+                            {...register('addressLine', { required: fulfillmentMode === 'DELIVERY' })} 
                             placeholder="Street address" 
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">City (for delivery)</label>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">City (for delivery) *</label>
                           <input 
-                            {...register('city')} 
+                            {...register('city', { required: fulfillmentMode === 'DELIVERY' })} 
                             placeholder="City" 
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
                           />
@@ -287,13 +309,17 @@ export function CheckoutPage() {
                 <span>Subtotal</span>
                 <span className="font-semibold">LKR {subtotal.toFixed(2)}</span>
               </div>
+              <div className="flex justify-between text-gray-700">
+                <span>Delivery Fee</span>
+                <span className="font-semibold">LKR {deliveryFee.toFixed(2)}</span>
+              </div>
               <div className="border-t border-gray-200 pt-3">
                 <div className="flex justify-between text-lg font-bold text-gray-900">
                   <span>Total</span>
-                  <span>LKR {subtotal.toFixed(2)}</span>
+                  <span>LKR {grandTotal.toFixed(2)}</span>
                 </div>
               </div>
-              <p className="text-sm text-gray-500 mt-2">💡 Delivery fee (if any) will be applied by provider.</p>
+              <p className="text-sm text-gray-500 mt-2">💡 {fulfillmentMode === 'DELIVERY' ? 'Includes standard delivery fee.' : 'No delivery fee for pickup.'}</p>
             </div>
           </div>
         </div>

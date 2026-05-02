@@ -29,10 +29,9 @@ export function ModernNavbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
-            {user?.role === 'ADMIN' ? (
+            {user?.role === 'ADMIN' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'MANAGER' ? (
               <>
-                <NavLink to="/admin">Dashboard</NavLink>
-                <NavLink to="/admin/reviews">Reviews</NavLink>
+                <NavLink to="/admin">Admin Dashboard</NavLink>
               </>
             ) : user?.role === 'PROVIDER' ? (
               <>
@@ -52,7 +51,7 @@ export function ModernNavbar() {
                 <NavLink to="/browse">Browse Food</NavLink>
                 <NavLink to="/donation-centers">Donation Centers</NavLink>
                 <NavLink to="/give-back">Give Back</NavLink>
-                <NavLink to="/impact">Impact</NavLink>
+                <NavLink to="/impact">Contribution</NavLink>
                 <NavLink to="/providers">Providers</NavLink>
 
               </>
@@ -79,20 +78,26 @@ export function ModernNavbar() {
             {/* Auth Buttons */}
             {user ? (
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-lg border border-green-200">
-                  <span className="text-sm font-medium text-gray-800">{user.name}</span>
-                  <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full">
-                    {user.role}
+                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-full border border-green-200 shadow-sm">
+                  <span className="text-sm font-bold text-gray-800">{user.name}</span>
+                  <span className="text-[10px] px-2.5 py-0.5 bg-green-600 text-white rounded-full font-black uppercase tracking-wider">
+                    {user.role === 'DONATION_CENTER' ? 'DONATION CENTER' : user.role}
                   </span>
                 </div>
                 <NotificationsDropdown />
-                {user.role !== 'ADMIN' && (
+                {user.role !== 'ADMIN' && user.role !== 'SYSTEM_ADMIN' && user.role !== 'MANAGER' && (
                   <>
                     <Link 
                       to="/orders" 
                       className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
                     >
                       My Orders
+                    </Link>
+                    <Link 
+                      to="/reports/mine" 
+                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
+                    >
+                      My Contribution
                     </Link>
                     <Link 
                       to="/profile" 
@@ -104,7 +109,7 @@ export function ModernNavbar() {
                 )}
                 <button
                   onClick={() => {
-                    if (user?.role === 'ADMIN') {
+                    if (user?.role === 'ADMIN' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'MANAGER') {
                       setShowLogoutModal(true);
                     } else {
                       logout().then(() => nav('/'));
@@ -170,7 +175,7 @@ export function ModernNavbar() {
                 </MobileNavLink>
 
               </>
-            ) : user?.role !== 'ADMIN' && (
+            ) : user?.role !== 'ADMIN' && user?.role !== 'SYSTEM_ADMIN' && user?.role !== 'MANAGER' && (
               <>
                 <MobileNavLink to="/donation-centers" onClick={() => setMobileMenuOpen(false)}>
                   Donation Centers
@@ -183,7 +188,7 @@ export function ModernNavbar() {
                 </MobileNavLink>
 
                 <MobileNavLink to="/impact" onClick={() => setMobileMenuOpen(false)}>
-                  Impact
+                  Contribution
                 </MobileNavLink>
                 <MobileNavLink to="/providers" onClick={() => setMobileMenuOpen(false)}>
                   Providers

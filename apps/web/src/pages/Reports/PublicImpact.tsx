@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { Link } from 'react-router-dom';
 
 export function PublicImpactPage() {
   const { data, isLoading } = useQuery({ queryKey: ['impact'], queryFn: async () => (await api.get('/reports/public')).data });
@@ -12,13 +13,13 @@ export function PublicImpactPage() {
         {/* Header */}
         <div className="mb-8 sm:mb-12 text-center">
           <div className="inline-block bg-green-100 rounded-full px-4 sm:px-6 py-2 mb-3 sm:mb-4">
-            <span className="text-green-700 font-semibold text-xs sm:text-sm">🌍 Our Impact</span>
+            <span className="text-green-700 font-semibold text-xs sm:text-sm">🌍 Our Contribution</span>
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-3 sm:mb-4">
             Making a Difference Together
           </h1>
           <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-            Every meal saved is a step towards a more sustainable future. Here's the impact we've made together.
+            Every meal saved is a step towards a more sustainable future. Here's the contribution we've made together.
           </p>
         </div>
 
@@ -29,18 +30,22 @@ export function PublicImpactPage() {
           </div>
         ) : (
           <>
-            {/* Impact Stats Grid */}
+            {/* Contribution Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
-              {/* Orders Delivered */}
-              <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all">
+              {/* Consumed Food */}
+              <Link 
+                to="/orders"
+                className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all cursor-pointer block group"
+              >
                 <div className="flex items-center justify-between mb-3 sm:mb-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                     <span className="text-2xl sm:text-3xl">📦</span>
                   </div>
+                  <span className="text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Check History →</span>
                 </div>
                 <div className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">{t.ordersDelivered || 0}</div>
-                <div className="text-xs sm:text-sm font-medium text-gray-600">Orders Delivered</div>
-              </div>
+                <div className="text-xs sm:text-sm font-medium text-gray-600">Consumed Food</div>
+              </Link>
 
               {/* Food Saved */}
               <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all">
@@ -80,12 +85,12 @@ export function PublicImpactPage() {
               </div>
             </div>
 
-            {/* Impact Story Sections */}
+            {/* Contribution Story Sections */}
             <div className="grid sm:grid-cols-2 gap-6 sm:gap-8 mb-8 sm:mb-12">
               {/* Environmental Impact */}
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 sm:p-8">
                 <div className="text-3xl sm:text-4xl mb-3 sm:mb-4">🌍</div>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3">Environmental Impact</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3">Environmental Contribution</h2>
                 <p className="text-sm sm:text-base text-gray-700 mb-3 sm:mb-4">
                   By preventing food waste, we're reducing greenhouse gas emissions and conserving the resources used in food production.
                 </p>
@@ -99,7 +104,7 @@ export function PublicImpactPage() {
               {/* Social Impact */}
               <div className="bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200 rounded-xl p-6 sm:p-8">
                 <div className="text-3xl sm:text-4xl mb-3 sm:mb-4">🤝</div>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3">Social Impact</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3">Social Contribution</h2>
                 <p className="text-sm sm:text-base text-gray-700 mb-3 sm:mb-4">
                   Through our donation program, we're helping ensure that surplus food reaches those who need it most.
                 </p>

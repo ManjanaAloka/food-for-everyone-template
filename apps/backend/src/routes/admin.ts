@@ -108,8 +108,8 @@ router.get('/users', ah(async (req, res) => {
     take: 100,
     orderBy: { createdAt: 'desc' },
     include: {
-      providerProfile: { select: { businessName: true, ratingAvg: true, ratingCount: true } },
-      donationCenterProfile: { select: { name: true } }
+      providerProfile: { select: { businessName: true, ratingAvg: true, ratingCount: true, verifiedAt: true } },
+      donationCenterProfile: { select: { name: true, verifiedAt: true } }
     }
   });
   res.json({ users });

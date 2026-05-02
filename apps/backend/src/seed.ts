@@ -15,7 +15,7 @@ async function main() {
     update: {},
     create: {
       email: 'customer@test.com',
-      name: 'Test Customer',
+      name: 'Amal Perera',
       phone: '1234567890',
       passwordHash: hash,
       role: 'CUSTOMER',
@@ -30,7 +30,7 @@ async function main() {
     update: {},
     create: {
       email: 'provider@test.com',
-      name: 'Test Provider',
+      name: 'Sunil Bakary',
       phone: '1234567891',
       passwordHash: hash,
       role: 'PROVIDER',
@@ -44,7 +44,7 @@ async function main() {
     update: {},
     create: {
       userId: provider.id,
-      businessName: 'Test Restaurant',
+      businessName: 'Sunil Fresh Foods',
       verifiedAt: new Date()
     }
   });
@@ -56,7 +56,7 @@ async function main() {
     update: {},
     create: {
       email: 'center@test.com',
-      name: 'Test Donation Center',
+      name: 'Hope Foundation',
       phone: '1234567892',
       passwordHash: hash,
       role: 'DONATION_CENTER',
@@ -70,7 +70,7 @@ async function main() {
     update: {},
     create: {
       userId: center.id,
-      name: 'Test Food Bank',
+      name: 'Hope Donation Center',
       verifiedAt: new Date()
     }
   });
@@ -82,7 +82,7 @@ async function main() {
     update: {},
     create: {
       email: 'admin@test.com',
-      name: 'Admin User',
+      name: 'System Admin',
       phone: '1234567893',
       passwordHash: hash,
       role: 'ADMIN',

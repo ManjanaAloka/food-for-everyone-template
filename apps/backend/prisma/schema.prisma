@@ -9,6 +9,8 @@ datasource db {
 
 enum Role {
   ADMIN
+  SYSTEM_ADMIN
+  MANAGER
   CUSTOMER
   PROVIDER
   DONATION_CENTER
@@ -115,6 +117,12 @@ model ServiceProvider {
   verifiedAt    DateTime?
   ratingAvg     Float     @default(0)
   ratingCount   Int       @default(0)
+  
+  openHours     String?
+  businessType  String?   // Bakery, Supermarket, Cafe
+  contactPerson String?
+  logo          String?
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -132,6 +140,12 @@ model DonationCenter {
   lng            Float?
   needsProfile   Json?
   verifiedAt     DateTime?
+  
+  centerType     String?   // Elderly Home, Childcare, NGO
+  contactPerson  String?
+  phone          String?
+  beneficiariesCount Int?
+  
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

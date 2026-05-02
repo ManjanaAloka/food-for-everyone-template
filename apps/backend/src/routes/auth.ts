@@ -14,8 +14,22 @@ const registerSchema = z.object({
   phone: z.string().optional(),
   password: z.string().min(8),
   role: z.enum(['CUSTOMER', 'PROVIDER', 'DONATION_CENTER']),
+  
+  // Customer specific
+  address: z.string().optional(),
+  city: z.string().optional(),
+  
+  // Provider specific
   businessName: z.string().optional(),
-  centerName: z.string().optional()
+  brNo: z.string().optional(),
+  openHours: z.string().optional(),
+  businessType: z.string().optional(),
+  contactPerson: z.string().optional(),
+  
+  // Donation Center specific
+  centerName: z.string().optional(),
+  centerType: z.string().optional(),
+  beneficiariesCount: z.coerce.number().optional()
 });
 
 router.post('/register', ah(async (req, res) => {
@@ -29,9 +43,39 @@ router.post('/register', ah(async (req, res) => {
   });
 
   if (data.role === 'PROVIDER') {
-    await prisma.serviceProvider.create({ data: { userId: user.id, businessName: data.businessName || data.name } });
+    await prisma.serviceProvider.create({ 
+      data: { 
+        userId: user.id, 
+        businessName: data.businessName || data.name,
+        brNo: data.brNo,
+        address: data.address,
+        city: data.city,
+        openHours: data.openHours,
+        businessType: data.businessType,
+        contactPerson: data.contactPerson
+      } 
+    });
   } else if (data.role === 'DONATION_CENTER') {
-    await prisma.donationCenter.create({ data: { userId: user.id, name: data.centerName || data.name } });
+    await prisma.donationCenter.create({ 
+      data: { 
+        userId: user.id, 
+        name: data.centerName || data.name,
+        centerType: data.centerType,
+        contactPerson: data.contactPerson,
+        phone: data.phone,
+        address: data.address,
+        city: data.city,
+        beneficiariesCount: data.beneficiariesCount
+      } 
+    });
+  } else if (data.role === 'CUSTOMER') {
+    await prisma.customerProfile.create({
+      data: {
+        userId: user.id,
+        address: data.address,
+        city: data.city
+      }
+    });
   }
 
   res.json({ id: user.id, status: user.status });

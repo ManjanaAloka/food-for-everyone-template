@@ -59,31 +59,7 @@ export function AuthProvider({ children }: any) {
   }
 
   async function logout(password?: string) {
-    // For admin users, require password confirmation
-    if (user?.role === 'ADMIN') {
-      if (!password) {
-        throw new Error('Password required for admin logout');
-      }
-      
-      // Get stored email, or use default admin email
-      let userEmail = localStorage.getItem('userEmail');
-      
-      // If no email stored, try common admin email
-      if (!userEmail) {
-        userEmail = 'admin@food.com';
-      }
-      
-      // Verify password by attempting login
-      try {
-        await api.post('/auth/login', { email: userEmail, password });
-      } catch (error: any) {
-        if (error.response?.status === 401 || error.response?.status === 400) {
-          throw new Error('Incorrect password');
-        }
-        // If login fails for other reasons, allow logout anyway
-        console.error('Password verification error:', error);
-      }
-    }
+    // Admin password requirement removed as per request
     
     await api.post('/auth/logout', {});
     setAT(null);
