@@ -17,13 +17,25 @@ export function LoginPage() {
       toast.success(`Welcome back, ${user?.name}!`);
 
       // Role-based redirection
-      if (user?.role === 'ADMIN') {
+      const intendedPath = loc.state?.from?.pathname;
+      
+      if (user?.role === 'ADMIN' || user?.role === 'SYSTEM_ADMIN') {
         nav('/admin/users');
+      } else if (user?.role === 'PROVIDER') {
+        nav('/provider/dashboard');
+      } else if (user?.role === 'DONATION_CENTER') {
+        nav('/dashboard/center');
       } else {
-        nav(loc.state?.from?.pathname || '/');
+        // Customers or others
+        if (intendedPath && !intendedPath.startsWith('/provider') && !intendedPath.startsWith('/admin')) {
+          nav(intendedPath);
+        } else {
+          nav('/');
+        }
       }
     } catch (error: any) {
-      toast.error(error.message || 'Login failed. Please check your credentials.');
+      const msg = error.response?.data?.error || error.message || 'Login failed. Please check your credentials.';
+      toast.error(msg);
     }
   };
   

@@ -1,9 +1,31 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ModernNavbar } from '../components/ModernNavbar';
 import { useAuth } from '../state/auth';
+import { toast } from 'sonner';
 
 export function HomePage() {
   const { user } = useAuth();
+  const nav = useNavigate();
+
+  const handleLocationSearch = () => {
+    if (navigator.geolocation) {
+      const toastId = toast.loading('Finding your location...');
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          toast.success('Location found!', { id: toastId });
+          nav(`/browse?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}&radius=10`);
+        },
+        (err) => {
+          console.error(err);
+          toast.error('Could not get location. Showing all food.', { id: toastId });
+          nav('/browse');
+        }
+      );
+    } else {
+      toast.error('Geolocation is not supported by your browser.');
+      nav('/browse');
+    }
+  };
 
   return (
     <>
@@ -27,9 +49,6 @@ export function HomePage() {
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
                 <div className="text-white mb-2 flex items-center gap-4">
                   Start Making a
-                  <span className="text-xs md:text-sm bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-white/80 font-normal">
-                    📍 Sri Lanka
-                  </span>
                 </div>
                 <div>
                   <span className="bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">Difference</span>
@@ -62,14 +81,14 @@ export function HomePage() {
                     <span className="group-hover:translate-x-1 transition-transform">→</span>
                   </Link>
                 ) : user?.role === 'CUSTOMER' ? (
-                  <Link 
-                    to="/browse" 
+                  <button 
+                    onClick={handleLocationSearch}
                     className="group flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-green-500/50 hover:shadow-xl hover:shadow-green-500/70 transform hover:scale-105"
                   >
                     <span>🔍</span>
-                    <span>Explore Food Near You</span>
+                    <span>Around My Location</span>
                     <span className="group-hover:translate-x-1 transition-transform">→</span>
-                  </Link>
+                  </button>
                 ) : (
                   <>
                     <Link 
@@ -80,13 +99,13 @@ export function HomePage() {
                       <span>Start Your Journey</span>
                       <span className="group-hover:translate-x-1 transition-transform">→</span>
                     </Link>
-                    <Link 
-                      to="/browse" 
+                    <button 
+                      onClick={handleLocationSearch}
                       className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-green-400 border border-green-500/30 px-8 py-4 rounded-xl font-semibold transition-all duration-300 backdrop-blur-sm"
                     >
                       <span>🔍</span>
-                      <span>Explore Food Near You</span>
-                    </Link>
+                      <span>Around My Location</span>
+                    </button>
                   </>
                 )}
               </div>
@@ -270,7 +289,11 @@ export function HomePage() {
                 3
               </div>
               <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-md">
-                <span className="text-5xl">❤️</span>
+                <img 
+                  src="https://img.icons8.com/arcade/64/food-donor.png" 
+                  alt="food-donor"
+                  className="w-14 h-14 object-contain"
+                />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3 text-center">Enjoy & Make Impact</h3>
               <p className="text-gray-600 text-center">

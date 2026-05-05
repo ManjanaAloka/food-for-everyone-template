@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useCart } from '../state/cart';
 
 export function CheckoutSuccessPage() {
@@ -59,18 +59,18 @@ export function CheckoutSuccessPage() {
 
           {/* Action Buttons */}
           <div className="flex gap-4 justify-center">
-            <button
-              onClick={() => nav('/orders')}
-              className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white font-medium rounded-lg hover:shadow-lg transform hover:scale-105 transition-all"
+            <Link
+              to="/orders"
+              className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white font-medium rounded-lg hover:shadow-lg transform hover:scale-105 transition-all text-center"
             >
               View My Orders
-            </button>
-            <button
-              onClick={() => nav('/browse')}
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-all"
+            </Link>
+            <Link
+              to="/browse"
+              className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-all text-center"
             >
               Continue Shopping
-            </button>
+            </Link>
           </div>
         </div>
       </div>

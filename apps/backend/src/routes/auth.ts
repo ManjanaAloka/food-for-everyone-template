@@ -115,10 +115,30 @@ router.post('/refresh', ah(async (req, res) => {
 
 router.post('/logout', ah(async (req, res) => {
   const token = req.cookies?.refresh_token;
+  
   if (token) {
-    const all = await prisma.refreshToken.findMany({ where: { revoked: false }});
-    for (const r of all) { if (await argon2.verify(r.tokenHash, token)) { await prisma.refreshToken.update({ where: { id: r.id }, data: { revoked: true } }); break; } }
+    try {
+      // Find the specific token to revoke. 
+      // Note: In a high-traffic app, we'd store the token ID in the cookie to avoid argon2.verify on many records.
+      // For now, we take the last 50 active tokens (most likely to be the current one) to limit the search.
+      const recentTokens = await prisma.refreshToken.findMany({ 
+        where: { revoked: false },
+        orderBy: { createdAt: 'desc' },
+        take: 50 
+      });
+
+      for (const r of recentTokens) {
+        if (await argon2.verify(r.tokenHash, token)) {
+          await prisma.refreshToken.update({ where: { id: r.id }, data: { revoked: true } });
+          break;
+        }
+      }
+    } catch (error) {
+      // Log the error but don't fail the logout request
+      console.error('Error revoking token during logout:', error);
+    }
   }
-  res.clearCookie('refresh_token');
+
+  res.clearCookie('refresh_token', { httpOnly: true, sameSite: 'lax', secure: false });
   res.json({ ok: true });
 }));

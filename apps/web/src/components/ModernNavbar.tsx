@@ -42,18 +42,23 @@ export function ModernNavbar() {
             ) : user?.role === 'DONATION_CENTER' ? (
               <>
                 <NavLink to="/dashboard/center">Center Dashboard</NavLink>
-                <NavLink to="/give-back">Give Back</NavLink>
+                <NavLink to="/give-back">Requests</NavLink>
                 <NavLink to="/browse">Browse Food</NavLink>
 
+              </>
+            ) : user?.role === 'CUSTOMER' ? (
+              <>
+                <NavLink to="/browse">Browse Food</NavLink>
+                <NavLink to="/impact">Contribution</NavLink>
+                <NavLink to="/providers">Providers</NavLink>
               </>
             ) : (
               <>
                 <NavLink to="/browse">Browse Food</NavLink>
                 <NavLink to="/donation-centers">Donation Centers</NavLink>
-                <NavLink to="/give-back">Give Back</NavLink>
+                <NavLink to="/give-back">Requests</NavLink>
                 <NavLink to="/impact">Contribution</NavLink>
                 <NavLink to="/providers">Providers</NavLink>
-
               </>
             )}
           </div>
@@ -171,9 +176,24 @@ export function ModernNavbar() {
                   Center Dashboard
                 </MobileNavLink>
                 <MobileNavLink to="/give-back" onClick={() => setMobileMenuOpen(false)}>
-                  Give Back
+                  Requests
                 </MobileNavLink>
 
+              </>
+            ) : user?.role === 'CUSTOMER' ? (
+              <>
+                <MobileNavLink to="/browse" onClick={() => setMobileMenuOpen(false)}>
+                  Browse Food
+                </MobileNavLink>
+                <MobileNavLink to="/profile" onClick={() => setMobileMenuOpen(false)}>
+                  Profile
+                </MobileNavLink>
+                <MobileNavLink to="/impact" onClick={() => setMobileMenuOpen(false)}>
+                  Contribution
+                </MobileNavLink>
+                <MobileNavLink to="/providers" onClick={() => setMobileMenuOpen(false)}>
+                  Providers
+                </MobileNavLink>
               </>
             ) : user?.role !== 'ADMIN' && user?.role !== 'SYSTEM_ADMIN' && user?.role !== 'MANAGER' && (
               <>
@@ -181,19 +201,17 @@ export function ModernNavbar() {
                   Donation Centers
                 </MobileNavLink>
                 <MobileNavLink to="/give-back" onClick={() => setMobileMenuOpen(false)}>
-                  Give Back
+                  Requests
                 </MobileNavLink>
                 <MobileNavLink to="/profile" onClick={() => setMobileMenuOpen(false)}>
                   Profile
                 </MobileNavLink>
-
                 <MobileNavLink to="/impact" onClick={() => setMobileMenuOpen(false)}>
                   Contribution
                 </MobileNavLink>
                 <MobileNavLink to="/providers" onClick={() => setMobileMenuOpen(false)}>
                   Providers
                 </MobileNavLink>
-
               </>
             )}
             

@@ -58,16 +58,19 @@ export function AuthProvider({ children }: any) {
     await api.post('/auth/register', payload);
   }
 
-  async function logout(password?: string) {
-    // Admin password requirement removed as per request
-    
-    await api.post('/auth/logout', {});
-    setAT(null);
-    setUser(null);
-    setAccessToken(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userEmail');
+  async function logout() {
+    try {
+      await api.post('/auth/logout', {});
+    } catch (error) {
+      console.error('Backend logout failed, but clearing local session anyway:', error);
+    } finally {
+      setAT(null);
+      setUser(null);
+      setAccessToken(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('userEmail');
+    }
   }
 
   useEffect(() => {

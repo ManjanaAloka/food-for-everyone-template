@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { ah } from '../utils/asyncHandler.js';
 import { notifyEmail } from '../services/notifications.js';
+import { getPaymentProvider } from '../services/payments/index.js';
 
 export const router = Router();
 
@@ -91,50 +92,67 @@ router.patch('/:id', requireAuth, requireRole('DONATION_CENTER', 'ADMIN'), ah(as
   res.json({ request: updated });
 }));
 
-// ─── INITIATE donation via Stripe Checkout (Customer) ────────────────────────
+// ─── INITIATE donation via Configured Payment Provider (Customer) ───────────
 router.post('/:id/checkout', requireAuth, ah(async (req: any, res) => {
-  if (!stripe) return res.status(500).json({ error: 'Stripe not configured' });
+  console.log('--- DONATION CHECKOUT START ---');
+  try {
+    const { amount } = z.object({ amount: z.coerce.number().positive().min(10) }).parse(req.body);
+    console.log('Amount:', amount);
 
-  const { amount } = z.object({ amount: z.coerce.number().positive().min(10) }).parse(req.body);
-  const request = await prisma.donationRequest.findUnique({
-    where: { id: req.params.id },
-    include: { listing: true }
-  });
-  if (!request) return res.status(404).json({ error: 'Donation request not found' });
-  if (request.status !== 'OPEN') return res.status(400).json({ error: 'Donation request is no longer open' });
+    const request = await prisma.donationRequest.findUnique({
+      where: { id: req.params.id },
+      include: { listing: true }
+    });
+    console.log('Request found:', !!request);
+    
+    if (!request) return res.status(404).json({ error: 'Donation request not found' });
+    if (request.status !== 'OPEN') return res.status(400).json({ error: 'Donation request is no longer open' });
 
-  // Create pending Donation record
-  const donation = await prisma.donation.create({
-    data: {
-      customerId: req.user!.sub,
-      donationRequestId: request.id,
-      amount,
-      status: 'INITIATED'
+    console.log('Finding buyer:', req.user!.sub);
+    const buyer = await prisma.user.findUnique({ where: { id: req.user!.sub } });
+    console.log('Buyer found:', !!buyer);
+
+    // Create pending Donation record
+    console.log('Creating donation record...');
+    const donation = await prisma.donation.create({
+      data: {
+        customerId: req.user!.sub,
+        donationRequestId: request.id,
+        amount,
+        status: 'INITIATED'
+      }
+    });
+    console.log('Donation created:', donation.id);
+
+    const provider = getPaymentProvider();
+    console.log('Provider:', provider.name);
+    
+    // Prepare a pseudo-order for the provider
+    const pseudoOrder = {
+      id: donation.id,
+      total: amount,
+      items: [{ title: `Donation: ${request.title}` }],
+      buyer: {
+        name: buyer?.name || 'Customer',
+        email: buyer?.email || 'noreply@example.com'
+      }
+    };
+
+    console.log('Creating checkout session...');
+    const session = await provider.createCheckoutSession(pseudoOrder);
+    console.log('Session created:', !!session);
+    
+    // Update donation with session ID if applicable (e.g. for Stripe)
+    if (session.url && !session.fields) {
+      await prisma.donation.update({ where: { id: donation.id }, data: { stripeSessionId: session.url } });
     }
-  });
 
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    line_items: [{
-      price_data: {
-        currency: 'lkr',
-        product_data: {
-          name: `Donation: ${request.title}`,
-          description: request.description || 'Food donation contribution'
-        },
-        unit_amount: Math.round(amount * 100)
-      },
-      quantity: 1
-    }],
-    mode: 'payment',
-    success_url: `${process.env.STRIPE_SUCCESS_URL || 'http://localhost:5173/checkout/success'}?type=donation&request_id=${request.id}`,
-    cancel_url: `${process.env.STRIPE_CANCEL_URL || 'http://localhost:5173/checkout/cancel'}?type=donation`,
-    client_reference_id: donation.id,
-    metadata: { donationId: donation.id, donationRequestId: request.id }
-  });
-
-  await prisma.donation.update({ where: { id: donation.id }, data: { stripeSessionId: session.id } });
-  res.json({ url: session.url });
+    res.json(session);
+  } catch (err: any) {
+    console.error('--- DONATION CHECKOUT ERROR ---');
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Internal Server Error' });
+  }
 }));
 
 // ─── Stripe webhook for donation payments ─────────────────────────────────────

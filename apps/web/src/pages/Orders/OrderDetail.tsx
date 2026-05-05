@@ -66,7 +66,23 @@ export function OrderDetailPage() {
           <span className="font-medium text-gray-900">Payment:</span> {o.paymentMethod || 'ONLINE'} 
           {o.paymentMethod === 'COD' && o.status === 'DELIVERED' && <span className="ml-1 text-green-600 font-semibold">(Collected)</span>}
           {o.paymentMethod === 'COD' && o.status !== 'DELIVERED' && <span className="ml-1 text-orange-600 font-semibold">(To Collect)</span>}
-          {o.paymentMethod === 'ONLINE' && <span className="ml-1 text-green-600 font-semibold">(Paid)</span>}
+          {o.paymentMethod === 'ONLINE' && ['PAID', 'PENDING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(o.status) && <span className="ml-1 text-green-600 font-semibold">(Paid)</span>}
+          {o.paymentMethod === 'ONLINE' && ['AWAITING_PAYMENT', 'CREATED', 'RESERVED'].includes(o.status) && (
+            <>
+              <span className="ml-1 text-orange-600 font-semibold">(Pending)</span>
+              <button 
+                onClick={async () => {
+                  if (window.confirm('DEBUG: Simulate payment success?')) {
+                    await api.post('/payments/simulate-success', { orderId: o.id });
+                    qc.invalidateQueries({ queryKey: ['order', id] });
+                  }
+                }}
+                className="ml-3 px-2 py-0.5 bg-gray-800 text-white text-[10px] rounded hover:bg-black transition-colors"
+              >
+                🛠 Simulate Pay
+              </button>
+            </>
+          )}
         </div>
       </div>
       <div className="space-y-3 mb-6">

@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useState, useEffect } from 'react';
+import { AutoSubmitForm } from '../../components/AutoSubmitForm';
 import { useCart } from '../../state/cart';
 import { useAuth } from '../../state/auth';
 import { toast } from 'sonner';
@@ -69,6 +70,9 @@ function ProgressBar({ raised, target }: { raised: number; target: number }) {
 
 export function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const nav = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isDonateMode = searchParams.get('mode') === 'donate';
   const [activeImg, setActiveImg] = useState(0);
   const [qty, setQty] = useState(1);
   const { items: cart, add: addToCart } = useCart();
@@ -80,6 +84,7 @@ export function ListingDetailPage() {
   const [donateQty, setDonateQty] = useState(1);
   const [reqQty, setReqQty] = useState(1);
   const queryClient = useQueryClient();
+  const [paymentSession, setPaymentSession] = useState<any>(null);
 
 
   const { data, isLoading, error } = useQuery({
@@ -117,8 +122,20 @@ export function ListingDetailPage() {
 
   const { mutate: initiateDonation, isPending: isDonating } = useMutation({
     mutationFn: async ({ reqId, amount }: { reqId: string, amount: number }) => {
-      const res = await api.post(`/donations/${reqId}/checkout`, { amount });
-      window.location.href = res.data.url;
+      const sess = (await api.post(`/donations/${reqId}/checkout`, { amount })).data;
+      console.log('Payment Session:', sess);
+      if (sess.method === 'GET' && sess.url) {
+        window.location.href = sess.url;
+      } else if (sess.fields) {
+        setShowDonateModal(false);
+        setPaymentSession(sess);
+      } else {
+        throw new Error('Invalid payment session received');
+      }
+    },
+    onError: (err: any) => {
+      console.error('Checkout error:', err);
+      toast.error(err.response?.data?.error || err.message || 'Failed to initiate payment');
     }
   });
 
@@ -270,18 +287,29 @@ export function ListingDetailPage() {
                     >+</button>
                   </div>
                 </div>
-                <button
-                  onClick={handleAddToCart}
-                  className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl text-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-green-500/30"
-                >
-                  🛒 Add to Cart — LKR {(Number(listing.discountPrice) * qty).toFixed(2)}
-                </button>
-                <Link
-                  to="/checkout"
-                  className="block w-full py-3 border-2 border-green-500 text-green-600 font-semibold rounded-xl text-center hover:bg-green-50 transition-all"
-                >
-                  ⚡ Buy Now
-                </Link>
+                {!isDonateMode && (
+                  <button
+                    onClick={handleAddToCart}
+                    className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl text-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-green-500/30"
+                  >
+                    🛒 Add to Cart — LKR {(Number(listing.discountPrice) * qty).toFixed(2)}
+                  </button>
+                )}
+                {isDonateMode ? (
+                  <button
+                    onClick={() => document.getElementById('donation-requests')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="block w-full py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-xl text-center hover:from-orange-600 hover:to-red-700 shadow-lg shadow-orange-500/30 transition-all transform hover:scale-[1.02]"
+                  >
+                    💝 Donate Now
+                  </button>
+                ) : (
+                  <Link
+                    to="/checkout"
+                    className="block w-full py-3 border-2 border-green-500 text-green-600 font-semibold rounded-xl text-center hover:bg-green-50 transition-all"
+                  >
+                    ⚡ Buy Now
+                  </Link>
+                )}
               </div>
             ) : (
               <div className="bg-gray-100 rounded-xl p-4 text-center text-gray-500 font-medium">
@@ -333,7 +361,7 @@ export function ListingDetailPage() {
 
         {/* Active Donation Requests for this Listing */}
         {requestsData?.requests?.length > 0 && (
-          <div className="mt-8 bg-green-50 rounded-2xl p-6 border border-green-100">
+          <div id="donation-requests" className="mt-8 bg-green-50 rounded-2xl p-6 border border-green-100 scroll-mt-20">
             <h2 className="text-xl font-bold text-green-900 mb-4 flex items-center gap-2">
               <span>🤝</span> Help these Donation Centers
             </h2>
@@ -546,7 +574,14 @@ export function ListingDetailPage() {
               </div>
 
               <button 
-                onClick={() => initiateDonation({ reqId: selectedReq.id, amount: donateQty * Number(listing.discountPrice) })}
+                onClick={() => {
+                  if (!user) {
+                    toast.error('Please login to make a donation');
+                    nav('/login');
+                    return;
+                  }
+                  initiateDonation({ reqId: selectedReq.id, amount: donateQty * Number(listing.discountPrice) });
+                }}
                 disabled={isDonating}
                 className="w-full py-5 bg-gradient-to-r from-green-600 to-emerald-700 text-white font-black rounded-2xl shadow-xl shadow-green-500/30 hover:shadow-green-500/50 transform hover:-translate-y-1 transition-all disabled:opacity-50 text-lg uppercase tracking-widest"
               >
@@ -558,6 +593,15 @@ export function ListingDetailPage() {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {paymentSession && (
+        <div className="fixed inset-0 bg-white/80 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-4xl mb-6 animate-bounce">💳</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Connecting to PayHere...</h2>
+          <p className="text-gray-600 mb-8 max-w-sm">Please do not close this window. You are being redirected to our secure payment gateway.</p>
+          <AutoSubmitForm url={paymentSession.url} fields={paymentSession.fields} method={paymentSession.method} />
         </div>
       )}
     </div>

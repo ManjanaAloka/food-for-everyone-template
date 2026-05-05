@@ -19,14 +19,20 @@ export function ListingsPage() {
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
   const providerId = searchParams.get('provider');
+  const initialLat = searchParams.get('lat');
+  const initialLng = searchParams.get('lng');
+  const initialRadius = searchParams.get('radius');
+
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
   const [city, setCity] = useState('');
   const [urgency, setUrgency] = useState('');
   const [sort, setSort] = useState('soonest');
   const [showFilters, setShowFilters] = useState(false);
-  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [radius, setRadius] = useState<string>('');
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(
+    initialLat && initialLng ? { lat: Number(initialLat), lng: Number(initialLng) } : null
+  );
+  const [radius, setRadius] = useState<string>(initialRadius || '');
   const { add } = useCart();
   const { user } = useAuth();
 
@@ -270,7 +276,7 @@ export function ListingsPage() {
                           🛍️ Add to Cart
                         </button>
                         <Link
-                          to={`/listings/${l.id}`}
+                          to={`/listings/${l.id}?mode=donate`}
                           className="block text-center w-full px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors border border-green-200 text-sm"
                         >
                           🤝 Donate this item

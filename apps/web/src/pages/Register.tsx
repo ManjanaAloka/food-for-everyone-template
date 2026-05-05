@@ -46,7 +46,8 @@ export function RegisterPage() {
       }
       nav('/login');
     } catch (err: any) {
-      toast.error(err.message || 'Registration failed');
+      const msg = err.response?.data?.error || err.message || 'Registration failed';
+      toast.error(msg);
     }
   };
 

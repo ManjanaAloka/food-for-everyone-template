@@ -21,9 +21,12 @@ export const payHereProvider = {
     const [first_name, ...rest] = fullName.split(' ');
     const last_name = rest.join(' ') || 'â€”';
 
+    const secretHash = md5Upper(process.env.PAYHERE_MERCHANT_SECRET!);
+    const hash = md5Upper(merchant_id + order.id + amount + currency + secretHash);
+
     const fields: Record<string, string> = {
       merchant_id, return_url, cancel_url, notify_url,
-      order_id: order.id, items, currency, amount,
+      order_id: order.id, items, currency, amount, hash,
       first_name, last_name,
       email: order.buyer?.email || 'noreply@example.com',
       phone: order.buyer?.phone || '',

@@ -146,4 +146,29 @@ curl http://localhost:4000/health
 4. **Monitor backend console** for any remaining errors
 5. If you see any errors, share them and I'll fix them immediately
 
-All major route errors have been resolved! 🎉
+- ✅ `POST /api/auth/logout` - Optimized and made robust against database failures.
+- ✅ Error Middleware - Now detects and reports database connection issues clearly.
+- ✅ Frontend Auth - Logout now clears local state even if the server is down.
+
+---
+
+## 🛑 Ongoing Issues & Troubleshooting
+
+### 1. **"Database connection failed" / 503 Errors**
+If you see this error, it means the backend cannot reach your MySQL database.
+
+**Fix:**
+1. Ensure **Docker Desktop** is running.
+2. Run the infrastructure services:
+   ```bash
+   cd infra
+   docker-compose up -d
+   ```
+3. Check your `apps/backend/.env` file. If you are using the default Docker setup, the password should be `root`:
+   ```env
+   DATABASE_URL="mysql://root:root@localhost:3306/ffe"
+   ```
+
+---
+
+## 📝 Next Steps
