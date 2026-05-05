@@ -40,8 +40,24 @@ function CountdownTimer({ expiresAt }: { expiresAt: string }) {
   return <span className="font-mono font-bold">{timeLeft}</span>;
 }
 
-function ProgressBar({ raised, target }: { raised: number; target: number }) {
+function ProgressBar({ raised, target, requestId }: { raised: number; target: number; requestId?: string }) {
   const pct = target > 0 ? Math.min(100, (raised / target) * 100) : 0;
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const handleSimulate = async () => {
+    if (!requestId) return;
+    try {
+      const res = await api.post('/payments/simulate-success', { donationRequestId: requestId });
+      if (res.data.success) {
+        toast.success('Donation simulated successfully! 💝');
+        queryClient.invalidateQueries();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Simulation failed. Click "Donate" first!');
+    }
+  };
+
   return (
     <div className="relative pt-1">
       <div className="flex mb-2 items-center justify-between">
@@ -49,6 +65,15 @@ function ProgressBar({ raised, target }: { raised: number; target: number }) {
           <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-green-600 bg-green-200">
             {pct.toFixed(0)}% Funded
           </span>
+          {/* Always show in dev mode if we have a requestId */}
+          {requestId && (
+            <button 
+              onClick={handleSimulate}
+              className="ml-2 text-[10px] bg-yellow-400 hover:bg-yellow-500 text-yellow-900 px-2 py-0.5 rounded-md font-bold transition-colors shadow-sm"
+            >
+              🛠 Simulate Pay
+            </button>
+          )}
         </div>
         <div className="text-right">
           <span className="text-xs font-semibold inline-block text-green-600">
@@ -85,6 +110,7 @@ export function ListingDetailPage() {
   const [reqQty, setReqQty] = useState(1);
   const queryClient = useQueryClient();
   const [paymentSession, setPaymentSession] = useState<any>(null);
+  const [pendingDonationId, setPendingDonationId] = useState<string | null>(null);
 
 
   const { data, isLoading, error } = useQuery({
@@ -124,6 +150,12 @@ export function ListingDetailPage() {
     mutationFn: async ({ reqId, amount }: { reqId: string, amount: number }) => {
       const sess = (await api.post(`/donations/${reqId}/checkout`, { amount })).data;
       console.log('Payment Session:', sess);
+      
+      // Store the donation ID (it's the order_id in PayHere fields)
+      if (sess.fields?.order_id) {
+        setPendingDonationId(sess.fields.order_id);
+      }
+
       if (sess.method === 'GET' && sess.url) {
         window.location.href = sess.url;
       } else if (sess.fields) {
@@ -376,7 +408,7 @@ export function ListingDetailPage() {
                     <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Active Request</span>
                   </div>
                   
-                  <ProgressBar raised={Number(req.raisedAmount)} target={Number(req.targetAmount)} />
+                  <ProgressBar raised={Number(req.raisedAmount)} target={Number(req.targetAmount)} requestId={req.id} />
                   
                   {user?.role !== 'DONATION_CENTER' && user?.role !== 'PROVIDER' && (
                     <button
@@ -526,7 +558,10 @@ export function ListingDetailPage() {
                     <p className="text-xs text-gray-500 font-bold uppercase mt-1">Units</p>
                   </div>
                   <button 
-                    onClick={() => setDonateQty(donateQty + 1)}
+                    onClick={() => {
+                      const remaining = selectedReq.targetQty - (selectedReq.fulfilledQty || 0);
+                      setDonateQty(Math.min(remaining, donateQty + 1));
+                    }}
                     className="w-12 h-12 rounded-full border-2 border-gray-100 flex items-center justify-center text-2xl font-bold text-gray-400 hover:border-green-500 hover:text-green-600 transition-all"
                   >
                     +

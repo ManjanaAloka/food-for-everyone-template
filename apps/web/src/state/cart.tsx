@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
+import { toast } from 'sonner';
 
-export type CartItem = { listingId: string; title: string; providerId: string; price: number; qty: number; expiresAt: string; };
+export type CartItem = { listingId: string; title: string; providerId: string; price: number; qty: number; expiresAt: string; qtyAvailable: number; };
 type CtxType = { items: CartItem[]; add: (item: Omit<CartItem, 'qty'>, qty?: number) => void; remove: (listingId: string) => void; setQty: (listingId: string, qty: number) => void; clear: () => void; subtotal: number; };
 const Ctx = createContext<CtxType>({} as any);
 const LS_KEY = 'ffe_cart';
@@ -13,7 +14,21 @@ export function CartProvider({ children }: any) {
   const add = useCallback((item: Omit<CartItem, 'qty'>, qty = 1) => {
     setItems((cur) => {
       const idx = cur.findIndex(x => x.listingId === item.listingId);
-      if (idx >= 0) { const copy = [...cur]; copy[idx] = { ...copy[idx], qty: copy[idx].qty + qty }; return copy; }
+      if (idx >= 0) {
+        const copy = [...cur];
+        const newQty = copy[idx].qty + qty;
+        if (newQty > item.qtyAvailable) {
+          toast.error(`Only ${item.qtyAvailable} items available in stock!`, { id: 'qty-limit' });
+          copy[idx] = { ...copy[idx], qty: item.qtyAvailable };
+        } else {
+          copy[idx] = { ...copy[idx], qty: newQty };
+        }
+        return copy;
+      }
+      if (qty > item.qtyAvailable) {
+        toast.error(`Only ${item.qtyAvailable} items available in stock!`, { id: 'qty-limit' });
+        return [...cur, { ...item, qty: item.qtyAvailable }];
+      }
       return [...cur, { ...item, qty }];
     });
   }, []);
@@ -23,7 +38,16 @@ export function CartProvider({ children }: any) {
   }, []);
 
   const setQty = useCallback((listingId: string, qty: number) => { 
-    setItems((cur) => cur.map(x => x.listingId === listingId ? { ...x, qty } : x)); 
+    setItems((cur) => cur.map(x => {
+      if (x.listingId === listingId) {
+        if (qty > x.qtyAvailable) {
+          toast.error(`Only ${x.qtyAvailable} items available in stock!`, { id: 'qty-limit' });
+          return { ...x, qty: x.qtyAvailable };
+        }
+        return { ...x, qty };
+      }
+      return x;
+    })); 
   }, []);
 
   const clear = useCallback(() => { 

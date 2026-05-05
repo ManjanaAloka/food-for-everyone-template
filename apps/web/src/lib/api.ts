@@ -15,6 +15,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Add a response interceptor to handle 401 Unauthorized errors globally
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      console.warn('⚠️ 401 Unauthorized received. Clearing token and reloading.');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+      accessToken = null;
+      window.location.href = '/login'; // Redirect to login
+    }
+    return Promise.reject(error);
+  }
+);
+
 export function setAccessToken(token: string | null) {
   accessToken = token;
   if (token) {

@@ -14,6 +14,7 @@ import { ProviderProfilePage } from './pages/Providers/ProviderProfile';
 import { DonationCentersPage } from './pages/Donation/DonationCenters';
 import { GiveBackPage } from './pages/Donation/GiveBack';
 import { DonationCenterDashboardPage } from './pages/Donation/DonationCenterDashboard';
+import { DonationCenterProfilePage } from './pages/Donation/DonationCenterProfile';
 import { ListingCreatePage } from './pages/Provider/ListingCreate';
 import { ListingEditPage } from './pages/Provider/ListingEdit';
 import { ApprovalsPage } from './pages/Admin/Approvals';
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="/donation-centers" element={<><ModernNavbar /><div className="max-w-6xl mx-auto p-4 pt-20"><DonationCentersPage /></div></>} />
         <Route path="/give-back" element={<><ModernNavbar /><GiveBackPage /></>} />
         <Route path="/impact" element={<><ModernNavbar /><div className="max-w-6xl mx-auto p-4 pt-20"><PublicImpactPage /></div></>} />
+        <Route path="/donation-centers/:id" element={<><ModernNavbar /><DonationCenterProfilePage /></>} />
         <Route path="/providers" element={<><ModernNavbar /><ProvidersDirectoryPage /></>} />
         <Route path="/providers/:id" element={<><ModernNavbar /><ProviderProfilePage /></>} />
         <Route path="/reports/mine" element={<><ModernNavbar /><div className="max-w-6xl mx-auto p-4 pt-20"><Protected><CustomerContributionPage /></Protected></div></>} />

@@ -20,6 +20,27 @@ const createOrderSchema = z.object({
   deliveryFee: z.coerce.number().optional()
 });
 
+router.get('/center', requireAuth, requireRole('DONATION_CENTER'), ah(async (req: any, res) => {
+  const orders = await prisma.order.findMany({
+    where: { 
+      donationCenterId: req.user!.sub,
+      status: { notIn: ['CANCELED'] }
+    },
+    include: {
+      items: {
+        include: {
+          listing: true
+        }
+      },
+      buyer: {
+        select: { name: true, email: true, phone: true }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json({ orders });
+}));
+
 router.get('/:id', requireAuth, ah(async (req: any, res) => {
   const order = await prisma.order.findUnique({ 
     where: { id: req.params.id }, 
@@ -51,27 +72,6 @@ router.get('/', requireAuth, ah(async (req: any, res) => {
         include: {
           listing: true
         }
-      }
-    },
-    orderBy: { createdAt: 'desc' }
-  });
-  res.json({ orders });
-}));
-
-router.get('/center', requireAuth, requireRole('DONATION_CENTER'), ah(async (req: any, res) => {
-  const orders = await prisma.order.findMany({
-    where: { 
-      donationCenterId: req.user!.sub,
-      status: { notIn: ['CANCELED'] }
-    },
-    include: {
-      items: {
-        include: {
-          listing: true
-        }
-      },
-      buyer: {
-        select: { name: true, email: true, phone: true }
       }
     },
     orderBy: { createdAt: 'desc' }

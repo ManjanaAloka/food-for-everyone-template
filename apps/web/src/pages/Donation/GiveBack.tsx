@@ -4,6 +4,7 @@ import { useAuth } from '../../state/auth';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { io as socketIO } from 'socket.io-client';
+import { Link } from 'react-router-dom';
 
 function ProgressBar({ raised, target }: { raised: number; target: number }) {
   const pct = target > 0 ? Math.min(100, (raised / target) * 100) : 0;
@@ -209,10 +210,15 @@ export function GiveBackPage() {
                   <div key={r.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-6">
                     {/* Center name */}
                     {r.center && (
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-lg">🏥</span>
-                        <span className="text-sm font-medium text-gray-600">{r.center.name}</span>
-                      </div>
+                      <Link 
+                        to={`/donation-centers/${r.centerId}`}
+                        className="flex items-center gap-2 mb-3 hover:text-orange-600 transition-colors group"
+                      >
+                        <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center group-hover:bg-orange-200 transition-colors overflow-hidden">
+                          {r.center.image ? <img src={r.center.image} className="w-full h-full object-cover" /> : <span className="text-sm">🏥</span>}
+                        </div>
+                        <span className="text-sm font-bold text-gray-700">{r.center.name}</span>
+                      </Link>
                     )}
 
                     <h3 className="text-xl font-bold text-gray-900 mb-2">{r.title}</h3>

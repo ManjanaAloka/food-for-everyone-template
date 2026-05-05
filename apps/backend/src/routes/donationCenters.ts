@@ -9,7 +9,7 @@ export const router = Router();
 router.get('/', ah(async (_req, res) => {
   const centers = await prisma.donationCenter.findMany({
     where: { verifiedAt: { not: null } },
-    select: { userId: true, name: true, address: true, lat: true, lng: true }
+    select: { userId: true, name: true, address: true, lat: true, lng: true, image: true }
   });
   res.json({ centers });
 }));
@@ -20,6 +20,20 @@ router.get('/requests', ah(async (_req, res) => {
     orderBy: { createdAt: 'desc' }
   });
   res.json({ requests });
+}));
+
+router.get('/:id', ah(async (req, res) => {
+  const { id } = req.params;
+  const center = await prisma.donationCenter.findUnique({
+    where: { userId: id },
+    include: {
+      user: { select: { email: true, name: true } },
+      requests: { where: { status: 'OPEN' }, include: { listing: true } },
+      activities: { orderBy: { createdAt: 'desc' } }
+    }
+  });
+  if (!center) return res.status(404).json({ error: 'Center not found' });
+  res.json({ center });
 }));
 
 router.post('/requests', requireAuth, requireRole('DONATION_CENTER'), ah(async (req: any, res) => {

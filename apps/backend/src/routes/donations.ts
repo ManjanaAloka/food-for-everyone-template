@@ -31,6 +31,29 @@ router.get('/', ah(async (req, res) => {
 }));
 
 
+// ─── GET my donation history (Customer) ──────────────────────────────────────
+router.get('/my/history', requireAuth, ah(async (req: any, res) => {
+  const donations = await prisma.donation.findMany({
+    where: { customerId: req.user!.sub, status: 'SUCCEEDED' },
+    include: { donationRequest: { select: { title: true, status: true } } },
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json({ donations });
+}));
+
+// ─── GET my donation requests (Donation Center) ───────────────────────────────
+router.get('/center/my-requests', requireAuth, requireRole('DONATION_CENTER'), ah(async (req: any, res) => {
+  const requests = await prisma.donationRequest.findMany({
+    where: { centerId: req.user!.sub },
+    include: {
+      listing: { select: { title: true, images: true, discountPrice: true } },
+      donations: { where: { status: 'SUCCEEDED' }, select: { amount: true, createdAt: true } }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json({ requests });
+}));
+
 // ─── GET single donation request ─────────────────────────────────────────────
 router.get('/:id', ah(async (req, res) => {
   const request = await prisma.donationRequest.findUnique({
@@ -107,6 +130,12 @@ router.post('/:id/checkout', requireAuth, ah(async (req: any, res) => {
     
     if (!request) return res.status(404).json({ error: 'Donation request not found' });
     if (request.status !== 'OPEN') return res.status(400).json({ error: 'Donation request is no longer open' });
+
+    // Check if amount exceeds remaining needed
+    const remainingNeeded = Number(request.targetAmount) - Number(request.raisedAmount);
+    if (amount > remainingNeeded + 0.01) { // 0.01 buffer for float issues
+      return res.status(400).json({ error: `You can only donate up to LKR ${remainingNeeded.toFixed(2)} for this request.` });
+    }
 
     console.log('Finding buyer:', req.user!.sub);
     const buyer = await prisma.user.findUnique({ where: { id: req.user!.sub } });
@@ -221,7 +250,14 @@ router.post('/webhook/stripe', express.raw({ type: 'application/json' }), ah(asy
               }
             });
             await tx.orderItem.create({
-              data: { orderId: o.id, listingId: listing.id, qty, unitPrice: price, totalPrice: price * qty }
+              data: { 
+                orderId: o.id, 
+                listingId: listing.id, 
+                providerId: listing.providerId,
+                qty, 
+                unitPrice: price, 
+                snapshotExpiresAt: listing.expiresAt
+              }
             });
             await tx.listing.update({
               where: { id: listing.id },
@@ -264,25 +300,4 @@ router.post('/webhook/stripe', express.raw({ type: 'application/json' }), ah(asy
   res.json({ received: true });
 }));
 
-// ─── GET my donation history (Customer) ──────────────────────────────────────
-router.get('/my/history', requireAuth, ah(async (req: any, res) => {
-  const donations = await prisma.donation.findMany({
-    where: { customerId: req.user!.sub, status: 'SUCCEEDED' },
-    include: { donationRequest: { select: { title: true, status: true } } },
-    orderBy: { createdAt: 'desc' }
-  });
-  res.json({ donations });
-}));
 
-// ─── GET my donation requests (Donation Center) ───────────────────────────────
-router.get('/center/my-requests', requireAuth, requireRole('DONATION_CENTER'), ah(async (req: any, res) => {
-  const requests = await prisma.donationRequest.findMany({
-    where: { centerId: req.user!.sub },
-    include: {
-      listing: { select: { title: true, images: true, discountPrice: true } },
-      donations: { where: { status: 'SUCCEEDED' }, select: { amount: true, createdAt: true } }
-    },
-    orderBy: { createdAt: 'desc' }
-  });
-  res.json({ requests });
-}));

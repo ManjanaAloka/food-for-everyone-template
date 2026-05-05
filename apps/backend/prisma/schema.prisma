@@ -146,11 +146,24 @@ model DonationCenter {
   phone          String?
   beneficiariesCount Int?
   
+  image          String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
   donationOrders Order[]  @relation("DonationCenterOrders")
   requests       DonationRequest[]
+  activities     DonationCenterActivity[]
+}
+
+model DonationCenterActivity {
+  id           String   @id @default(cuid())
+  centerId     String
+  center       DonationCenter @relation(fields: [centerId], references: [userId])
+  title        String
+  content      String   @db.Text
+  images       Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model CustomerProfile {

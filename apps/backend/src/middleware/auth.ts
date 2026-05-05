@@ -11,7 +11,10 @@ export function requireAuth(req: Request & { user?: JWTPayload }, res: Response,
     const payload = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     req.user = payload;
     next();
-  } catch { return res.status(401).json({ error: 'Invalid token' }); }
+  } catch (error: any) { 
+    console.error('JWT Verification Error:', error.message);
+    return res.status(401).json({ error: 'Invalid token' }); 
+  }
 }
 
 export function requireRole(...roles: string[]) {

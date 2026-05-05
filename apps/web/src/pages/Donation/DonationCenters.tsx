@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useState } from 'react';
 import { useAuth } from '../../state/auth';
+import { Link } from 'react-router-dom';
 
 export function DonationCentersPage() {
   const { user } = useAuth();
@@ -64,50 +65,36 @@ export function DonationCentersPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {centers.data?.centers?.map((c: any) => (
-                  <div
+                  <Link
                     key={c.userId}
-                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all"
+                    to={`/donation-centers/${c.userId}`}
+                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg hover:-translate-y-1 transition-all group block"
                   >
                     {/* Center Icon */}
-                    <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-                      <span className="text-3xl">🏥</span>
+                    <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <span className="text-3xl">{c.image ? <img src={c.image} className="w-full h-full object-cover rounded-2xl" /> : '🏥'}</span>
                     </div>
 
                     {/* Center Name */}
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{c.name}</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">{c.name}</h3>
 
                     {/* Address */}
                     {c.address && (
                       <div className="flex items-start gap-2 mb-3">
                         <span className="text-gray-400 mt-1">📍</span>
-                        <p className="text-sm text-gray-600">{c.address}</p>
+                        <p className="text-sm text-gray-600 line-clamp-1">{c.address}</p>
                       </div>
                     )}
 
-                    {/* City */}
-                    {c.city && (
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-gray-400">🏛️</span>
-                        <p className="text-sm text-gray-600">{c.city}</p>
-                      </div>
-                    )}
-
-                    {/* Contact */}
-                    {c.user?.email && (
-                      <div className="flex items-center gap-2 mb-4">
-                        <span className="text-gray-400">✉️</span>
-                        <p className="text-sm text-gray-600">{c.user.email}</p>
-                      </div>
-                    )}
-
-                    {/* Verified Badge */}
-                    {c.verifiedAt && (
-                      <div className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                        <span>✔️</span>
-                        <span>Verified</span>
-                      </div>
-                    )}
-                  </div>
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
+                      <span className="text-xs font-bold text-orange-600 uppercase tracking-widest">View Impact →</span>
+                      {c.verifiedAt && (
+                        <div className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                          <span>✓ Verified</span>
+                        </div>
+                      )}
+                    </div>
+                  </Link>
                 ))}
               </div>
             )}

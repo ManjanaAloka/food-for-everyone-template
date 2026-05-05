@@ -69,113 +69,183 @@ router.post('/webhook', ah(async (req, res) => {
 
 // DEBUG: Simulate payment success (DEV ONLY)
 router.post('/simulate-success', ah(async (req, res) => {
-  const { orderId } = z.object({ orderId: z.string() }).parse(req.body);
-  
-  // Only allow in development
-  // if (process.env.NODE_ENV !== 'development') return res.status(403).json({ error: 'Only allowed in dev' });
+  try {
+    const { orderId, donationRequestId } = z.object({ 
+      orderId: z.string().optional(),
+      donationRequestId: z.string().optional()
+    }).parse(req.body);
+    
+    let targetId = orderId;
 
-  await handlePaymentEvent({
-    type: 'payment.succeeded',
-    orderId,
-    txnRef: 'SIMULATED_' + Date.now(),
-    amount: 0, // Not used for update
-    raw: { simulated: true }
-  });
-  
-  res.json({ success: true, message: 'Simulated payment success' });
+    // If donationRequestId is provided, find the latest INITIATED donation for it
+    if (donationRequestId && !targetId) {
+      const latestPending = await prisma.donation.findFirst({
+        where: { donationRequestId, status: 'INITIATED' },
+        orderBy: { createdAt: 'desc' }
+      });
+      if (!latestPending) {
+        return res.status(404).json({ error: 'No pending donations found for this request. Please click "Donate" first.' });
+      }
+      targetId = latestPending.id;
+    }
+
+    if (!targetId) return res.status(400).json({ error: 'Missing orderId or donationRequestId' });
+
+    await handlePaymentEvent({
+      type: 'payment.succeeded',
+      orderId: targetId,
+      txnRef: 'SIMULATED_' + Date.now(),
+      amount: 0,
+      raw: { simulated: true }
+    });
+    
+    res.json({ success: true, message: 'Simulated payment success' });
+  } catch (err: any) {
+    console.error('Simulation Error:', err);
+    res.status(500).json({ error: err.message || 'Internal Server Error' });
+  }
 }));
 
 async function handlePaymentEvent(event: any) {
+  console.log('--- HANDLING PAYMENT EVENT ---', event.type, event.orderId);
   if (event.type === 'payment.succeeded') {
-    await prisma.$transaction(async (tx) => {
-      // 1. Check if it's a regular Order
-      const order = await tx.order.findUnique({ where: { id: event.orderId }, include: { items: true } });
-      if (order) {
-        if (order.status === 'AWAITING_PAYMENT') {
-          await tx.payment.upsert({
-            where: { orderId: order.id },
-            create: { orderId: order.id, provider: process.env.PAYMENT_PROVIDER || 'payhere', method: 'card', amount: order.total, status: 'SUCCEEDED', txnRef: event.txnRef, gatewayPayload: event.raw as any },
-            update: { status: 'SUCCEEDED', txnRef: event.txnRef, gatewayPayload: event.raw as any }
-          });
-          for (const item of order.items) {
-            const updated = await tx.listing.updateMany({ where: { id: item.listingId, qtyAvailable: { gte: item.qty }, status: 'ACTIVE' }, data: { qtyAvailable: { decrement: item.qty } } });
-            if (updated.count !== 1) throw new Error('Stock decrement failed');
-          }
-          await tx.order.update({ where: { id: order.id }, data: { status: 'PAID' } });
-
-          // Notify customer
-          const buyer = await tx.user.findUnique({ where: { id: order.buyerId } });
-          if (buyer) {
-            await createNotification(buyer.id, 'PAYMENT_SUCCESS', 'IN_APP', { 
-              orderId: order.id, 
-              message: `Payment successful for Order #${order.id}.`,
-              action: 'VIEW_ORDER'
+    try {
+      await prisma.$transaction(async (tx) => {
+        // 1. Check if it's a regular Order
+        const order = await tx.order.findUnique({ where: { id: event.orderId }, include: { items: true } });
+        console.log('Order lookup:', !!order);
+        
+        if (order) {
+          console.log('Current order status:', order.status);
+          if (order.status === 'AWAITING_PAYMENT' || order.status === 'CREATED' || order.status === 'RESERVED') {
+            console.log('Processing payment success for order...');
+            await tx.payment.upsert({
+              where: { orderId: order.id },
+              create: { orderId: order.id, provider: process.env.PAYMENT_PROVIDER || 'payhere', method: 'card', amount: order.total, status: 'SUCCEEDED', txnRef: event.txnRef, gatewayPayload: event.raw as any },
+              update: { status: 'SUCCEEDED', txnRef: event.txnRef, gatewayPayload: event.raw as any }
             });
-            await notifyEmail(buyer.email, `Payment Received: Order #${order.id}`, `<h1>Thank you!</h1><p>Received LKR ${Number(order.total).toFixed(2)}</p>`);
-          }
-        }
-        return;
-      }
 
-      // 2. Check if it's a Donation
-      const donation = await tx.donation.findUnique({ where: { id: event.orderId } });
-      if (donation) {
-        if (donation.status === 'INITIATED') {
-          await tx.donation.update({
-            where: { id: donation.id },
-            data: { status: 'SUCCEEDED', stripePaymentId: event.txnRef }
-          });
-
-          const updatedRequest = await tx.donationRequest.update({
-            where: { id: donation.donationRequestId },
-            data: {
-              raisedAmount: { increment: donation.amount },
-              donorCount: { increment: 1 }
-            },
-            include: {
-              center: { include: { user: true } },
-              donations: { where: { status: 'SUCCEEDED' }, include: { customer: true } }
-            }
-          });
-
-          // Check if target reached
-          if (Number(updatedRequest.raisedAmount) >= Number(updatedRequest.targetAmount) && updatedRequest.status === 'OPEN') {
-            await tx.donationRequest.update({ where: { id: updatedRequest.id }, data: { status: 'FULFILLED' } });
-
-            if (updatedRequest.listingId) {
-              const listing = await tx.listing.findUnique({ where: { id: updatedRequest.listingId } });
-              if (listing && listing.qtyAvailable > 0) {
-                const price = Number(listing.discountPrice);
-                const qty = Math.max(1, Math.min(listing.qtyAvailable, Math.floor(Number(updatedRequest.raisedAmount) / price)));
-                
-                const o = await tx.order.create({
-                  data: {
-                    buyerId: updatedRequest.centerId,
-                    providerId: listing.providerId,
-                    type: 'DONATION',
-                    fulfillmentMode: 'PICKUP',
-                    paymentMethod: 'ONLINE',
-                    status: 'PAID',
-                    donationCenterId: updatedRequest.centerId,
-                    donationRequestId: updatedRequest.id,
-                    subtotal: price * qty,
-                    total: price * qty,
-                  }
+            for (const item of order.items) {
+              console.log(`Updating stock for listing ${item.listingId}, qty: ${item.qty}`);
+              try {
+                const updatedListing = await tx.listing.update({ 
+                  where: { id: item.listingId },
+                  data: { qtyAvailable: { decrement: item.qty } } 
                 });
-                await tx.orderItem.create({ data: { orderId: o.id, listingId: listing.id, qty, unitPrice: price, totalPrice: price * qty } });
-                await tx.listing.update({ where: { id: listing.id }, data: { qtyAvailable: { decrement: qty } } });
+                console.log(`New stock for ${item.listingId}: ${updatedListing.qtyAvailable}`);
+              } catch (stockErr: any) {
+                console.error(`Stock update failed for item ${item.listingId}:`, stockErr.message);
+                throw new Error(`Insufficient stock or listing not found: ${item.listingId}`);
+              }
+            }
+            
+            await tx.order.update({ where: { id: order.id }, data: { status: 'PAID' } });
+            console.log('Order status updated to PAID');
+
+            // Notify customer (Wrap in try-catch so notification failures don't roll back the payment)
+            try {
+              const buyer = await tx.user.findUnique({ where: { id: order.buyerId } });
+              if (buyer) {
+                await createNotification(buyer.id, 'PAYMENT_SUCCESS', 'IN_APP', { 
+                  orderId: order.id, 
+                  message: `Payment successful for Order #${order.id}.`,
+                  action: 'VIEW_ORDER'
+                });
+                await notifyEmail(buyer.email, `Payment Received: Order #${order.id}`, `<h1>Thank you!</h1><p>Received LKR ${Number(order.total).toFixed(2)}</p>`);
+              }
+            } catch (notifyErr) {
+              console.error('Notification failed but payment was processed:', notifyErr);
+            }
+          } else {
+            console.log('Order is not in a state that allows payment update.');
+          }
+          return;
+        }
+
+        // 2. Check if it's a Donation
+        const donation = await tx.donation.findUnique({ 
+          where: { id: event.orderId },
+          include: { donationRequest: true }
+        });
+        console.log('Donation lookup:', !!donation);
+        
+        if (donation) {
+          if (donation.status === 'INITIATED') {
+            const updatedDonation = await tx.donation.update({
+              where: { id: donation.id },
+              data: { status: 'SUCCEEDED', stripePaymentId: event.txnRef }
+            });
+
+            const listing = await tx.listing.findUnique({ where: { id: donation.donationRequest.listingId || '' } });
+            const price = listing ? Number(listing.discountPrice) : 0;
+            const qtyToAdd = price > 0 ? Math.floor(Number(donation.amount) / price) : 0;
+
+            const updatedRequest = await tx.donationRequest.update({
+              where: { id: donation.donationRequestId },
+              data: {
+                raisedAmount: { increment: donation.amount },
+                fulfilledQty: { increment: qtyToAdd },
+                donorCount: { increment: 1 }
+              },
+              include: {
+                center: { include: { user: true } },
+                donations: { where: { status: 'SUCCEEDED' }, include: { customer: true } }
+              }
+            });
+
+            console.log(`Donation ${donation.id} marked as SUCCEEDED. New raised amount: ${updatedRequest.raisedAmount}`);
+
+            // Check if target reached
+            if (Number(updatedRequest.raisedAmount) >= Number(updatedRequest.targetAmount) && updatedRequest.status === 'OPEN') {
+              await tx.donationRequest.update({ where: { id: updatedRequest.id }, data: { status: 'FULFILLED' } });
+
+              if (updatedRequest.listingId) {
+                const listing = await tx.listing.findUnique({ where: { id: updatedRequest.listingId } });
+                if (listing && listing.qtyAvailable > 0) {
+                  const price = Number(listing.discountPrice);
+                  const qty = Math.max(1, Math.min(listing.qtyAvailable, Math.floor(Number(updatedRequest.raisedAmount) / price)));
+                  
+                  const o = await tx.order.create({
+                    data: {
+                      buyerId: updatedRequest.centerId,
+                      providerId: listing.providerId,
+                      type: 'DONATION',
+                      fulfillmentMode: 'PICKUP',
+                      paymentMethod: 'ONLINE',
+                      status: 'PAID',
+                      donationCenterId: updatedRequest.centerId,
+                      donationRequestId: updatedRequest.id,
+                      subtotal: price * qty,
+                      total: price * qty,
+                    }
+                  });
+                  await tx.orderItem.create({
+              data: { 
+                orderId: o.id, 
+                listingId: listing.id, 
+                providerId: listing.providerId,
+                qty, 
+                unitPrice: price, 
+                snapshotExpiresAt: listing.expiresAt
+              }
+            });      await tx.listing.update({ where: { id: listing.id }, data: { qtyAvailable: { decrement: qty } } });
+                }
               }
             }
           }
+          return;
         }
-        return;
-      }
 
-      throw new Error('Transaction ID not found in orders or donations');
-    });
+        throw new Error('Transaction ID not found in orders or donations');
+      });
+    } catch (err) {
+      console.error('CRITICAL: Payment handling failed:', err);
+      throw err;
+    }
   } else {
     const orderId = (event as any).orderId;
     if (orderId) {
+      console.log('Handling payment failure for order:', orderId);
       await prisma.payment.updateMany({ where: { orderId }, data: { status: 'FAILED' } });
       await prisma.order.updateMany({ where: { id: orderId, status: 'AWAITING_PAYMENT' }, data: { status: 'CANCELED' } });
     }

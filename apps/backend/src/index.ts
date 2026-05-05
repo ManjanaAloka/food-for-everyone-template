@@ -25,6 +25,7 @@ import { router as providersRouter } from './routes/providers.js';
 import { router as uploadRouter } from './routes/upload.js';
 import { router as notificationsRouter } from './routes/notifications.js';
 import { router as customersRouter } from './routes/customers.js';
+import { router as activitiesRouter } from './routes/activities.js';
 
 
 import { initQueues } from './queues/index.js';
@@ -102,6 +103,7 @@ app.use('/api/providers', providersRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/customers', customersRouter);
+app.use('/api/activities', activitiesRouter);
 
 
 // Errors

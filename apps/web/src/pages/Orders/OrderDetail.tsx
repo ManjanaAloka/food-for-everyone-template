@@ -73,8 +73,13 @@ export function OrderDetailPage() {
               <button 
                 onClick={async () => {
                   if (window.confirm('DEBUG: Simulate payment success?')) {
-                    await api.post('/payments/simulate-success', { orderId: o.id });
-                    qc.invalidateQueries({ queryKey: ['order', id] });
+                    try {
+                      await api.post('/payments/simulate-success', { orderId: o.id });
+                      qc.invalidateQueries({ queryKey: ['order', id] });
+                      alert('✅ Payment simulated successfully!');
+                    } catch (err: any) {
+                      alert('❌ Failed: ' + (err.response?.data?.error || err.message));
+                    }
                   }
                 }}
                 className="ml-3 px-2 py-0.5 bg-gray-800 text-white text-[10px] rounded hover:bg-black transition-colors"
