@@ -107,6 +107,7 @@ export function CheckoutPage() {
                       <input 
                         type="number" 
                         min={1} 
+                        max={it.qtyAvailable}
                         value={it.qty} 
                         onChange={(e)=>setQty(it.listingId, Number(e.target.value))} 
                         className="w-16 px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 

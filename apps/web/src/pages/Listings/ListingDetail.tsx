@@ -203,7 +203,8 @@ export function ListingDetailPage() {
       title: listing.title, 
       providerId: listing.providerId, 
       price: Number(listing.discountPrice), 
-      expiresAt: listing.expiresAt 
+      expiresAt: listing.expiresAt,
+      qtyAvailable: listing.qtyAvailable 
     }, qty);
     toast.success(`${listing.title} added to cart! 🛒`);
   };

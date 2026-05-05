@@ -269,7 +269,7 @@ export function ListingsPage() {
                         <button 
                           className="w-full px-4 py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white text-sm sm:text-base font-semibold rounded-lg hover:shadow-lg transform hover:scale-105 transition-all"
                           onClick={() => {
-                            add({ listingId: l.id, title: l.title, providerId: l.providerId, price: Number(l.discountPrice), expiresAt: l.expiresAt }, 1);
+                            add({ listingId: l.id, title: l.title, providerId: l.providerId, price: Number(l.discountPrice), expiresAt: l.expiresAt, qtyAvailable: l.qtyAvailable }, 1);
                             nav('/checkout');
                           }}
                         >
