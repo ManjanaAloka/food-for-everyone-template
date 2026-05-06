@@ -2,9 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useAuth } from '../../state/auth';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 export function AdminDashboardPage() {
   const { accessToken, user } = useAuth();
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const statsQ = useQuery({
     queryKey: ['adminStats'],
@@ -20,7 +23,11 @@ export function AdminDashboardPage() {
         totalListings: listings.data.listings?.length || 0,
         totalUsers: users.data.users?.length || 0,
         totalOrders: orders.data.orders?.length || 0,
-        pendingReviews: reviews.data.reviews?.filter((r: any) => r.status === 'PENDING').length || 0
+        pendingReviews: reviews.data.reviews?.filter((r: any) => r.status === 'PENDING').length || 0,
+        rawListings: listings.data.listings || [],
+        rawUsers: users.data.users || [],
+        rawOrders: orders.data.orders || [],
+        rawReviews: reviews.data.reviews || []
       };
     }
   });
@@ -39,12 +46,160 @@ export function AdminDashboardPage() {
 
   const pendingCount = (providersQ.data?.providers?.length || 0) + (centersQ.data?.centers?.length || 0);
 
+  const generateReport = async () => {
+    setIsGenerating(true);
+    try {
+      const data = statsQ.data;
+      if (!data) throw new Error('Data not loaded');
+
+      const reportWindow = window.open('', '_blank');
+      if (!reportWindow) return;
+
+      const totalRevenue = data.rawOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0);
+      const userRoles = data.rawUsers.reduce((acc: any, u: any) => {
+        acc[u.role] = (acc[u.role] || 0) + 1;
+        return acc;
+      }, {});
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>FreshSave System Report - ${new Date().toLocaleDateString()}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+            body { font-family: 'Inter', sans-serif; color: #1a202c; line-height: 1.5; padding: 40px; }
+            .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 40px; }
+            .logo { font-size: 24px; font-weight: 800; color: #059669; margin-bottom: 4px; }
+            .title { font-size: 32px; font-weight: 800; color: #111827; }
+            .date { color: #6b7280; font-size: 14px; }
+            .grid { display: grid; grid-template-cols: repeat(4, 1fr); gap: 20px; margin-bottom: 40px; }
+            .card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; rounded: 12px; }
+            .card-label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+            .card-val { font-size: 24px; font-weight: 800; color: #0f172a; }
+            .section { margin-bottom: 40px; }
+            .section-title { font-size: 18px; font-weight: 700; border-left: 4px solid #10b981; padding-left: 12px; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+            th { text-align: left; background: #f1f5f9; padding: 12px; font-weight: 700; }
+            td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+            .footer { margin-top: 60px; text-align: center; font-size: 10px; color: #94a3b8; }
+            @media print { .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="position: fixed; top: 20px; right: 20px;">
+            <button onclick="window.print()" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">Print to PDF</button>
+          </div>
+          
+          <div class="header">
+            <div class="logo">FreshSave Platform</div>
+            <div class="title">System Performance Report</div>
+            <div class="date">Generated on ${new Date().toLocaleString()}</div>
+          </div>
+
+          <div class="grid">
+            <div class="card"><div class="card-label">Total Users</div><div class="card-val">${data.totalUsers}</div></div>
+            <div class="card"><div class="card-label">Platform Listings</div><div class="card-val">${data.totalListings}</div></div>
+            <div class="card"><div class="card-label">Total Orders</div><div class="card-val">${data.totalOrders}</div></div>
+            <div class="card"><div class="card-label">Gross Revenue</div><div class="card-val">LKR ${totalRevenue.toLocaleString()}</div></div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">User Demographics</div>
+            <div style="display: flex; gap: 40px;">
+              ${Object.entries(userRoles).map(([role, count]) => `
+                <div style="background: #eff6ff; padding: 15px; border-radius: 8px; flex: 1;">
+                  <div style="font-size: 10px; font-weight: bold; color: #3b82f6;">${role}</div>
+                  <div style="font-size: 20px; font-weight: 900;">${count}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Recent Transactions (Last 20)</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Amount</th>
+                  <th>Fulfillment</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.rawOrders.slice(0, 20).map((o: any) => `
+                  <tr>
+                    <td>#${o.id.slice(-8).toUpperCase()}</td>
+                    <td>${o.customer?.name || 'Guest'}</td>
+                    <td>LKR ${o.totalAmount?.toLocaleString()}</td>
+                    <td>${o.fulfillmentMode}</td>
+                    <td>${new Date(o.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Platform Inventory Summary</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Listing</th>
+                  <th>Provider</th>
+                  <th>Price</th>
+                  <th>Stock</th>
+                  <th>Expiry</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.rawListings.slice(0, 15).map((l: any) => `
+                  <tr>
+                    <td>${l.title}</td>
+                    <td>${l.provider?.businessName || '-'}</td>
+                    <td>LKR ${l.discountPrice}</td>
+                    <td>${l.qtyAvailable} units</td>
+                    <td>${new Date(l.expiresAt).toLocaleDateString()}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="footer">
+            Confidential System Report - For Administrative Use Only - &copy; ${new Date().getFullYear()} FreshSave
+          </div>
+        </body>
+        </html>
+      `;
+
+      reportWindow.document.write(html);
+      reportWindow.document.close();
+      toast.success('System report generated successfully!');
+    } catch (err) {
+      toast.error('Failed to generate report.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-green-600 to-emerald-700 rounded-3xl p-8 text-white shadow-xl">
-        <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name}! 👋</h1>
-        <p className="text-green-100">Here's what's happening on the FreshSave platform today.</p>
+      <div className="bg-gradient-to-r from-green-600 to-emerald-700 rounded-3xl p-8 text-white shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name}! 👋</h1>
+          <p className="text-green-100">Here's what's happening on the FreshSave platform today.</p>
+        </div>
+        <button 
+          onClick={generateReport}
+          disabled={isGenerating || statsQ.isLoading}
+          className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/30 px-6 py-3 rounded-2xl font-bold transition-all flex items-center gap-2 whitespace-nowrap"
+        >
+          {isGenerating ? '⏳ Generating...' : '📊 Generate System Report'}
+        </button>
       </div>
 
       {/* Stats Cards */}
