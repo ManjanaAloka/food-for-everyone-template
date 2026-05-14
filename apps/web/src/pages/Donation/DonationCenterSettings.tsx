@@ -187,7 +187,9 @@ export function DonationCenterSettingsPage() {
                         setValue('lat', lat as any); 
                         setValue('lng', lng as any); 
                       }} 
-                      // onAddressSelect={loc => setValue('address', loc.address)} // Removed to allow custom address
+                      onAddressSelect={(loc) => { 
+                        if (loc.address) setValue('address', loc.address, { shouldValidate: true }); 
+                      }}
                     />
                   </div>
                   <p className="text-[10px] text-gray-400 mt-2 italic">

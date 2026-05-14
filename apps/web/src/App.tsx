@@ -33,6 +33,9 @@ import { AdminLayout } from './components/AdminLayout';
 import { CustomerContributionPage } from './pages/Reports/CustomerContribution';
 import { ProfilePage } from './pages/Profile';
 import { UserLayout } from './components/UserLayout';
+import { ProviderSettingsPage } from './pages/Provider/Settings';
+import { CustomerSettingsPage } from './pages/Customer/Settings';
+import { DonationCenterSettingsPage } from './pages/Donation/DonationCenterSettings';
 
 export default function App() {
   return (
@@ -55,20 +58,23 @@ export default function App() {
 
         {/* Protected User Routes (With Sidebar) */}
         <Route path="/dashboard" element={<Protected><RoleGate roles={['CUSTOMER']}><UserLayout><MyOrdersPage /></UserLayout></RoleGate></Protected>} />
-        <Route path="/orders" element={<Protected><RoleGate roles={['CUSTOMER']}><UserLayout><MyOrdersPage /></UserLayout></RoleGate></Protected>} />
-        <Route path="/orders/:id" element={<Protected><RoleGate roles={['CUSTOMER']}><UserLayout><OrderDetailPage /></UserLayout></RoleGate></Protected>} />
-        <Route path="/orders/:id/review" element={<Protected><RoleGate roles={['CUSTOMER']}><UserLayout><OrderReviewPage /></UserLayout></RoleGate></Protected>} />
-        <Route path="/reports/mine" element={<Protected><RoleGate roles={['CUSTOMER']}><UserLayout><CustomerContributionPage /></UserLayout></RoleGate></Protected>} />
+        <Route path="/orders" element={<Protected><RoleGate roles={['CUSTOMER', 'PROVIDER', 'DONATION_CENTER']}><UserLayout><MyOrdersPage /></UserLayout></RoleGate></Protected>} />
+        <Route path="/orders/:id" element={<Protected><RoleGate roles={['CUSTOMER', 'PROVIDER', 'DONATION_CENTER']}><UserLayout><OrderDetailPage /></UserLayout></RoleGate></Protected>} />
+        <Route path="/orders/:id/review" element={<Protected><RoleGate roles={['CUSTOMER', 'PROVIDER', 'DONATION_CENTER']}><UserLayout><OrderReviewPage /></UserLayout></RoleGate></Protected>} />
+        <Route path="/reports/mine" element={<Protected><RoleGate roles={['CUSTOMER', 'PROVIDER', 'DONATION_CENTER']}><UserLayout><CustomerContributionPage /></UserLayout></RoleGate></Protected>} />
         <Route path="/checkout" element={<Protected><RoleGate roles={['CUSTOMER']}><UserLayout><CheckoutPage /></UserLayout></RoleGate></Protected>} />
+        <Route path="/customer/settings" element={<Protected><RoleGate roles={['CUSTOMER']}><UserLayout><CustomerSettingsPage /></UserLayout></RoleGate></Protected>} />
 
         {/* Provider Routes (With Sidebar) */}
         <Route path="/provider/dashboard" element={<Protected><RoleGate roles={['PROVIDER']}><UserLayout><ProviderDashboardPage /></UserLayout></RoleGate></Protected>} />
         <Route path="/provider/listings/new" element={<Protected><RoleGate roles={['PROVIDER']}><UserLayout><ListingCreatePage /></UserLayout></RoleGate></Protected>} />
         <Route path="/provider/listings/:id/edit" element={<Protected><RoleGate roles={['PROVIDER']}><UserLayout><ListingEditPage /></UserLayout></RoleGate></Protected>} />
         <Route path="/provider/listings/:id/orders" element={<Protected><RoleGate roles={['PROVIDER']}><UserLayout><ListingOrdersPage /></UserLayout></RoleGate></Protected>} />
+        <Route path="/provider/settings" element={<Protected><RoleGate roles={['PROVIDER']}><UserLayout><ProviderSettingsPage /></UserLayout></RoleGate></Protected>} />
         
         {/* Donation Center Routes (With Sidebar) */}
         <Route path="/dashboard/center" element={<Protected><RoleGate roles={['DONATION_CENTER']}><UserLayout><DonationCenterDashboardPage /></UserLayout></RoleGate></Protected>} />
+        <Route path="/center/settings" element={<Protected><RoleGate roles={['DONATION_CENTER']}><UserLayout><DonationCenterSettingsPage /></UserLayout></RoleGate></Protected>} />
         
         {/* Common Protected */}
         <Route path="/profile" element={<Protected><UserLayout><ProfilePage /></UserLayout></Protected>} />

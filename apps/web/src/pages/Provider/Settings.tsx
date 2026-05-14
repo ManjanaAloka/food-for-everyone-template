@@ -148,8 +148,8 @@ export function ProviderSettingsPage() {
                       setValue('lng', lng as any); 
                     }} 
                     onAddressSelect={(loc) => { 
-                      setValue('address', loc.address); 
-                      setValue('city', loc.city); 
+                      if (loc.address) setValue('address', loc.address, { shouldValidate: true }); 
+                      if (loc.city) setValue('city', loc.city, { shouldValidate: true }); 
                     }}
                   />
                   <div className="absolute top-4 left-4 pointer-events-none">

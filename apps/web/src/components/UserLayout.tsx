@@ -13,22 +13,25 @@ export function UserLayout({ children }: UserLayoutProps) {
   const navigate = useNavigate();
 
   const menuItems = [
-    // CUSTOMER Links
+    // 1. Dashboards / Overviews
     { label: 'Overview', path: '/dashboard', icon: '📊', roles: ['CUSTOMER'] },
-    { label: 'Browse Food', path: '/browse', icon: '🍽️', roles: ['CUSTOMER'] },
-    { label: 'My Orders', path: '/orders', icon: '🛍️', roles: ['CUSTOMER'] },
-    { label: 'Contributions', path: '/reports/mine', icon: '🌱', roles: ['CUSTOMER'] },
-    
-    // PROVIDER Links
     { label: 'Overview', path: '/provider/dashboard', icon: '📈', roles: ['PROVIDER'] },
-    { label: 'My Listings', path: '/browse', icon: '📦', roles: ['PROVIDER'] }, // Or specific provider listing page
-    { label: 'Add Listing', path: '/provider/listings/new', icon: '➕', roles: ['PROVIDER'] },
-    
-    // DONATION_CENTER Links
     { label: 'Overview', path: '/dashboard/center', icon: '🏢', roles: ['DONATION_CENTER'] },
+
+    // 2. Primary Actions
+    { label: 'Browse Food', path: '/browse', icon: '🍽️', roles: ['CUSTOMER'] },
+    { label: 'My Listings', path: '/browse', icon: '📦', roles: ['PROVIDER'] }, // Usually providers manage listings in dashboard, but keeping as requested
+    { label: 'Add Listing', path: '/provider/listings/new', icon: '➕', roles: ['PROVIDER'] },
     { label: 'All Centers', path: '/donation-centers', icon: '🏥', roles: ['DONATION_CENTER'] },
+
+    // 3. Transactions & Impact
+    { label: 'My Orders', path: '/orders', icon: '🛍️', roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
+    { label: 'Contributions', path: '/reports/mine', icon: '🌱', roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
     
-    // Common
+    // 4. Settings
+    { label: 'Settings', path: '/customer/settings', icon: '⚙️', roles: ['CUSTOMER'] },
+    { label: 'Settings', path: '/provider/settings', icon: '⚙️', roles: ['PROVIDER'] },
+    { label: 'Settings', path: '/center/settings', icon: '⚙️', roles: ['DONATION_CENTER'] },
     { label: 'Profile', path: '/profile', icon: '👤', roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
   ];
 
