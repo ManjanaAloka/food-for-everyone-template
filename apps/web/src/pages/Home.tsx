@@ -161,7 +161,7 @@ export function HomePage() {
               </h1>
               
               <p className="text-xl text-gray-300 max-w-xl">
-                Join <span className="text-white font-bold">{formatNum(stats.activeMembers || 25000)}+</span> Sri Lankans already making their communities more sustainable. Every meal saved makes a difference.
+                Join <span className="text-white font-bold">{formatNum(stats.activeMembers)}</span> Sri Lankans already making their communities more sustainable. Every meal saved makes a difference.
               </p>
 
               
@@ -243,41 +243,23 @@ export function HomePage() {
               </div>
             </div>
             
-            {/* Right Side - Food Cards */}
-            {user?.role !== 'PROVIDER' && (
-              <div className="relative animate-fadeInUp animation-delay-400">
-                <div className="space-y-4">
-                  <div className="bg-white rounded-2xl p-6 shadow-xl transform hover:scale-105 transition-transform duration-300">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center text-3xl">
-                        🍕
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-lg font-bold text-gray-900">Fresh Pizza Available!</div>
-                        <div className="text-sm text-gray-600">Tony's Pizzeria - 200m away</div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white rounded-2xl p-6 shadow-xl transform hover:scale-105 transition-transform duration-300 ml-12">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-xl flex items-center justify-center text-3xl">
-                        🥐
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-lg font-bold text-gray-900">Bakery Items - 50% Off</div>
-                        <div className="text-sm text-gray-600">Sweet Dreams Bakery</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            {/* Right Side - Hero Image */}
+            <div className="relative animate-fadeInUp animation-delay-400 lg:ml-auto lg:max-w-[90%] xl:max-w-md">
+              <div className="relative group">
+                {/* Subtle Glow Effect */}
+                <div className="absolute -inset-4 bg-gradient-to-r from-green-500/15 to-emerald-500/15 rounded-[2.5rem] blur-3xl opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
                 
-                {/* Floating Plate & Fork Icon */}
-                <div className="absolute -top-12 -right-12 w-24 h-24 bg-white/10 backdrop-blur-md rounded-3xl flex items-center justify-center text-5xl animate-slideInRight shadow-2xl border border-white/20 z-10">
-                  🍽️
+                <div className="relative overflow-hidden rounded-[2.5rem] shadow-2xl border border-white/10 transform hover:scale-[1.02] transition-all duration-700 ease-out">
+                  <img 
+                    src="/Food image.png" 
+                    alt="Healthy Food" 
+                    className="w-full h-auto object-cover"
+                  />
+                  {/* Subtle Overlay Gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-60"></div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
@@ -292,7 +274,7 @@ export function HomePage() {
                 <span className="text-4xl">🍽️</span>
               </div>
               <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">
-                {formatNum(stats.mealsSaved)}+
+                {formatNum(stats.mealsSaved)}
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Meals Saved from Waste
@@ -308,7 +290,7 @@ export function HomePage() {
                 <span className="text-4xl">👥</span>
               </div>
               <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">
-                {formatNum(stats.activeMembers)}+
+                {formatNum(stats.activeMembers)}
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Active Community Members
@@ -324,7 +306,7 @@ export function HomePage() {
                 <span className="text-4xl">🏪</span>
               </div>
               <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">
-                {formatNum(stats.partnerBusinesses)}+
+                {formatNum(stats.partnerBusinesses)}
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Partner Businesses
@@ -340,7 +322,7 @@ export function HomePage() {
                 <span className="text-4xl">🏠</span>
               </div>
               <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">
-                {formatNum(stats.communitiesSupported)}+
+                {formatNum(stats.communitiesSupported)}
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Communities Supported
@@ -417,123 +399,7 @@ export function HomePage() {
         </div>
       </div>
 
-      {/* For Service Providers Section */}
-      <div id="for-providers" className="bg-gradient-to-br from-blue-50 to-indigo-50 py-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left Side - Content */}
-            <div>
-              <div className="inline-block bg-blue-100 rounded-full px-6 py-2 mb-4">
-                <span className="text-blue-700 font-semibold text-sm">🏪 For Businesses</span>
-              </div>
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                Turn Surplus into Revenue
-              </h2>
-              <p className="text-xl text-gray-600 mb-8">
-                Join {formatNum(stats.partnerBusinesses)}+ restaurants, bakeries, and grocery stores reducing waste while earning additional income.
-              </p>
 
-
-              {/* Benefits List */}
-              <div className="space-y-6 mb-8">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-2xl">💰</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Recover Lost Revenue</h3>
-                    <p className="text-gray-600">Sell surplus food at a discount instead of throwing it away. Every meal counts.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-2xl">🌍</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Reduce Environmental Impact</h3>
-                    <p className="text-gray-600">Cut your carbon footprint and contribute to a more sustainable food system.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-2xl">👥</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Reach New Customers</h3>
-                    <p className="text-gray-600">Connect with {formatNum(stats.activeCustomers)}+ active users looking for great food deals near them.</p>
-
-
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-2xl">📱</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Easy to Use Platform</h3>
-                    <p className="text-gray-600">Simple dashboard to manage listings, track orders, and communicate with customers.</p>
-                  </div>
-                </div>
-              </div>
-
-              <Link
-                to="/register"
-                className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 shadow-lg"
-              >
-                <span>🚀</span>
-                <span>Join as a Provider</span>
-              </Link>
-            </div>
-
-            {/* Right Side - Stats */}
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all">
-                <div className="text-4xl mb-2">💵</div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">LKR {formatNum(stats.revenueRecovered)}</div>
-                <div className="text-sm text-gray-600">Revenue Recovered</div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all">
-                <div className="text-4xl mb-2">🏪</div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">{formatNum(stats.partnerBusinesses)}+</div>
-                <div className="text-sm text-gray-600">Partner Businesses</div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all">
-                <div className="text-4xl mb-2">⭐</div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">{stats.avgRating}/5</div>
-                <div className="text-sm text-gray-600">Average Rating</div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all">
-                <div className="text-4xl mb-2">📦</div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">{formatNum(stats.ordersFulfilled)}+</div>
-                <div className="text-sm text-gray-600">Orders Fulfilled</div>
-              </div>
-
-              {/* Provider Testimonial - Using a real review if available */}
-              <div className="col-span-2 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border-2 border-green-200">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                    <span className="text-2xl">{reviews[0] ? getRoleIcon(reviews[0].user.role) : '👨‍🍳'}</span>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-900">{reviews[0] ? reviews[0].user.name : 'Rajesh Kumar'}</div>
-                    <div className="text-sm text-gray-600">{reviews[0] ? getRoleLabel(reviews[0].user.role) : 'Tony\'s Pizzeria'}</div>
-                  </div>
-                </div>
-                <p className="text-gray-700 italic text-sm">
-                  "{reviews[0] ? reviews[0].comment : "We've recovered revenue and prevented tons of food waste. Highly recommend!"}"
-                </p>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
 
       {/* Impact Stories Section */}
       {stories.length > 0 && (

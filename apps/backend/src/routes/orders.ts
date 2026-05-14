@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
-import { notifyEmail } from '../services/notifications.js';
+import { notifyEmail, createNotification } from '../services/notifications.js';
 import { ah } from '../utils/asyncHandler.js';
 
 export const router = Router();
@@ -245,8 +245,8 @@ router.post('/:id/cancel', requireAuth, ah(async (req: any, res) => {
 function canTransition(current: string, next: string, mode: string) {
   const fromTo: Record<string, string[]> = {
     AWAITING_PAYMENT: ['CANCELED'],
-    PAID: ['PENDING', 'CANCELED'],
-    RESERVED: ['PENDING', 'CANCELED'],
+    PAID: mode === 'PICKUP' ? ['PENDING', 'READY_FOR_PICKUP', 'CANCELED'] : ['PENDING', 'READY_FOR_DELIVERY', 'CANCELED'],
+    RESERVED: mode === 'PICKUP' ? ['PENDING', 'READY_FOR_PICKUP', 'CANCELED'] : ['PENDING', 'READY_FOR_DELIVERY', 'CANCELED'],
     PENDING: mode === 'PICKUP' ? ['READY_FOR_PICKUP', 'CANCELED'] : ['READY_FOR_DELIVERY', 'CANCELED'],
     READY_FOR_PICKUP: ['DELIVERED', 'CANCELED'],
     READY_FOR_DELIVERY: ['OUT_FOR_DELIVERY', 'CANCELED'],
@@ -263,23 +263,60 @@ async function notifyStatusChange(order: any, status: string, byCenter = false) 
   try {
     const displayId = order.orderNumber ? `O-${order.orderNumber.toString().padStart(4, '0')}` : order.id;
     const subject = `Order ${displayId} status: ${status}`;
+    const message = `Order <strong>${displayId}</strong> is now <strong>${status}</strong>.`;
     const msg = `<p>Status update for your order <strong>${displayId}</strong>: <strong>${status}</strong>.</p>`;
     
-    if (order.buyer?.email) {
-      await notifyEmail(order.buyer.email, subject, msg);
-    }
-  
-    if (order.type === 'DONATION') {
-      if (order.donationCenter?.user?.email) {
-        await notifyEmail(order.donationCenter.user.email, subject, msg);
+    // 1. Create DB Notifications & Emit Sockets (PRIORITY)
+    const io = (global as any).__io;
+    console.log(`[Socket] Attempting to notify participants of order:${order.id} status:${status}`);
+
+    if (io) {
+      // To Buyer
+      if (order.buyerId) {
+        await createNotification(order.buyerId, 'ORDER_UPDATE', 'IN_APP', { message, orderId: order.id, status });
+        io.to(`user:${order.buyerId}`).emit('notification', { type: 'ORDER_UPDATE', message, orderId: order.id, status });
+        console.log(`[Socket] Notified Buyer: user:${order.buyerId}`);
       }
-      if (order.provider?.user?.email) {
-        await notifyEmail(order.provider.user.email, subject, msg);
+
+      // To Provider
+      if (order.providerId) {
+        // Also notify the provider so they see the real-time feedback
+        io.to(`user:${order.providerId}`).emit('notification', { type: 'ORDER_UPDATE', message, orderId: order.id, status });
+        console.log(`[Socket] Notified Provider: user:${order.providerId}`);
       }
+
+      // To Donation Center
+      if (order.type === 'DONATION' && order.donationCenterId) {
+        await createNotification(order.donationCenterId, 'ORDER_UPDATE', 'IN_APP', { message, orderId: order.id, status });
+        io.to(`user:${order.donationCenterId}`).emit('notification', { type: 'ORDER_UPDATE', message, orderId: order.id, status });
+        console.log(`[Socket] Notified Center: user:${order.donationCenterId}`);
+      }
+    } else {
+      console.warn('[Socket] Global IO not found! Real-time notifications skipped.');
+      if (order.buyerId) await createNotification(order.buyerId, 'ORDER_UPDATE', 'IN_APP', { message, orderId: order.id, status });
+      if (order.type === 'DONATION' && order.donationCenterId) await createNotification(order.donationCenterId, 'ORDER_UPDATE', 'IN_APP', { message, orderId: order.id, status });
     }
+
+    // 2. Send Emails (Secondary)
+    try {
+      if (order.buyer?.email) {
+        await notifyEmail(order.buyer.email, subject, msg);
+      }
+    
+      if (order.type === 'DONATION') {
+        if (order.donationCenter?.user?.email) {
+          await notifyEmail(order.donationCenter.user.email, subject, msg);
+        }
+        if (order.provider?.user?.email) {
+          await notifyEmail(order.provider.user.email, subject, msg);
+        }
+      }
+    } catch (emailErr) {
+      console.error('Email notification failed (swallowed):', emailErr);
+    }
+
   } catch (err) {
-    console.error('Failed to send status update emails:', err);
-    // Don't throw, let the main request succeed
+    console.error('Failed to send status update notifications:', err);
   }
 }
 

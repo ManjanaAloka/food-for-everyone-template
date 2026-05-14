@@ -104,3 +104,44 @@ router.get('/customer', requireAuth, ah(async (req: any, res) => {
     totalDonationsAmount: Number(totalDonationsAmount.toFixed(2))
   });
 }));
+
+router.get('/provider', requireAuth, ah(async (req: any, res) => {
+  const userId = req.user.sub;
+  const { from, to } = req.query;
+
+  const dateFilter: any = {};
+  if (from) dateFilter.gte = new Date(from as string);
+  if (to) dateFilter.lte = new Date(to as string);
+
+  const orders = await prisma.order.findMany({
+    where: { 
+      providerId: userId, 
+      status: { in: ['PAID', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED'] },
+      ...(from || to ? { createdAt: dateFilter } : {})
+    },
+    include: { items: { include: { listing: true } } }
+  });
+
+  let savedKg = 0;
+  let donationCount = 0;
+
+  for (const o of orders) {
+    for (const it of o.items) {
+      const kg = (it.qty * (it.listing.weightGrams || 500)) / 1000;
+      savedKg += kg;
+    }
+    if (o.type === 'DONATION') donationCount++;
+  }
+
+  res.json({
+    ordersCount: orders.length,
+    foodSavedKg: Number(savedKg.toFixed(2)),
+    co2eAvoidedKg: Number((savedKg * CO2E_PER_KG).toFixed(2)),
+    donationCount,
+    // For providers, "moneySaved" isn't exactly applicable in the same way, 
+    // but we can return total sales or similar if needed. 
+    // For now, let's keep it consistent with the frontend fields.
+    moneySaved: 0, 
+    totalDonationsAmount: 0 
+  });
+}));

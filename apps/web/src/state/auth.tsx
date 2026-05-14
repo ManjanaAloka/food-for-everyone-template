@@ -55,6 +55,7 @@ export function AuthProvider({ children }: any) {
   }
 
   async function register(payload: any) {
+    console.log('Register payload:', payload);
     await api.post('/auth/register', payload);
   }
 

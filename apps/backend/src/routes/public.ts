@@ -30,19 +30,13 @@ router.get('/stats', ah(async (_req, res) => {
   const usersByRole: Record<string, number> = {};
   for (const uc of userCounts) { usersByRole[uc.role] = uc._count; }
 
-  // Add small baseline values (less than 20) to make the platform look warm
-  const BASELINE_MEMBERS = 12;
-  const BASELINE_BUSINESSES = 8;
-  const BASELINE_MEALS = 15;
-  const BASELINE_CENTERS = 5;
-
   res.json({
-    activeMembers: (usersByRole['CUSTOMER'] || 0) + (usersByRole['PROVIDER'] || 0) + (usersByRole['DONATION_CENTER'] || 0) + BASELINE_MEMBERS,
-    activeCustomers: (usersByRole['CUSTOMER'] || 0) + BASELINE_MEMBERS,
-    partnerBusinesses: (usersByRole['PROVIDER'] || 0) + BASELINE_BUSINESSES,
-    communitiesSupported: (usersByRole['DONATION_CENTER'] || 0) + BASELINE_CENTERS,
-    mealsSaved: Number(foodSaved._sum.qty || 0) + BASELINE_MEALS,
-    donationsFulfilled: donationsFulfilled + BASELINE_CENTERS,
+    activeMembers: (usersByRole['CUSTOMER'] || 0) + (usersByRole['PROVIDER'] || 0) + (usersByRole['DONATION_CENTER'] || 0),
+    activeCustomers: (usersByRole['CUSTOMER'] || 0),
+    partnerBusinesses: (usersByRole['PROVIDER'] || 0),
+    communitiesSupported: (usersByRole['DONATION_CENTER'] || 0),
+    mealsSaved: Number(foodSaved._sum.qty || 0),
+    donationsFulfilled,
     revenueRecovered: Number(revenue._sum.total || 0),
     ordersFulfilled,
     avgRating: Number(providerStats._avg.ratingAvg || 0).toFixed(1)

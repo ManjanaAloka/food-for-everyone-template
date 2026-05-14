@@ -40,10 +40,14 @@ function CountdownTimer({ expiresAt }: { expiresAt: string }) {
   return <span className="font-mono font-bold">{timeLeft}</span>;
 }
 
-function ProgressBar({ raised, target, requestId }: { raised: number; target: number; requestId?: string }) {
+function ProgressBar({ raised, target, raisedQty, targetQty, price, requestId }: { raised: number; target: number; raisedQty?: number; targetQty?: number; price?: number; requestId?: string }) {
   const pct = target > 0 ? Math.min(100, (raised / target) * 100) : 0;
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // If quantities aren't provided, estimate them from the price
+  const displayRaisedQty = raisedQty || (price ? Math.floor(raised / price) : 0);
+  const displayTargetQty = targetQty || (price ? Math.floor(target / price) : 0);
 
   const handleSimulate = async () => {
     if (!requestId) return;
@@ -63,7 +67,7 @@ function ProgressBar({ raised, target, requestId }: { raised: number; target: nu
       <div className="flex mb-2 items-center justify-between">
         <div>
           <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-green-600 bg-green-200">
-            {pct.toFixed(0)}% Funded
+            {pct.toFixed(0)}% Donated
           </span>
           {/* Always show in dev mode if we have a requestId */}
           {requestId && (
@@ -77,7 +81,7 @@ function ProgressBar({ raised, target, requestId }: { raised: number; target: nu
         </div>
         <div className="text-right">
           <span className="text-xs font-semibold inline-block text-green-600">
-            LKR {raised.toLocaleString()} / {target.toLocaleString()}
+            {displayTargetQty > 0 ? `${displayRaisedQty} / ${displayTargetQty} Items` : `LKR ${raised.toLocaleString()} / ${target.toLocaleString()}`}
           </span>
         </div>
       </div>
@@ -306,21 +310,22 @@ export function ListingDetailPage() {
               </div>
             ) : listing.status === 'ACTIVE' && listing.qtyAvailable > 0 ? (
               <div className="space-y-3">
-                <div className="flex items-center gap-4">
-                  <label className="text-sm font-medium text-gray-700">Quantity:</label>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setQty(Math.max(1, qty - 1))}
-                      className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors flex items-center justify-center"
-                    >−</button>
-                    <span className="w-12 text-center font-semibold text-lg">{qty}</span>
-                    <button
-                      onClick={() => setQty(prev => Math.min(Number(listing.qtyAvailable), prev + 1))}
-                      className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors flex items-center justify-center"
-                    >+</button>
-
+                {!isDonateMode && (
+                  <div className="flex items-center gap-4">
+                    <label className="text-sm font-medium text-gray-700">Quantity:</label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setQty(Math.max(1, qty - 1))}
+                        className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors flex items-center justify-center"
+                      >−</button>
+                      <span className="w-12 text-center font-semibold text-lg">{qty}</span>
+                      <button
+                        onClick={() => setQty(prev => Math.min(Number(listing.qtyAvailable), prev + 1))}
+                        className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors flex items-center justify-center"
+                      >+</button>
+                    </div>
                   </div>
-                </div>
+                )}
                 {!isDonateMode && (
                   <button
                     onClick={handleAddToCart}
@@ -410,7 +415,14 @@ export function ListingDetailPage() {
                     <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Active Request</span>
                   </div>
                   
-                  <ProgressBar raised={Number(req.raisedAmount)} target={Number(req.targetAmount)} requestId={req.id} />
+                  <ProgressBar 
+                    raised={Number(req.raisedAmount)} 
+                    target={Number(req.targetAmount)} 
+                    raisedQty={req.fulfilledQty} 
+                    targetQty={req.targetQty} 
+                    price={Number(req.listing?.discountPrice || listing.discountPrice)}
+                    requestId={req.id} 
+                  />
                   
                   {user?.role !== 'DONATION_CENTER' && user?.role !== 'PROVIDER' && (
                     <button

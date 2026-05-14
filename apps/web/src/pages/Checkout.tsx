@@ -3,11 +3,13 @@ import { api } from '../lib/api';
 import { useCart } from '../state/cart';
 import { useForm } from 'react-hook-form';
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 import { AutoSubmitForm } from '../components/AutoSubmitForm';
 import { useTranslation } from 'react-i18next';
+import { MapPicker } from '../components/MapPicker';
 
-type Form = { type: 'PERSONAL' | 'DONATION'; fulfillmentMode: 'PICKUP' | 'DELIVERY'; paymentMethod: 'ONLINE' | 'COD'; donationCenterId?: string; scheduledTime?: string; addressLine?: string; city?: string; };
+type Form = { type: 'PERSONAL' | 'DONATION'; fulfillmentMode: 'PICKUP' | 'DELIVERY'; paymentMethod: 'ONLINE' | 'COD'; donationCenterId?: string; scheduledTime?: string; addressLine?: string; city?: string; lat?: number; lng?: number; };
 const LS_ORDERS = 'ffe_my_orders';
 
 export function CheckoutPage() {
@@ -23,8 +25,9 @@ export function CheckoutPage() {
   const type = watch('type');
   const fulfillmentMode = watch('fulfillmentMode');
   const donationCenterId = watch('donationCenterId');
+  const paymentMethod = watch('paymentMethod');
+  const [locating, setLocating] = useState(false);
 
-  // Handle Donation Center Selection
   useEffect(() => {
     if (type === 'DONATION' && donationCenterId) {
       const center = centersQ.data?.centers?.find((c: any) => c.userId === donationCenterId);
@@ -36,6 +39,31 @@ export function CheckoutPage() {
       }
     }
   }, [donationCenterId, type, centersQ.data, setValue]);
+
+  // Handle Geolocation for COD
+  const handleGetLocation = () => {
+    if (navigator.geolocation) {
+      setLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setValue('lat', pos.coords.latitude);
+          setValue('lng', pos.coords.longitude);
+          setLocating(false);
+        },
+        (err) => {
+          console.error(err);
+          setLocating(false);
+          alert('Could not get location. Please allow location access or pick on map.');
+        }
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (paymentMethod === 'COD' && fulfillmentMode === 'DELIVERY') {
+      handleGetLocation();
+    }
+  }, [paymentMethod, fulfillmentMode]);
 
   // Delivery Fee Calculation
   const deliveryFee = fulfillmentMode === 'DELIVERY' ? 250 : 0;
@@ -58,15 +86,25 @@ export function CheckoutPage() {
   useEffect(() => {
     if (profileQ.data?.profile) {
       const p = profileQ.data.profile;
-      reset({
-        type: 'PERSONAL',
-        fulfillmentMode: 'PICKUP',
-        paymentMethod: 'ONLINE',
-        addressLine: p.address || '',
-        city: p.city || ''
-      });
+      const currentValues = watch();
+      
+      // If COD is selected, force profile address
+      if (paymentMethod === 'COD') {
+        setValue('addressLine', p.address || '');
+        if (p.lat && p.lng) {
+          setValue('lat', p.lat);
+          setValue('lng', p.lng);
+        }
+      } else if (!currentValues.addressLine) {
+        // Only reset if empty and switching away from COD or initial load
+        setValue('addressLine', p.address || '');
+        if (p.lat && p.lng) {
+          setValue('lat', p.lat);
+          setValue('lng', p.lng);
+        }
+      }
     }
-  }, [profileQ.data, reset]);
+  }, [profileQ.data, paymentMethod, setValue]);
 
   if (!items.length) {
     return (
@@ -134,9 +172,9 @@ export function CheckoutPage() {
             items: items.map(it => ({ listingId: it.listingId, qty: it.qty })),
             type: v.type, fulfillmentMode: v.fulfillmentMode, paymentMethod: v.paymentMethod,
             donationCenterId: v.type === 'DONATION' ? v.donationCenterId : undefined,
-            scheduledTime: v.scheduledTime,
             addressLine: v.fulfillmentMode === 'DELIVERY' ? v.addressLine : undefined,
-            city: v.fulfillmentMode === 'DELIVERY' ? v.city : undefined,
+            lat: v.lat,
+            lng: v.lng,
             deliveryFee
           };
           const order = await api.post('/orders', payload).then(r => r.data);
@@ -217,81 +255,73 @@ export function CheckoutPage() {
                     </label>
                     <label className={`flex items-center gap-2 cursor-pointer ${type === 'DONATION' ? 'opacity-50' : ''}`}>
                       <input type="radio" value="COD" {...register('paymentMethod')} disabled={type === 'DONATION'} className="text-green-600 focus:ring-green-500" />
-                      <span className="text-gray-700">Cash on Delivery</span>
+                      <span className="text-gray-700">{fulfillmentMode === 'PICKUP' ? 'Cash on Pickup' : 'Cash on Delivery'}</span>
                     </label>
                   </div>
                 </div>
 
-                {/* Additional Details */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Scheduled Time (Optional)</label>
-                    <input 
-                      type="datetime-local"
-                      {...register('scheduledTime')} 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
-                    />
-                  </div>
-                </div>
+
 
                 {/* Delivery Address Section */}
                 {fulfillmentMode === 'DELIVERY' && (
                   <div className="space-y-4">
-                    {profileQ.data?.profile?.address && !editingAddress ? (
-                      <div className="p-4 bg-green-50 border border-green-100 rounded-xl flex justify-between items-start">
-                        <div>
-                          <p className="text-xs font-bold text-green-700 uppercase tracking-wider mb-1">Deliver to Saved Address</p>
-                          <p className="text-gray-900 font-medium">{profileQ.data.profile.address}</p>
-                          <p className="text-gray-600 text-sm">{profileQ.data.profile.city}</p>
-                        </div>
-                        <button 
-                          type="button"
-                          onClick={() => setEditingAddress(true)}
-                          className="text-xs font-bold text-green-600 hover:underline"
-                        >
-                          Change
-                        </button>
+                    {paymentMethod === 'COD' && !profileQ.data?.profile?.address && (
+                      <div className="p-4 bg-red-50 border border-red-100 rounded-xl">
+                        <p className="text-sm text-red-600 font-medium flex items-center gap-2">
+                          <span>⚠️</span>
+                          Please save an address in your profile to use Cash on Delivery.
+                        </p>
+                        <Link to="/profile" className="text-xs text-red-700 underline font-bold mt-1 block">Go to Profile →</Link>
                       </div>
-                    ) : (
-                      <>
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">Address (for delivery) *</label>
-                          <input 
-                            {...register('addressLine', { required: fulfillmentMode === 'DELIVERY' })} 
-                            placeholder="Street address" 
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">City (for delivery) *</label>
-                          <input 
-                            {...register('city', { required: fulfillmentMode === 'DELIVERY' })} 
-                            placeholder="City" 
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
-                          />
-                        </div>
-                        {profileQ.data?.profile?.address && (
-                          <button type="button" onClick={() => setEditingAddress(false)} className="text-xs text-gray-500 hover:underline">Cancel editing</button>
-                        )}
-                      </>
                     )}
-                    
-                    {/* Map Picker Placeholder */}
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">Delivery Location</span>
-                        <button 
-                          type="button"
-                          onClick={() => alert('Google Maps API key required to enable map picker.')}
-                          className="text-xs font-bold text-green-600 hover:text-green-700 underline"
-                        >
-                          📍 Pin on Map
-                        </button>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-semibold text-gray-700">Address (for delivery) *</label>
+                        {paymentMethod === 'COD' && (
+                          <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-md font-bold uppercase">Locked to Profile</span>
+                        )}
                       </div>
-                      <div className="h-32 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-xs italic">
-                        Map View
-                      </div>
+                      <input 
+                        {...register('addressLine', { required: true })} 
+                        placeholder="Street address" 
+                        readOnly={paymentMethod === 'COD'}
+                        className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${paymentMethod === 'COD' ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''}`} 
+                      />
+                      {paymentMethod === 'COD' && (
+                        <p className="text-[10px] text-gray-500 mt-1 italic">For security, COD is only available for your registered profile address.</p>
+                      )}
                     </div>
+                    
+                    {/* Map Picker */}
+                    {paymentMethod !== 'COD' && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-gray-700">Delivery Location</span>
+                        </div>
+                        
+                        <MapPicker 
+                          onLocationSelect={(lat, lng) => {
+                            setValue('lat', lat);
+                            setValue('lng', lng);
+                          }}
+                          onAddressSelect={(data) => {
+                            setValue('addressLine', data.address);
+                            setEditingAddress(true);
+                          }}
+                          initialLat={watch('lat')}
+                          initialLng={watch('lng')}
+                          address={watch('addressLine')}
+                        />
+                        
+                        {watch('lat') && (
+                          <div className="bg-green-50 p-3 rounded-xl border border-green-100 flex items-center gap-2">
+                            <span className="text-green-600">✅</span>
+                            <span className="text-xs font-bold text-green-700 uppercase">Exact location pinned</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 

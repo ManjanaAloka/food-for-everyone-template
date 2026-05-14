@@ -11,7 +11,7 @@ router.get('/', ah(async (req, res) => {
   const { q, category, providerId, city, urgency, minPrice, maxPrice, sort, lat, lng, radius } = req.query;
   const now = new Date();
 
-  const where: any = { status: 'ACTIVE', expiresAt: { gt: now } };
+  const where: any = { status: 'ACTIVE', expiresAt: { gt: now }, qtyAvailable: { gt: 0 } };
   if (q) where.OR = [{ title: { contains: String(q) } }, { description: { contains: String(q) } }];
   if (category) where.category = String(category);
   if (providerId) where.providerId = String(providerId);

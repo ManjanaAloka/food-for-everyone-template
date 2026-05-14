@@ -19,6 +19,18 @@ export function ApprovalsPage() {
 
   const approveProvider = useMutation({ 
     mutationFn: async (userId: string) => api.post(`/admin/providers/${userId}/approve`, {}), 
+    onMutate: async (userId: string) => {
+      await qc.cancelQueries({ queryKey: ['pendingProviders'] });
+      const previous = qc.getQueryData(['pendingProviders']);
+      qc.setQueryData(['pendingProviders'], (old: any) => ({
+        ...old,
+        providers: old?.providers?.filter((p: any) => p.userId !== userId)
+      }));
+      return { previous };
+    },
+    onError: (_err, _userId, context: any) => {
+      qc.setQueryData(['pendingProviders'], context.previous);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['pendingProviders'] });
       qc.invalidateQueries({ queryKey: ['adminUsers'] });
@@ -28,6 +40,18 @@ export function ApprovalsPage() {
 
   const approveCenter = useMutation({ 
     mutationFn: async (userId: string) => api.post(`/admin/centers/${userId}/approve`, {}), 
+    onMutate: async (userId: string) => {
+      await qc.cancelQueries({ queryKey: ['pendingCenters'] });
+      const previous = qc.getQueryData(['pendingCenters']);
+      qc.setQueryData(['pendingCenters'], (old: any) => ({
+        ...old,
+        centers: old?.centers?.filter((c: any) => c.userId !== userId)
+      }));
+      return { previous };
+    },
+    onError: (_err, _userId, context: any) => {
+      qc.setQueryData(['pendingCenters'], context.previous);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['pendingCenters'] });
       qc.invalidateQueries({ queryKey: ['adminUsers'] });

@@ -40,98 +40,109 @@ router.post('/register', ah(async (req, res) => {
   const data = registerSchema.parse(req.body);
   const hash = await argon2.hash(data.password);
   const status = data.role === 'CUSTOMER' ? 'ACTIVE' : 'PENDING';
-  // Only include phone if it has a value (not empty string)
   const phone = data.phone && data.phone.trim() !== '' ? data.phone : undefined;
-  const user = await prisma.user.create({
-    data: { name: data.name, email: data.email, phone, passwordHash: hash, role: data.role as any, status }
-  });
 
-  if (data.role === 'PROVIDER') {
-    await prisma.serviceProvider.create({ 
-      data: { 
-        userId: user.id, 
-        businessName: data.businessName || data.name,
-        brNo: data.brNo,
-        address: data.address,
-        city: data.city,
-        lat: data.lat,
-        lng: data.lng,
-        openHours: data.openHours,
-        businessType: data.businessType,
-        contactPerson: data.contactPerson
-      } 
-    });
-  } else if (data.role === 'DONATION_CENTER') {
-    await prisma.donationCenter.create({ 
-      data: { 
-        userId: user.id, 
-        name: data.centerName || data.name,
-        centerType: data.centerType,
-        contactPerson: data.contactPerson,
-        phone: data.phone,
-        address: data.address,
-        city: data.city,
-        lat: data.lat,
-        lng: data.lng,
-        beneficiariesCount: data.beneficiariesCount
-      } 
-    });
-  } else if (data.role === 'CUSTOMER') {
-    await prisma.customerProfile.create({
-      data: {
-        userId: user.id,
-        address: data.address,
-        city: data.city,
-        lat: data.lat,
-        lng: data.lng
-      }
-    });
-  }
-
-  res.json({ id: user.id, status: user.status });
-
-  // ─── NOTIFY ADMINS ─────────────────────────────────────────────────────────
-  if (status === 'PENDING') {
-    try {
-      const admins = await prisma.user.findMany({
-        where: { role: { in: ['ADMIN', 'SYSTEM_ADMIN'] } },
-        select: { id: true }
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: { name: data.name, email: data.email, phone, passwordHash: hash, role: data.role as any, status }
       });
 
-      if (admins.length > 0) {
-        const type = data.role === 'PROVIDER' ? 'NEW_PROVIDER' : 'NEW_DONATION_CENTER';
-        const title = data.role === 'PROVIDER' ? 'New Provider Registration' : 'New Donation Center Registration';
-        const name = data.role === 'PROVIDER' ? (data.businessName || data.name) : (data.centerName || data.name);
-
-        await prisma.notification.createMany({
-          data: admins.map(admin => ({
-            userId: admin.id,
-            type: type,
-            channel: 'IN_APP',
-            payload: {
-              title: title,
-              message: `${name} has registered and is awaiting your approval.`,
-              userId: user.id,
-              role: data.role
-            }
-          }))
+      if (data.role === 'PROVIDER') {
+        await tx.serviceProvider.create({ 
+          data: { 
+            userId: user.id, 
+            businessName: data.businessName || data.name,
+            brNo: data.brNo,
+            address: data.address,
+            city: data.city,
+            lat: data.lat,
+            lng: data.lng,
+            openHours: data.openHours,
+            businessType: data.businessType,
+            contactPerson: data.contactPerson
+          } 
         });
-        
-        // Also trigger via socket if available
-        const io = (global as any).__io;
-        if (io) {
-          admins.forEach(admin => {
-            io.to(`user:${admin.id}`).emit('notification', {
-              type,
-              title,
-              message: `${name} is awaiting approval.`
-            });
-          });
-        }
+      } else if (data.role === 'DONATION_CENTER') {
+        await tx.donationCenter.create({ 
+          data: { 
+            userId: user.id, 
+            name: data.centerName || data.name,
+            centerType: data.centerType,
+            registrationNo: data.brNo,
+            contactPerson: data.contactPerson,
+            phone: data.phone,
+            address: data.address,
+            lat: data.lat,
+            lng: data.lng,
+            beneficiariesCount: data.beneficiariesCount
+          } 
+        });
+      } else if (data.role === 'CUSTOMER') {
+        await tx.customerProfile.create({
+          data: {
+            userId: user.id,
+            address: data.address,
+            city: data.city,
+            lat: data.lat,
+            lng: data.lng
+          }
+        });
       }
-    } catch (error) {
-      console.error('Error sending admin notifications:', error);
+      return user;
+    });
+
+    res.json({ id: result.id, status: result.status });
+
+    // ─── NOTIFY ADMINS ─────────────────────────────────────────────────────────
+    if (status === 'PENDING') {
+      try {
+        const admins = await prisma.user.findMany({
+          where: { role: { in: ['ADMIN', 'SYSTEM_ADMIN'] } },
+          select: { id: true }
+        });
+
+        if (admins.length > 0) {
+          const type = data.role === 'PROVIDER' ? 'NEW_PROVIDER' : 'NEW_DONATION_CENTER';
+          const title = data.role === 'PROVIDER' ? 'New Provider Registration' : 'New Donation Center Registration';
+          const name = data.role === 'PROVIDER' ? (data.businessName || data.name) : (data.centerName || data.name);
+
+          await prisma.notification.createMany({
+            data: admins.map(admin => ({
+              userId: admin.id,
+              type: type,
+              channel: 'IN_APP',
+              payload: {
+                title: title,
+                message: `${name} has registered and is awaiting your approval.`,
+                userId: result.id,
+                role: data.role
+              }
+            }))
+          });
+          
+          const io = (global as any).__io;
+          if (io) {
+            admins.forEach(admin => {
+              io.to(`user:${admin.id}`).emit('notification', {
+                type,
+                title,
+                message: `${name} is awaiting approval.`
+              });
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error sending admin notifications:', error);
+      }
     }
+  } catch (err: any) {
+    console.error('Registration Transaction Error:', err);
+    if (err.code === 'P2002') {
+      const field = err.meta?.target || 'field';
+      return res.status(400).json({ error: `A user with this ${field} already exists.` });
+    }
+    return res.status(500).json({ error: 'Registration failed', details: err.message });
   }
 }));
 

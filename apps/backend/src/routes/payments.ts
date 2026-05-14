@@ -146,11 +146,23 @@ async function handlePaymentEvent(event: any) {
             try {
               const buyer = await tx.user.findUnique({ where: { id: order.buyerId } });
               if (buyer) {
+                const message = `Payment successful for Order #${order.id}.`;
                 await createNotification(buyer.id, 'PAYMENT_SUCCESS', 'IN_APP', { 
                   orderId: order.id, 
-                  message: `Payment successful for Order #${order.id}.`,
+                  message,
                   action: 'VIEW_ORDER'
                 });
+                
+                // Emit socket
+                const io = (global as any).__io;
+                if (io) {
+                  io.to(`user:${buyer.id}`).emit('notification', { 
+                    type: 'PAYMENT_SUCCESS', 
+                    message, 
+                    orderId: order.id 
+                  });
+                }
+
                 await notifyEmail(buyer.email, `Payment Received: Order #${order.id}`, `<h1>Thank you!</h1><p>Received LKR ${Number(order.total).toFixed(2)}</p>`);
               }
             } catch (notifyErr) {

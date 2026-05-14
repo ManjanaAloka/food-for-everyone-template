@@ -87,6 +87,7 @@ export function NotificationsDropdown() {
                       <div className="text-2xl">
                         {n.type === 'DONATION_FULFILLED' ? '🎉' : 
                          n.type === 'ORDER_CREATED' ? '🛍️' : 
+                         n.type === 'ORDER_UPDATE' ? '📦' :
                          n.type === 'APPROVAL' ? '✅' : '🔔'}
                       </div>
                       <div className="flex-1">

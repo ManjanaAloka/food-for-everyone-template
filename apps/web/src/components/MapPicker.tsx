@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import { GOOGLE_MAPS_API_KEY } from '../env';
 
@@ -16,17 +16,19 @@ const defaultCenter = {
 
 interface MapPickerProps {
   onLocationSelect: (lat: number, lng: number) => void;
-  onAddressSelect?: (data: { address: string; city: string }) => void;
+  onAddressSelect?: (data: { address?: string; city: string }) => void;
   initialLat?: number;
   initialLng?: number;
   address?: string;
 }
 
+const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = ['places'];
+
 export function MapPicker({ onLocationSelect, onAddressSelect, initialLat, initialLng, address }: MapPickerProps) {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: ['places']
+    libraries
   });
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -83,9 +85,12 @@ export function MapPicker({ onLocationSelect, onAddressSelect, initialLat, initi
     }
   }, [handleLocationSelect]);
 
+  const hasAutoLocated = useRef(false);
+
   // Auto-detect location on mount
   useEffect(() => {
-    if (navigator.geolocation && !initialLat) {
+    if (navigator.geolocation && !initialLat && !hasAutoLocated.current) {
+      hasAutoLocated.current = true;
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -97,7 +102,7 @@ export function MapPicker({ onLocationSelect, onAddressSelect, initialLat, initi
     }
   }, [initialLat, handleLocationSelect]);
 
-  // Geocode address when it changes (from external input)
+  // Sync map with typed address (WITHOUT overwriting the input field)
   useEffect(() => {
     if (isLoaded && address && address.length > 5) {
       const geocoder = new google.maps.Geocoder();
@@ -106,18 +111,23 @@ export function MapPicker({ onLocationSelect, onAddressSelect, initialLat, initi
           if (status === 'OK' && results && results[0]) {
             const loc = results[0].geometry.location;
             const newPos = { lat: loc.lat(), lng: loc.lng() };
+            
+            // Update internal map state
             setCenter(newPos);
             setPosition(newPos);
+            
+            // Notify parent about new coordinates
             onLocationSelect(newPos.lat, newPos.lng);
             
-            // Still update the city if possible
+            // Update city if found, but DO NOT call onAddressSelect with 'address' 
+            // to avoid overwriting what the user is typing.
             if (onAddressSelect) {
-                const city = extractCity(results);
-                onAddressSelect({ address: address, city }); // Keep original address input
+              const city = extractCity(results);
+              onAddressSelect({ city }); 
             }
           }
         });
-      }, 2000); 
+      }, 1500); // Debounce
       return () => clearTimeout(timeoutId);
     }
   }, [isLoaded, address, onLocationSelect, onAddressSelect]);

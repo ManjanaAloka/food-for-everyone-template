@@ -9,6 +9,8 @@ import './i18n';
 import { AuthProvider } from './state/auth';
 import { CartProvider } from './state/cart';
 
+import { SocketProvider } from './state/socket';
+
 const qc = new QueryClient();
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -16,8 +18,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <CartProvider>
-            <App />
-            <Toaster position="top-right" richColors closeButton />
+            <SocketProvider>
+              <App />
+              <Toaster position="top-right" richColors closeButton />
+            </SocketProvider>
           </CartProvider>
         </AuthProvider>
       </BrowserRouter>

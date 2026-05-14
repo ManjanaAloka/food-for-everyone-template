@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../state/auth';
 import { Link, useNavigate } from 'react-router-dom';
@@ -42,6 +42,16 @@ export function RegisterPage() {
   const [step, setStep] = useState(1);
   const selectedRole = watch('role');
   const watchedAddress = watch('address');
+  
+  const onLocationSelect = useCallback((lat: number, lng: number) => { 
+    setValue('lat', lat); 
+    setValue('lng', lng); 
+  }, [setValue]);
+
+  const onAddressSelect = useCallback((data: { address?: string; city: string }) => { 
+    if (data.address) setValue('address', data.address); 
+    if (data.city) setValue('city', data.city); 
+  }, [setValue]);
 
   const onSubmit = async (v: Form) => {
     try {
@@ -52,10 +62,13 @@ export function RegisterPage() {
       }
       nav('/login');
     } catch (err: any) {
+      console.error('Registration error:', err);
       const msg = err.response?.data?.error || err.message || 'Registration failed';
       const details = err.response?.data?.details;
+      toast.error(details ? `${msg}: ${details}` : msg);
       
-      if (details && typeof details === 'object') {
+      const fieldErrors = err.response?.data?.details?.fieldErrors;
+      if (fieldErrors && typeof fieldErrors === 'object') {
         // If it's a Zod error, flatten it to a readable string
         const fieldErrors = details.fieldErrors || {};
         const errorList = Object.entries(fieldErrors)
@@ -194,8 +207,8 @@ export function RegisterPage() {
                           <label className="block text-xs font-bold text-gray-700 mb-2">Location on Map</label>
                           <MapPicker 
                             address={watchedAddress}
-                            onLocationSelect={(lat, lng) => { setValue('lat', lat); setValue('lng', lng); }} 
-                            onAddressSelect={(data) => { setValue('address', data.address); setValue('city', data.city); }}
+                            onLocationSelect={onLocationSelect} 
+                            onAddressSelect={onAddressSelect}
                           />
                           {(!watch('lat') || !watch('lng')) && <span className="text-amber-600 text-[10px] mt-1 block font-bold">⚠️ Please pin your location on the map</span>}
                         </div>
@@ -239,8 +252,8 @@ export function RegisterPage() {
                           <label className="block text-xs font-bold text-gray-700 mb-2">Business Location</label>
                           <MapPicker 
                             address={watchedAddress}
-                            onLocationSelect={(lat, lng) => { setValue('lat', lat); setValue('lng', lng); }} 
-                            onAddressSelect={(data) => { setValue('address', data.address); setValue('city', data.city); }}
+                            onLocationSelect={onLocationSelect} 
+                            onAddressSelect={onAddressSelect}
                           />
                           {(!watch('lat') || !watch('lng')) && <span className="text-amber-600 text-[10px] mt-1 block font-bold uppercase">⚠️ Pin your business location</span>}
                         </div>
@@ -284,8 +297,8 @@ export function RegisterPage() {
                           <label className="block text-xs font-bold text-gray-700 mb-2">Center Location</label>
                           <MapPicker 
                             address={watchedAddress}
-                            onLocationSelect={(lat, lng) => { setValue('lat', lat); setValue('lng', lng); }} 
-                            onAddressSelect={(data) => { setValue('address', data.address); setValue('city', data.city); }}
+                            onLocationSelect={onLocationSelect} 
+                            onAddressSelect={onAddressSelect}
                           />
                           {(!watch('lat') || !watch('lng')) && <span className="text-amber-600 text-[10px] mt-1 block font-bold uppercase">⚠️ Pin the center location</span>}
                         </div>

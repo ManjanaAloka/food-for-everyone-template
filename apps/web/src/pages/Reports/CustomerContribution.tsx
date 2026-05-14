@@ -13,8 +13,11 @@ export function CustomerContributionPage() {
   const [toDate, setToDate] = useState('');
 
   const { data, isLoading, refetch } = useQuery({ 
-    queryKey: ['customerReport', fromDate, toDate], 
-    queryFn: async () => (await api.get('/reports/customer', { params: { from: fromDate, to: toDate } })).data 
+    queryKey: ['contributionReport', user?.role, fromDate, toDate], 
+    queryFn: async () => {
+      const endpoint = user?.role === 'PROVIDER' ? '/reports/provider' : '/reports/customer';
+      return (await api.get(endpoint, { params: { from: fromDate, to: toDate } })).data;
+    }
   });
 
   if (isLoading) return <div className="p-8 text-center">Loading your contribution...</div>;

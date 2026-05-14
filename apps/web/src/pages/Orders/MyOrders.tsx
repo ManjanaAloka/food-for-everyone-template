@@ -1,27 +1,49 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '../../state/auth';
+import html2canvas from 'html2canvas';
 
 
 export function MyOrdersPage() {
+  const nav = useNavigate();
   const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
-
   const [selectedDonation, setSelectedDonation] = useState<any>(null);
+  const [downloading, setDownloading] = useState(false);
+  const storyRef = useRef<HTMLDivElement>(null);
   const itemsPerPage = 5;
+
+  const downloadStory = async () => {
+    if (!storyRef.current) return;
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(storyRef.current, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false,
+      });
+      const link = document.createElement('a');
+      link.download = `impact-story-${selectedDonation?.id?.slice(0, 6)}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const { data: ordersData, isLoading: ordersLoading } = useQuery({
     queryKey: ['myOrders'],
     queryFn: async () => (await api.get('/orders')).data
   });
-  
+
   const { data: donationsData, isLoading: donationsLoading } = useQuery({
     queryKey: ['myDonations'],
     queryFn: async () => (await api.get('/donations/my/history')).data
   });
-  
+
   if (ordersLoading || donationsLoading) return <div className="pt-20 text-center">Loading history...</div>;
 
   const orders = ordersData?.orders || [];
@@ -32,7 +54,7 @@ export function MyOrdersPage() {
     items: [{ listing: { title: d.donationRequest.title, images: [] } }]
   }));
 
-  const allTransactions = [...orders, ...donations].sort((a, b) => 
+  const allTransactions = [...orders, ...donations].sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
@@ -65,52 +87,50 @@ export function MyOrdersPage() {
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Order History</h1>
           <p className="text-xl text-gray-600">View your recent orders and track their status</p>
         </div>
-        
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="space-y-4">
             {currentItems.map((o: any) => {
               if (o.isDonationOnly) {
                 return (
-                  <div 
-                    key={o.id} 
-                    className="flex items-center justify-between p-4 border border-pink-100 rounded-xl bg-pink-50/30"
+                  <div
+                    key={o.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-orange-100 rounded-xl bg-orange-50/30 gap-4"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-lg bg-pink-100 flex items-center justify-center text-3xl flex-shrink-0">
+                      <div className="w-16 h-16 rounded-lg bg-orange-100 flex items-center justify-center text-3xl flex-shrink-0">
                         💝
                       </div>
                       <div>
                         <div className="font-bold text-gray-900 line-clamp-1">
                           Donated to: {o.donationRequest.title}
                         </div>
-                        <div className="text-xs text-pink-600 font-bold mb-1">Impact Donation</div>
+                        <div className="text-xs text-orange-600 font-bold mb-1">Impact Donation</div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] px-2 py-0.5 font-bold rounded-full uppercase bg-pink-600 text-white">
+                          <span className="text-[10px] px-2 py-0.5 font-bold rounded-full uppercase bg-orange-600 text-white">
                             {o.status}
                           </span>
-                          <span className="text-sm text-pink-700 font-black">
+                          <span className="text-sm text-orange-700 font-black">
                             {(o.amount / 150).toFixed(0)} Items Donated
                           </span>
                           <span className="text-[10px] text-gray-400 font-medium">
-                            {new Date(o.createdAt).toLocaleDateString()}
+                            {new Date(o.createdAt).toLocaleString()}
                           </span>
                         </div>
-
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <button 
+                    <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-orange-100">
+                      <button
                         onClick={() => setSelectedDonation(o)}
-                        className="text-pink-600 font-bold text-sm flex items-center gap-1 hover:underline"
+                        className="text-orange-600 font-bold text-sm flex items-center gap-1 hover:underline"
                       >
                         View Impact <span className="text-lg">→</span>
                       </button>
-                      <div className="text-[10px] text-pink-400 font-medium italic">
+                      <div className="text-[10px] text-orange-400 font-medium italic">
                         Thank You! ❤️
                       </div>
                     </div>
                   </div>
-
                 );
               }
 
@@ -120,10 +140,10 @@ export function MyOrdersPage() {
               const mainImage = images[0] || 'https://via.placeholder.com/150?text=No+Image';
 
               return (
-                <Link 
-                  key={o.id} 
-                  to={`/orders/${o.id}`}
-                  className="flex items-center justify-between p-4 border border-gray-100 rounded-xl hover:shadow-md transition-all hover:border-green-500 bg-white"
+                <div
+                  key={o.id}
+                  onClick={() => nav(`/orders/${o.id}`)}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-gray-100 rounded-xl hover:shadow-md transition-all hover:border-green-500 bg-white gap-4 cursor-pointer"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
@@ -133,32 +153,35 @@ export function MyOrdersPage() {
                       <div className="font-bold text-gray-900 line-clamp-1">
                         {o.items.length > 1 ? `${listing?.title} + ${o.items.length - 1} more` : listing?.title}
                       </div>
-                      <div className="text-xs text-green-600 font-bold font-mono mb-1">O-{o.orderNumber?.toString().padStart(4, '0') || '—'}</div>
-
+                      <div className="text-xs text-green-600 font-bold font-mono mb-1">
+                        O-{o.orderNumber?.toString().padStart(4, '0') || '—'}
+                        <span className="text-gray-400 ml-2 font-sans font-normal">
+                          {new Date(o.createdAt).toLocaleString()}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-[10px] px-2 py-0.5 font-bold rounded-full uppercase ${
-                          o.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : 
+                          o.status === 'DELIVERED' ? 'bg-green-100 text-green-700' :
                           o.status === 'CANCELED' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
                         }`}>
                           {o.status}
                         </span>
                         {o.type === 'DONATION' ? (
-                          <span className="text-sm text-pink-700 font-black flex items-center gap-1">
+                          <span className="text-sm text-orange-700 font-black flex items-center gap-1">
                             📦 {o.items.reduce((acc: number, it: any) => acc + (it.qty || 0), 0)} Items
                           </span>
                         ) : (
                           <span className="text-sm text-gray-500">LKR {Number(o.total).toFixed(2)}</span>
                         )}
                       </div>
-
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
+                  <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100">
                     <div className="text-green-600 font-bold text-sm flex items-center gap-1">
                       Details <span className="text-lg">→</span>
                     </div>
                     {o.status === 'DELIVERED' && !o.review && o.buyerId === user?.id && (
-                      <Link 
+                      <Link
                         to={`/orders/${o.id}/review`}
                         onClick={(e) => e.stopPropagation()}
                         className="px-4 py-1.5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-xs font-bold rounded-lg transition-colors shadow-sm"
@@ -166,9 +189,8 @@ export function MyOrdersPage() {
                         ⭐ Rate & Review
                       </Link>
                     )}
-
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>
@@ -183,7 +205,7 @@ export function MyOrdersPage() {
               >
                 Previous
               </button>
-              
+
               {[...Array(totalPages)].map((_, i) => (
                 <button
                   key={i + 1}
@@ -209,67 +231,91 @@ export function MyOrdersPage() {
           )}
         </div>
       </div>
-      {/* Donation Thank You Modal */}
+
+      {/* Donation Story Card Modal */}
       {selectedDonation && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] max-w-md w-full shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500">
-            {/* Header with Sparkles */}
-            <div className="bg-gradient-to-br from-pink-500 via-rose-500 to-orange-500 p-10 text-white text-center relative overflow-hidden">
-              {/* Decorative floating hearts/circles */}
-              <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-                <div className="absolute top-10 left-10 text-4xl animate-bounce">💖</div>
-                <div className="absolute bottom-10 right-10 text-2xl animate-pulse">✨</div>
-                <div className="absolute top-1/2 left-1/4 text-xl">⭐</div>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="flex flex-col items-center gap-4 w-full max-w-sm">
+
+            {/* Story Card - this gets captured by html2canvas */}
+            <div
+              ref={storyRef}
+              className="relative w-full rounded-[2rem] overflow-hidden shadow-2xl"
+              style={{ aspectRatio: '9/16', background: 'linear-gradient(145deg, #f97316 0%, #fb923c 25%, #fbbf24 60%, #fde68a 100%)' }}
+            >
+              {/* Background Blobs */}
+              <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute -top-16 -right-16 w-64 h-64 bg-white/10 rounded-full" />
+                <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-white/10 rounded-full" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-white/5 rounded-full" />
               </div>
 
-              <div className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-5xl mx-auto mb-6 shadow-xl border border-white/30 animate-pulse">
-                💝
+              {/* Content */}
+              <div className="relative z-10 h-full flex flex-col items-center justify-between px-8 py-12 text-white text-center">
+
+                {/* Top badge */}
+                <div className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-5 py-2">
+                  <span className="text-xs font-black uppercase tracking-widest">🌍 Food for Everyone</span>
+                </div>
+
+                {/* Hero section */}
+                <div className="space-y-4">
+                  <div className="text-7xl">💝</div>
+                  <div className="space-y-1">
+                    <p className="text-white/70 text-sm font-bold uppercase tracking-[0.2em]">I just donated</p>
+                    <div className="text-5xl font-black drop-shadow-lg">
+                      LKR {Number(selectedDonation.amount).toFixed(0)}
+                    </div>
+                    <p className="text-white/80 text-base font-medium">to {selectedDonation.donationRequest.title}</p>
+                  </div>
+                </div>
+
+                {/* Impact Stats */}
+                <div className="w-full bg-white/15 border border-white/20 rounded-2xl p-5 space-y-3">
+                  <p className="text-xs font-black uppercase tracking-widest text-white/60">My Impact</p>
+                  <div className="flex justify-around">
+                    <div className="text-center">
+                      <div className="text-3xl font-black">{(selectedDonation.amount / 150 * 2.5).toFixed(0)}</div>
+                      <div className="text-[10px] font-bold uppercase text-white/60 tracking-wider mt-1">🍽 Meals</div>
+                    </div>
+                    <div className="w-px bg-white/20" />
+                    <div className="text-center">
+                      <div className="text-3xl font-black">{(selectedDonation.amount / 150 * 1.2).toFixed(1)}kg</div>
+                      <div className="text-[10px] font-bold uppercase text-white/60 tracking-wider mt-1">🌱 CO2 Saved</div>
+                    </div>
+                    <div className="w-px bg-white/20" />
+                    <div className="text-center">
+                      <div className="text-3xl font-black">{(selectedDonation.amount / 150).toFixed(0)}</div>
+                      <div className="text-[10px] font-bold uppercase text-white/60 tracking-wider mt-1">📦 Items</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom tagline */}
+                <div className="space-y-2">
+                  <p className="text-white/90 text-sm font-semibold italic">"Together, no one goes hungry."</p>
+                  <div className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
+                    foodforeveryone.lk · {new Date(selectedDonation.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
               </div>
-              <h2 className="text-3xl font-black mb-2 tracking-tight">You're a Hero!</h2>
-              <p className="text-pink-100 text-sm font-medium uppercase tracking-widest">Official Impact Certificate</p>
             </div>
 
-            {/* Content */}
-            <div className="p-10 text-center space-y-6">
-              <div className="space-y-1">
-                <p className="text-gray-500 text-sm font-bold uppercase tracking-tighter">Your Contribution</p>
-                <div className="text-4xl font-black text-gray-900">LKR {Number(selectedDonation.amount).toFixed(2)}</div>
-              </div>
-
-              <div className="bg-pink-50 rounded-3xl p-6 border border-pink-100">
-                <p className="text-gray-600 text-sm italic leading-relaxed">
-                  "Your generous donation to <strong>{selectedDonation.donationRequest.title}</strong> is providing essential meals to families in need. Together, we are building a world where no one goes hungry."
-                </p>
-              </div>
-
-              <div className="flex items-center justify-center gap-4 py-4">
-                <div className="text-center">
-                  <div className="text-xl font-black text-gray-900">{(selectedDonation.amount / 150 * 2.5).toFixed(0)}</div>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase">Meals Provided</p>
-                </div>
-                <div className="w-px h-8 bg-gray-200" />
-                <div className="text-center">
-                  <div className="text-xl font-black text-gray-900">{(selectedDonation.amount / 150 * 1.2).toFixed(1)}kg</div>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase">CO2 Prevented</p>
-                </div>
-              </div>
-
-              <div className="pt-4 space-y-3">
-                <button 
-                  onClick={() => window.print()}
-                  className="w-full py-4 bg-gray-900 text-white font-bold rounded-2xl hover:bg-gray-800 transition-all flex items-center justify-center gap-2 shadow-lg"
-                >
-                  <span>📥</span> Download Certificate
-                </button>
-                <button 
-                  onClick={() => setSelectedDonation(null)}
-                  className="w-full py-4 bg-pink-100 text-pink-600 font-bold rounded-2xl hover:bg-pink-200 transition-all"
-                >
-                  Close
-                </button>
-              </div>
-
-              <p className="text-[10px] text-gray-300 font-medium">Verified by Food for Everyone Community</p>
+            {/* Action Buttons */}
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={downloadStory}
+                disabled={downloading}
+                className="flex-1 py-4 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-60"
+              >
+                {downloading ? '⏳ Saving...' : '⬇️ Download Story'}
+              </button>
+              <button
+                onClick={() => setSelectedDonation(null)}
+                className="px-5 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl backdrop-blur-sm border border-white/20 transition-all"
+              >
+                ✕
+              </button>
             </div>
           </div>
         </div>
@@ -277,4 +323,3 @@ export function MyOrdersPage() {
     </div>
   );
 }
-

@@ -25,6 +25,24 @@ router.get('/', ah(async (_req, res) => {
   res.json({ providers });
 }));
 
+// Public detail endpoint
+router.get('/:id', ah(async (req, res) => {
+  const provider = await prisma.serviceProvider.findUnique({
+    where: { userId: req.params.id },
+    include: {
+      user: {
+        select: {
+          name: true,
+          email: true,
+          phone: true
+        }
+      }
+    }
+  });
+  if (!provider) return res.status(404).json({ error: 'Provider not found' });
+  res.json({ provider });
+}));
+
 router.get('/me', requireAuth, requireRole('PROVIDER'), ah(async (req: any, res) => {
   const me = await prisma.serviceProvider.findUnique({ where: { userId: req.user!.sub } });
   res.json({ provider: me });
@@ -88,15 +106,25 @@ router.get('/me/listings/:id/orders', requireAuth, requireRole('PROVIDER'), ah(a
 
 router.get('/me/stats', requireAuth, requireRole('PROVIDER'), ah(async (req: any, res) => {
   const providerId = req.user!.sub;
+  const { from, to } = req.query;
+
+  const dateFilter: any = {};
+  if (from) dateFilter.gte = new Date(from as string);
+  if (to) dateFilter.lte = new Date(to as string);
+
+  const whereBase: any = { providerId };
+  if (Object.keys(dateFilter).length > 0) {
+    whereBase.createdAt = dateFilter;
+  }
 
   const [totalOrders, pendingOrders, completedOrders] = await Promise.all([
-    prisma.order.count({ where: { providerId, status: { not: 'CANCELED' } } }),
-    prisma.order.count({ where: { providerId, status: { in: ['CREATED', 'PAID', 'PREPARING'] } } }),
-    prisma.order.count({ where: { providerId, status: 'DELIVERED' } })
+    prisma.order.count({ where: { ...whereBase, status: { not: 'CANCELED' } } }),
+    prisma.order.count({ where: { ...whereBase, status: { in: ['CREATED', 'RESERVED', 'AWAITING_PAYMENT', 'PAID', 'PENDING', 'READY_FOR_PICKUP', 'READY_FOR_DELIVERY', 'OUT_FOR_DELIVERY'] } } }),
+    prisma.order.count({ where: { ...whereBase, status: 'DELIVERED' } })
   ]);
 
   const orders = await prisma.order.findMany({
-    where: { providerId, status: { not: 'CANCELED' } },
+    where: { ...whereBase, status: { notIn: ['CANCELED', 'EXPIRED', 'REFUNDED'] } },
     select: { total: true, status: true, paymentMethod: true }
   });
 
