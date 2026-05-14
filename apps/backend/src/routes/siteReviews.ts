@@ -43,7 +43,22 @@ router.get('/', ah(async (_req, res) => {
   res.json({ reviews });
 }));
 
-router.delete('/:id', requireAuth, requireRole('ADMIN'), ah(async (req, res) => {
+router.get('/all', requireAuth, requireRole('ADMIN', 'SYSTEM_ADMIN'), ah(async (_req, res) => {
+  const reviews = await prisma.siteReview.findMany({
+    include: { user: { select: { name: true, email: true } } },
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json({ reviews });
+}));
+
+router.patch('/:id/status', requireAuth, requireRole('ADMIN', 'SYSTEM_ADMIN'), ah(async (req, res) => {
+  const { id } = req.params;
+  const { status } = z.object({ status: z.enum(['APPROVED', 'REJECTED']) }).parse(req.body);
+  const updated = await prisma.siteReview.update({ where: { id }, data: { status } });
+  res.json({ review: updated });
+}));
+
+router.delete('/:id', requireAuth, requireRole('ADMIN', 'SYSTEM_ADMIN'), ah(async (req, res) => {
   const { id } = req.params;
   await prisma.siteReview.delete({ where: { id } });
   res.json({ ok: true });

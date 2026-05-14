@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
+import { useAuth } from '../../state/auth';
 
 type CustomerSettingsForm = {
   name: string;
@@ -14,6 +15,7 @@ type CustomerSettingsForm = {
 
 export function CustomerSettingsPage() {
   const qc = useQueryClient();
+  const { updateUser } = useAuth();
   const [showAddCard, setShowAddCard] = useState(false);
   
   const { data: profileData, isLoading: profileLoading } = useQuery({
@@ -42,8 +44,9 @@ export function CustomerSettingsPage() {
 
   const updateProfile = useMutation({
     mutationFn: async (formData: CustomerSettingsForm) => api.patch('/customers/me', formData),
-    onSuccess: () => {
+    onSuccess: (res, variables) => {
       toast.success('Billing profile updated!');
+      updateUser({ name: variables.name });
       qc.invalidateQueries({ queryKey: ['customerMe'] });
     }
   });

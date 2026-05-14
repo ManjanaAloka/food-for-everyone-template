@@ -9,6 +9,7 @@ export function ProviderDashboardPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'OUT_OF_STOCK' | 'EXPIRED' | 'HIDDEN'>('ACTIVE');
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
   const statsQ = useQuery({ 
     queryKey: ['providerStats', startDate, endDate], 
@@ -30,6 +31,7 @@ export function ProviderDashboardPage() {
   const now = new Date();
 
   const filteredListings = allListings.filter((l: any) => {
+    if (selectedCategory !== 'ALL' && l.category !== selectedCategory) return false;
     const isExpired = new Date(l.expiresAt) < now;
     const isOutOfStock = l.qtyAvailable <= 0;
 
@@ -109,99 +111,147 @@ export function ProviderDashboardPage() {
                 </Link>
               </div>
 
-              {/* Tabs System */}
-              <div className="flex items-center gap-2 mb-6 border-b border-gray-100 pb-1">
-                {[
-                  { id: 'ACTIVE', label: 'Active', color: 'green' },
-                  { id: 'OUT_OF_STOCK', label: 'Out of Stock', color: 'orange' },
-                  { id: 'EXPIRED', label: 'Expired', color: 'red' },
-                  { id: 'HIDDEN', label: 'Hidden', color: 'gray' },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-all border-b-2 ${
-                      activeTab === tab.id 
-                        ? `text-${tab.color}-600 border-${tab.color}-600 bg-${tab.color}-50` 
-                        : 'text-gray-400 border-transparent hover:text-gray-600'
-                    }`}
-                  >
-                    {tab.label}
-                    <span className="ml-2 px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px]">
-                      {allListings.filter((l: any) => {
-                        const isExpired = new Date(l.expiresAt) < now;
-                        const isOutOfStock = l.qtyAvailable <= 0;
-                        if (tab.id === 'EXPIRED') return isExpired;
-                        if (tab.id === 'OUT_OF_STOCK') return isOutOfStock && !isExpired;
-                        if (tab.id === 'HIDDEN') return l.status === 'HIDDEN' && !isExpired && !isOutOfStock;
-                        return l.status === 'ACTIVE' && !isExpired && !isOutOfStock;
-                      }).length}
-                    </span>
-                  </button>
-                ))}
+              {/* Filters Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 border-b border-gray-100 pb-4">
+                {/* Tabs System */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                  {[
+                    { id: 'ACTIVE', label: 'Active', color: 'green' },
+                    { id: 'OUT_OF_STOCK', label: 'Out of Stock', color: 'orange' },
+                    { id: 'EXPIRED', label: 'Expired', color: 'red' },
+                    { id: 'HIDDEN', label: 'Hidden', color: 'gray' },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-all border-b-2 whitespace-nowrap ${
+                        activeTab === tab.id 
+                          ? `text-${tab.color}-600 border-${tab.color}-600 bg-${tab.color}-50` 
+                          : 'text-gray-400 border-transparent hover:text-gray-600'
+                      }`}
+                    >
+                      {tab.label}
+                      <span className="ml-2 px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px]">
+                        {allListings.filter((l: any) => {
+                          if (selectedCategory !== 'ALL' && l.category !== selectedCategory) return false;
+                          const isExpired = new Date(l.expiresAt) < now;
+                          const isOutOfStock = l.qtyAvailable <= 0;
+                          if (tab.id === 'EXPIRED') return isExpired;
+                          if (tab.id === 'OUT_OF_STOCK') return isOutOfStock && !isExpired;
+                          if (tab.id === 'HIDDEN') return l.status === 'HIDDEN' && !isExpired && !isOutOfStock;
+                          return l.status === 'ACTIVE' && !isExpired && !isOutOfStock;
+                        }).length}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Category Filter */}
+                <select 
+                  value={selectedCategory} 
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:ring-2 focus:ring-green-500 outline-none hover:bg-white transition-all cursor-pointer shadow-sm"
+                >
+                  <option value="ALL">📦 All Categories</option>
+                  <option value="Bakery">🥖 Bakery</option>
+                  <option value="Produce">🥬 Produce</option>
+                  <option value="Dairy">🥛 Dairy</option>
+                  <option value="Prepared Meals">🍱 Prepared Meals</option>
+                  <option value="Beverages">🥤 Beverages</option>
+                  <option value="Other">📦 Other</option>
+                </select>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {filteredListings.length ? filteredListings.map((l: any) => {
                   const isExpired = new Date(l.expiresAt) < now;
                   const isOutOfStock = l.qtyAvailable <= 0;
 
                   return (
-                    <div key={l.id} className={`border rounded-xl p-5 transition-colors bg-gray-50/50 ${
-                      isExpired ? 'border-red-200' : isOutOfStock ? 'border-orange-200' : 'border-gray-200 hover:border-green-300'
+                    <div key={l.id} className={`group border rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg bg-white ${
+                      isExpired ? 'border-red-200 shadow-red-50' : isOutOfStock ? 'border-orange-200 shadow-orange-50' : 'border-gray-200 hover:border-green-300 shadow-sm hover:-translate-y-1'
                     }`}>
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="font-bold text-lg text-gray-900">{l.title}</div>
-                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <div className="flex flex-col sm:flex-row h-full">
+                        {/* Image Section */}
+                        <div className="sm:w-48 h-48 sm:h-auto relative bg-gray-100 shrink-0">
+                          {l.images && l.images.length > 0 ? (
+                            <img src={l.images[0]} alt={l.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-4xl">🍽️</div>
+                          )}
+                          {/* Badges on Image */}
+                          <div className="absolute top-2 left-2 flex flex-col gap-1">
                             {isExpired ? (
-                              <span className="px-2.5 py-1 text-[10px] font-black uppercase rounded-md bg-red-600 text-white shadow-sm">EXPIRED</span>
+                              <span className="px-2.5 py-1 text-[10px] font-black uppercase rounded-lg bg-red-600 text-white shadow-md">EXPIRED</span>
                             ) : isOutOfStock ? (
-                              <span className="px-2.5 py-1 text-[10px] font-black uppercase rounded-md bg-orange-500 text-white shadow-sm">OUT OF STOCK</span>
+                              <span className="px-2.5 py-1 text-[10px] font-black uppercase rounded-lg bg-orange-500 text-white shadow-md">OUT OF STOCK</span>
                             ) : (
-                              <span className={`px-2.5 py-1 text-[10px] font-black uppercase rounded-md ${
-                                l.status === 'ACTIVE' ? 'bg-green-600 text-white' : 'bg-gray-400 text-white'
+                              <span className={`px-2.5 py-1 text-[10px] font-black uppercase rounded-lg shadow-md ${
+                                l.status === 'ACTIVE' ? 'bg-green-600 text-white' : 'bg-gray-800 text-white'
                               }`}>{l.status}</span>
                             )}
-                            <span className="text-sm font-bold text-gray-700 border border-gray-200 rounded-md px-2 py-0.5 bg-white shadow-sm">LKR {Number(l.discountPrice).toFixed(2)}</span>
-                          </div>
-                          <div className="text-sm text-gray-500 mt-3 flex flex-wrap gap-x-4 gap-y-1">
-                            <span className={`flex items-center gap-1 font-medium ${isOutOfStock ? 'text-orange-600 font-bold' : ''}`}>
-                              📦 Qty: {l.qtyAvailable}
-                            </span>
-                            <span className={`flex items-center gap-1 font-medium ${isExpired ? 'text-red-600 font-bold' : ''}`}>
-                              ⏰ {isExpired ? 'Expired' : 'Expires'}: {new Date(l.expiresAt).toLocaleDateString()}
-                            </span>
                           </div>
                         </div>
-                        {l.images && l.images.length > 0 && (
-                          <img src={l.images[0]} alt="" className="w-20 h-20 object-cover rounded-lg border border-gray-200 shadow-sm" />
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
-                        <Link 
-                          className="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-bold text-xs rounded-lg hover:bg-gray-50 transition-all flex-1 text-center shadow-sm" 
-                          to={`/provider/listings/${l.id}/edit`}
-                        >
-                          Edit
-                        </Link>
-                        <Link 
-                          className="px-4 py-2 bg-green-50 border border-green-200 text-green-700 font-bold text-xs rounded-lg hover:bg-green-100 transition-all flex-1 text-center flex items-center justify-center gap-2 shadow-sm" 
-                          to={`/provider/listings/${l.id}/orders`}
-                        >
-                          Orders
-                        </Link>
-                        {l.status === 'HIDDEN'
-                          ? <button className="px-4 py-2 bg-green-600 text-white font-bold text-xs rounded-lg hover:bg-green-700 transition-all flex-1 shadow-sm" onClick={()=>unhideListing.mutate(l.id)}>Activate</button>
-                          : <button className="px-4 py-2 bg-gray-800 text-white font-bold text-xs rounded-lg hover:bg-gray-900 transition-all flex-1 shadow-sm" onClick={()=>hideListing.mutate(l.id)}>Hide</button>}
+                        
+                        {/* Content Section */}
+                        <div className="flex-1 p-5 flex flex-col justify-between">
+                          <div>
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <span className="text-[10px] font-black text-green-600 uppercase tracking-widest mb-1 block bg-green-50 w-fit px-2 py-0.5 rounded-md border border-green-100">{l.category}</span>
+                                <h3 className="font-bold text-xl text-gray-900 leading-tight group-hover:text-green-700 transition-colors">{l.title}</h3>
+                              </div>
+                              <div className="text-right ml-4">
+                                <div className="text-2xl font-black text-gray-900">LKR {Number(l.discountPrice).toFixed(2)}</div>
+                                {l.unitPrice > l.discountPrice && (
+                                  <div className="text-sm font-medium text-gray-400 line-through">LKR {Number(l.unitPrice).toFixed(2)}</div>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 text-sm">
+                              <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-bold ${isOutOfStock ? 'bg-orange-100 text-orange-700' : 'bg-blue-50 text-blue-700'}`}>
+                                📦 {l.qtyAvailable} Left
+                              </span>
+                              <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium ${isExpired ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-gray-50 border border-gray-200 text-gray-700'}`}>
+                                ⏰ {isExpired ? 'Expired' : 'Expires'}: {new Date(l.expiresAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Actions Row */}
+                          <div className="flex items-center gap-2 mt-5 pt-4 border-t border-gray-100">
+                            <Link 
+                              to={`/provider/listings/${l.id}/edit`}
+                              className="flex-1 px-4 py-2.5 bg-white border-2 border-gray-200 text-gray-700 font-bold text-sm rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-all text-center" 
+                            >
+                              Edit
+                            </Link>
+                            <Link 
+                              to={`/provider/listings/${l.id}/orders`}
+                              className="flex-1 px-4 py-2.5 bg-green-50 border-2 border-green-100 text-green-700 font-bold text-sm rounded-xl hover:bg-green-100 hover:border-green-200 transition-all text-center flex items-center justify-center gap-2" 
+                            >
+                              Orders
+                            </Link>
+                            {l.status === 'HIDDEN' ? (
+                              <button onClick={()=>unhideListing.mutate(l.id)} className="flex-1 px-4 py-2.5 bg-gray-800 text-white font-bold text-sm rounded-xl hover:bg-gray-900 transition-all text-center shadow-md shadow-gray-200">
+                                Activate
+                              </button>
+                            ) : (
+                              <button onClick={()=>hideListing.mutate(l.id)} className="flex-1 px-4 py-2.5 bg-red-50 text-red-600 font-bold text-sm rounded-xl hover:bg-red-100 border-2 border-transparent transition-all text-center">
+                                Hide
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
                 }) : (
-                  <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
-                    <div className="text-4xl mb-3">🍲</div>
-                    <p className="text-gray-600 font-medium">No {activeTab.toLowerCase().replace('_', ' ')} listings</p>
-                    {activeTab === 'ACTIVE' && <p className="text-sm text-gray-500 mt-1">Create a listing to start selling.</p>}
+                  <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-3xl bg-gray-50/50">
+                    <div className="text-5xl mb-4 opacity-50">🍽️</div>
+                    <p className="text-gray-900 font-bold text-xl mb-1">No {selectedCategory !== 'ALL' ? selectedCategory : activeTab.toLowerCase().replace('_', ' ')} listings found</p>
+                    {activeTab === 'ACTIVE' && <p className="text-gray-500">Create a new listing to start selling to the community.</p>}
                   </div>
                 )}
               </div>

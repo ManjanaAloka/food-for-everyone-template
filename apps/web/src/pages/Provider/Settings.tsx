@@ -4,12 +4,14 @@ import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
 import { MapPicker } from '../../components/MapPicker';
+import { useAuth } from '../../state/auth';
 
 
 type ProviderSettingsForm = {
   businessName: string;
   brNo: string;
   tin: string;
+  phone: string;
   address: string;
   city: string;
   bankName: string;
@@ -23,6 +25,7 @@ type ProviderSettingsForm = {
 
 export function ProviderSettingsPage() {
   const qc = useQueryClient();
+  const { updateUser } = useAuth();
   const { data, isLoading } = useQuery({
     queryKey: ['providerMe'],
     queryFn: async () => (await api.get('/providers/me')).data
@@ -36,17 +39,20 @@ export function ProviderSettingsPage() {
   // Reset form when data loads
   useEffect(() => {
     if (data?.provider) {
-      const payoutDetails = data.provider.deliveryOptions?.payoutDetails || {};
+      const pd = data.provider.deliveryOptions?.payoutDetails || {};
       reset({
         businessName: data.provider.businessName || '',
         brNo: data.provider.brNo || '',
         tin: data.provider.tin || '',
+        phone: data.provider.user?.phone || '',
         address: data.provider.address || '',
         city: data.provider.city || '',
-        bankName: payoutDetails.bankName || '',
-        accountName: payoutDetails.accountName || '',
-        accountNumber: payoutDetails.accountNumber || '',
-        branchCode: payoutDetails.branchCode || ''
+        bankName: pd.bankName || '',
+        accountName: pd.accountName || '',
+        accountNumber: pd.accountNumber || '',
+        branchCode: pd.branchCode || '',
+        lat: data.provider.lat || undefined,
+        lng: data.provider.lng || undefined,
       });
     }
   }, [data, reset]);
@@ -57,6 +63,7 @@ export function ProviderSettingsPage() {
         businessName: formData.businessName,
         brNo: formData.brNo,
         tin: formData.tin,
+        phone: formData.phone,
         address: formData.address,
         city: formData.city,
         lat: formData.lat,
@@ -75,8 +82,9 @@ export function ProviderSettingsPage() {
       };
       return api.patch('/providers/me', payload);
     },
-    onSuccess: () => {
+    onSuccess: (res, variables) => {
       toast.success('Profile and payment details updated!');
+      updateUser({ name: variables.businessName });
       qc.invalidateQueries({ queryKey: ['providerMe'] });
     },
     onError: () => toast.error('Failed to update details')
@@ -118,6 +126,10 @@ export function ProviderSettingsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">TIN Number</label>
                 <input {...register('tin')} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
+                <input {...register('phone')} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" placeholder="e.g. 0771234567" />
               </div>
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">

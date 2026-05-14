@@ -4,9 +4,10 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 import { z } from 'zod';
 import { ah } from '../utils/asyncHandler.js';
 import { notifyEmail } from '../services/notifications.js';
+import argon2 from 'argon2';
 
 export const router = Router();
-router.use(requireAuth, requireRole('ADMIN'));
+router.use(requireAuth, requireRole('ADMIN', 'SYSTEM_ADMIN', 'MANAGER'));
 
 // ─── helper to write audit log ───────────────────────────────────────────────
 async function audit(actorId: string, action: string, entity: string, entityId: string, before?: any, after?: any) {
@@ -138,6 +139,55 @@ router.get('/users', ah(async (req, res) => {
     }
   });
   res.json({ users });
+}));
+
+router.post('/users', ah(async (req: any, res) => {
+  if (req.user.role !== 'SYSTEM_ADMIN') {
+    return res.status(403).json({ error: 'Only System Admins can create administrative users' });
+  }
+
+  const data = z.object({
+    name: z.string().min(1),
+    email: z.string().email(),
+    password: z.string().min(6),
+    role: z.enum(['ADMIN', 'SYSTEM_ADMIN', 'MANAGER']),
+    permissions: z.any().optional()
+  }).parse(req.body);
+
+  const exists = await prisma.user.findUnique({ where: { email: data.email } });
+  if (exists) return res.status(400).json({ error: 'Email already in use' });
+
+  const passwordHash = await argon2.hash(data.password);
+  const user = await prisma.user.create({
+    data: {
+      name: data.name,
+      email: data.email,
+      passwordHash,
+      role: data.role as any,
+      status: 'ACTIVE',
+      permissions: data.permissions,
+      forcePasswordChange: true
+    }
+  });
+
+  await audit(req.user!.sub, 'CREATE_ADMIN', 'User', user.id, null, { email: user.email, role: user.role, permissions: data.permissions });
+  res.json({ user });
+}));
+
+router.delete('/users/:id', ah(async (req: any, res) => {
+  if (req.user.role !== 'SYSTEM_ADMIN') {
+    return res.status(403).json({ error: 'Only System Admins can delete users' });
+  }
+  const { id } = req.params;
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  
+  // Prevent deleting self
+  if (user.id === req.user.sub) return res.status(400).json({ error: 'You cannot delete yourself' });
+
+  await prisma.user.delete({ where: { id } });
+  await audit(req.user!.sub, 'DELETE_USER', 'User', id, user);
+  res.json({ ok: true });
 }));
 
 router.post('/users/:id/ban', ah(async (req: any, res) => {

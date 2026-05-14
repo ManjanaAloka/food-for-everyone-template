@@ -20,18 +20,18 @@ export function UserLayout({ children }: UserLayoutProps) {
 
     // 2. Primary Actions
     { label: 'Browse Food', path: '/browse', icon: '🍽️', roles: ['CUSTOMER'] },
-    { label: 'My Listings', path: '/browse', icon: '📦', roles: ['PROVIDER'] }, // Usually providers manage listings in dashboard, but keeping as requested
     { label: 'Add Listing', path: '/provider/listings/new', icon: '➕', roles: ['PROVIDER'] },
     { label: 'All Centers', path: '/donation-centers', icon: '🏥', roles: ['DONATION_CENTER'] },
 
     // 3. Transactions & Impact
     { label: 'My Orders', path: '/orders', icon: '🛍️', roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
+    { label: 'Reviews', path: '/provider/reviews', icon: '⭐', roles: ['PROVIDER'] },
     { label: 'Contributions', path: '/reports/mine', icon: '🌱', roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
     
-    // 4. Settings
-    { label: 'Settings', path: '/customer/settings', icon: '⚙️', roles: ['CUSTOMER'] },
-    { label: 'Settings', path: '/provider/settings', icon: '⚙️', roles: ['PROVIDER'] },
-    { label: 'Settings', path: '/center/settings', icon: '⚙️', roles: ['DONATION_CENTER'] },
+    // 4. Settings / Analytics
+    { label: 'Analytics', path: '/customer/settings', icon: '⚙️', roles: ['CUSTOMER'] },
+    { label: 'Analytics', path: '/provider/analytics', icon: '📈', roles: ['PROVIDER'] },
+    { label: 'Analytics', path: '/center/settings', icon: '⚙️', roles: ['DONATION_CENTER'] },
     { label: 'Profile', path: '/profile', icon: '👤', roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
   ];
 
@@ -73,7 +73,14 @@ export function UserLayout({ children }: UserLayoutProps) {
           })}
         </nav>
 
-        <div className="p-6 border-t border-slate-100">
+        <div className="p-6 border-t border-slate-100 space-y-3">
+          <Link
+            to="/browse"
+            className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl text-sm font-bold text-slate-500 hover:bg-slate-50 transition-all group"
+          >
+            <span className="text-xl group-hover:-translate-x-1 transition-transform">🌍</span>
+            Back to Site
+          </Link>
           <button
             onClick={() => logout()}
             className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl text-sm font-bold text-red-500 hover:bg-red-50 transition-all group"

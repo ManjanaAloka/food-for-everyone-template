@@ -25,6 +25,57 @@ router.get('/', ah(async (_req, res) => {
   res.json({ providers });
 }));
 
+// Provider Profile endpoint (must be BEFORE /:id)
+router.get('/me', requireAuth, requireRole('PROVIDER'), ah(async (req: any, res) => {
+  const me = await prisma.serviceProvider.findUnique({ 
+    where: { userId: req.user!.sub },
+    include: {
+      user: {
+        select: { phone: true }
+      }
+    }
+  });
+  res.json({ provider: me });
+}));
+
+router.patch('/me', requireAuth, requireRole('PROVIDER'), ah(async (req: any, res) => {
+  const data = z.object({
+    businessName: z.string().min(1, 'Business name is required'),
+    brNo: z.string().min(1, 'BR Number is required'),
+    address: z.string().min(1, 'Address is required'),
+    city: z.string().optional(),
+    tin: z.string().optional(),
+    phone: z.string().optional(),
+
+    deliveryOptions: z.any().optional(),
+    lat: z.coerce.number().optional(),
+    lng: z.coerce.number().optional()
+  }).parse(req.body);
+
+  const updatedProvider = await prisma.serviceProvider.update({
+    where: { userId: req.user!.sub },
+    data: {
+      businessName: data.businessName,
+      brNo: data.brNo,
+      address: data.address,
+      city: data.city,
+      tin: data.tin,
+      lat: data.lat,
+      lng: data.lng,
+      deliveryOptions: data.deliveryOptions ? data.deliveryOptions : undefined
+    }
+  });
+
+  if (data.phone) {
+    await prisma.user.update({
+      where: { id: req.user!.sub },
+      data: { phone: data.phone }
+    });
+  }
+
+  res.json({ success: true, provider: updatedProvider });
+}));
+
 // Public detail endpoint
 router.get('/:id', ah(async (req, res) => {
   const provider = await prisma.serviceProvider.findUnique({
@@ -43,27 +94,6 @@ router.get('/:id', ah(async (req, res) => {
   res.json({ provider });
 }));
 
-router.get('/me', requireAuth, requireRole('PROVIDER'), ah(async (req: any, res) => {
-  const me = await prisma.serviceProvider.findUnique({ where: { userId: req.user!.sub } });
-  res.json({ provider: me });
-}));
-
-router.patch('/me', requireAuth, requireRole('PROVIDER'), ah(async (req: any, res) => {
-  const data = z.object({
-    businessName: z.string().min(1, 'Business name is required'),
-    brNo: z.string().min(1, 'BR Number is required'),
-    address: z.string().min(1, 'Address is required'),
-    city: z.string().optional(),
-    tin: z.string().optional(),
-
-    deliveryOptions: z.any().optional(),
-    lat: z.coerce.number().optional(),
-    lng: z.coerce.number().optional()
-  }).parse(req.body);
-
-  const updated = await prisma.serviceProvider.update({ where: { userId: req.user!.sub }, data });
-  res.json({ provider: updated });
-}));
 
 router.get('/me/listings', requireAuth, requireRole('PROVIDER'), ah(async (req: any, res) => {
   const status = req.query.status as string | undefined;

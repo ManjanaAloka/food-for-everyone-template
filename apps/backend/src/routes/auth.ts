@@ -4,6 +4,7 @@ import argon2 from 'argon2';
 import crypto from 'crypto';
 import { prisma } from '../lib/prisma.js';
 import { signAccessToken } from '../utils/tokens.js';
+import { requireAuth } from '../middleware/auth.js';
 import { ah } from '../utils/asyncHandler.js';
 
 export const router = Router();
@@ -161,7 +162,7 @@ router.post('/login', ah(async (req, res) => {
   await prisma.refreshToken.create({ data: { userId: user.id, tokenHash, expiresAt: expires } });
 
   res.cookie('refresh_token', refreshToken, { httpOnly: true, sameSite: 'lax', secure: false, expires });
-  res.json({ accessToken, user: { id: user.id, role: user.role, name: user.name, status: user.status } });
+  res.json({ accessToken, user: { id: user.id, role: user.role, name: user.name, status: user.status, permissions: user.permissions, forcePasswordChange: user.forcePasswordChange } });
 }));
 
 router.post('/refresh', ah(async (req, res) => {
@@ -205,5 +206,28 @@ router.post('/logout', ah(async (req, res) => {
   }
 
   res.clearCookie('refresh_token', { httpOnly: true, sameSite: 'lax', secure: false });
+  res.json({ ok: true });
+}));
+
+router.post('/change-password', requireAuth, ah(async (req: any, res) => {
+  const { currentPassword, newPassword } = z.object({
+    currentPassword: z.string(),
+    newPassword: z.string().min(6)
+  }).parse(req.body);
+
+  const user = await prisma.user.findUnique({ where: { id: req.user.sub } });
+  if (!user || !(await argon2.verify(user.passwordHash, currentPassword))) {
+    return res.status(401).json({ error: 'Invalid current password' });
+  }
+
+  const hash = await argon2.hash(newPassword);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { 
+      passwordHash: hash,
+      forcePasswordChange: false 
+    }
+  });
+
   res.json({ ok: true });
 }));

@@ -29,10 +29,14 @@ import { ProviderDashboardPage } from './pages/Provider/Dashboard';
 import { ListingOrdersPage } from './pages/Provider/ListingOrders';
 import { ReviewModerationPage } from './pages/Admin/ReviewModeration';
 import { AdminAuditLogPage } from './pages/Admin/AuditLog';
+import { AdminSettingsPage } from './pages/Admin/Settings';
+import { ProviderReviewsPage } from './pages/Provider/Reviews';
+import { AdminProfilePage } from './pages/Admin/Profile';
 import { AdminLayout } from './components/AdminLayout';
 import { CustomerContributionPage } from './pages/Reports/CustomerContribution';
 import { ProfilePage } from './pages/Profile';
 import { UserLayout } from './components/UserLayout';
+import { ProviderAnalyticsPage } from './pages/Provider/Analytics';
 import { ProviderSettingsPage } from './pages/Provider/Settings';
 import { CustomerSettingsPage } from './pages/Customer/Settings';
 import { DonationCenterSettingsPage } from './pages/Donation/DonationCenterSettings';
@@ -70,6 +74,8 @@ export default function App() {
         <Route path="/provider/listings/new" element={<Protected><RoleGate roles={['PROVIDER']}><UserLayout><ListingCreatePage /></UserLayout></RoleGate></Protected>} />
         <Route path="/provider/listings/:id/edit" element={<Protected><RoleGate roles={['PROVIDER']}><UserLayout><ListingEditPage /></UserLayout></RoleGate></Protected>} />
         <Route path="/provider/listings/:id/orders" element={<Protected><RoleGate roles={['PROVIDER']}><UserLayout><ListingOrdersPage /></UserLayout></RoleGate></Protected>} />
+        <Route path="/provider/analytics" element={<Protected><RoleGate roles={['PROVIDER']}><UserLayout><ProviderAnalyticsPage /></UserLayout></RoleGate></Protected>} />
+        <Route path="/provider/reviews" element={<Protected><RoleGate roles={['PROVIDER']}><UserLayout><ProviderReviewsPage /></UserLayout></RoleGate></Protected>} />
         <Route path="/provider/settings" element={<Protected><RoleGate roles={['PROVIDER']}><UserLayout><ProviderSettingsPage /></UserLayout></RoleGate></Protected>} />
         
         {/* Donation Center Routes (With Sidebar) */}
@@ -82,10 +88,12 @@ export default function App() {
         {/* Admin Routes */}
         <Route path="/admin" element={<Protected><RoleGate roles={['ADMIN', 'SYSTEM_ADMIN', 'MANAGER']}><AdminLayout><AdminDashboardPage /></AdminLayout></RoleGate></Protected>} />
         <Route path="/admin/users" element={<Protected><RoleGate roles={['ADMIN', 'SYSTEM_ADMIN']}><AdminLayout><AdminUsersPage /></AdminLayout></RoleGate></Protected>} />
-        <Route path="/admin/listings" element={<Protected><RoleGate roles={['ADMIN', 'MANAGER']}><AdminLayout><AdminListingsPage /></AdminLayout></RoleGate></Protected>} />
+        <Route path="/admin/listings" element={<Protected><RoleGate roles={['ADMIN', 'SYSTEM_ADMIN', 'MANAGER']}><AdminLayout><AdminListingsPage /></AdminLayout></RoleGate></Protected>} />
         <Route path="/admin/approvals" element={<Protected><RoleGate roles={['ADMIN', 'SYSTEM_ADMIN']}><AdminLayout><ApprovalsPage /></AdminLayout></RoleGate></Protected>} />
-        <Route path="/admin/reviews" element={<Protected><RoleGate roles={['ADMIN', 'MANAGER']}><AdminLayout><ReviewModerationPage /></AdminLayout></RoleGate></Protected>} />
+        <Route path="/admin/reviews" element={<Protected><RoleGate roles={['ADMIN', 'SYSTEM_ADMIN', 'MANAGER']}><AdminLayout><ReviewModerationPage /></AdminLayout></RoleGate></Protected>} />
         <Route path="/admin/audit" element={<Protected><RoleGate roles={['ADMIN', 'SYSTEM_ADMIN']}><AdminLayout><AdminAuditLogPage /></AdminLayout></RoleGate></Protected>} />
+        <Route path="/admin/profile" element={<Protected><RoleGate roles={['ADMIN', 'SYSTEM_ADMIN', 'MANAGER']}><AdminLayout><AdminProfilePage /></AdminLayout></RoleGate></Protected>} />
+        <Route path="/admin/settings" element={<Protected><RoleGate roles={['ADMIN', 'SYSTEM_ADMIN']}><AdminLayout><AdminSettingsPage /></AdminLayout></RoleGate></Protected>} />
       </Routes>
     </div>
   );

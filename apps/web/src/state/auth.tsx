@@ -1,13 +1,21 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { api, setAccessToken } from '../lib/api';
 
-type User = { id: string; name: string; role: 'ADMIN' | 'CUSTOMER' | 'PROVIDER' | 'DONATION_CENTER'; status: string } | null;
+type User = { 
+  id: string; 
+  name: string; 
+  role: 'ADMIN' | 'SYSTEM_ADMIN' | 'MANAGER' | 'CUSTOMER' | 'PROVIDER' | 'DONATION_CENTER'; 
+  status: string;
+  permissions?: any;
+  forcePasswordChange?: boolean;
+} | null;
 
 type CtxType = {
   user: User; accessToken: string | null;
   login: (email: string, password: string) => Promise<{ user: User }>;
   register: (data: any) => Promise<void>;
   logout: (password?: string) => Promise<void>;
+  updateUser: (updates: Partial<User>) => void;
 };
 const Ctx = createContext<CtxType>({} as any);
 
@@ -74,6 +82,10 @@ export function AuthProvider({ children }: any) {
     }
   }
 
+  const updateUser = (updates: Partial<User>) => {
+    setUser(prev => prev ? { ...prev, ...updates } : null);
+  };
+
   useEffect(() => {
     const id = setInterval(async () => {
       if (!accessToken) return;
@@ -82,7 +94,7 @@ export function AuthProvider({ children }: any) {
     return () => clearInterval(id);
   }, [accessToken]);
 
-  const value = useMemo(() => ({ user, accessToken, login, register, logout }), [user, accessToken]);
+  const value = useMemo(() => ({ user, accessToken, login, register, logout, updateUser }), [user, accessToken]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 export const useAuth = () => useContext(Ctx);

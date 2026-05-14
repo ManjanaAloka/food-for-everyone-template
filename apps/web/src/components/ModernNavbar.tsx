@@ -29,38 +29,11 @@ export function ModernNavbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
-            {user?.role === 'ADMIN' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'MANAGER' ? (
-              <>
-                <NavLink to="/admin">Admin Dashboard</NavLink>
-              </>
-            ) : user?.role === 'PROVIDER' ? (
-              <>
-                <NavLink to="/browse">Browse Food</NavLink>
-                <NavLink to="/provider/listings/new">New Listing</NavLink>
-                <NavLink to="/provider/dashboard">Dashboard</NavLink>
-              </>
-            ) : user?.role === 'DONATION_CENTER' ? (
-              <>
-                <NavLink to="/dashboard/center">Center Dashboard</NavLink>
-                <NavLink to="/give-back">Requests</NavLink>
-                <NavLink to="/browse">Browse Food</NavLink>
-
-              </>
-            ) : user?.role === 'CUSTOMER' ? (
-              <>
-                <NavLink to="/browse">Browse Food</NavLink>
-                <NavLink to="/impact">Contribution</NavLink>
-                <NavLink to="/providers">Providers</NavLink>
-              </>
-            ) : (
-              <>
-                <NavLink to="/browse">Browse Food</NavLink>
-                <NavLink to="/donation-centers">Donation Centers</NavLink>
-                <NavLink to="/give-back">Requests</NavLink>
-                <NavLink to="/impact">Contribution</NavLink>
-                <NavLink to="/providers">Providers</NavLink>
-              </>
-            )}
+            <NavLink to="/browse">Browse Food</NavLink>
+            <NavLink to="/donation-centers">Donation Centers</NavLink>
+            <NavLink to="/give-back">Requests</NavLink>
+            <NavLink to="/impact">Contribution</NavLink>
+            <NavLink to="/providers">Providers</NavLink>
           </div>
 
           {/* Right Side - Cart, Auth */}
@@ -83,35 +56,17 @@ export function ModernNavbar() {
             {/* Auth Buttons */}
             {user ? (
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-full border border-green-200 shadow-sm">
-                  <span className="text-sm font-bold text-gray-800">{user.name}</span>
-                  <span className="text-[10px] px-2.5 py-0.5 bg-green-600 text-white rounded-full font-black uppercase tracking-wider">
-                    {user.role === 'DONATION_CENTER' ? 'DONATION CENTER' : user.role}
-                  </span>
-                </div>
-                <NotificationsDropdown />
-                {user.role !== 'ADMIN' && user.role !== 'SYSTEM_ADMIN' && user.role !== 'MANAGER' && (
-                  <>
-                    <Link 
-                      to="/orders" 
-                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
-                    >
-                      My Orders
-                    </Link>
-                    <Link 
-                      to="/reports/mine" 
-                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
-                    >
-                      My Contribution
-                    </Link>
-                    <Link 
-                      to="/profile" 
-                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
-                    >
-                      Profile
-                    </Link>
-                  </>
-                )}
+                <Link
+                  to={
+                    user.role === 'CUSTOMER' ? '/dashboard' :
+                    user.role === 'PROVIDER' ? '/provider/dashboard' :
+                    user.role === 'DONATION_CENTER' ? '/dashboard/center' :
+                    '/admin'
+                  }
+                  className="px-5 py-2.5 text-sm font-bold text-green-700 bg-green-50 hover:bg-green-100 rounded-xl transition-all shadow-sm border border-green-200 ml-2"
+                >
+                  Dashboard
+                </Link>
                 <button
                   onClick={() => {
                     if (user?.role === 'ADMIN' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'MANAGER') {
@@ -160,60 +115,18 @@ export function ModernNavbar() {
             <MobileNavLink to="/browse" onClick={() => setMobileMenuOpen(false)}>
               Browse Food
             </MobileNavLink>
-            
-            {user?.role === 'PROVIDER' ? (
-              <>
-                <MobileNavLink to="/provider/listings/new" onClick={() => setMobileMenuOpen(false)}>
-                  New Listing
-                </MobileNavLink>
-                <MobileNavLink to="/provider/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                  Dashboard
-                </MobileNavLink>
-              </>
-            ) : user?.role === 'DONATION_CENTER' ? (
-              <>
-                <MobileNavLink to="/dashboard/center" onClick={() => setMobileMenuOpen(false)}>
-                  Center Dashboard
-                </MobileNavLink>
-                <MobileNavLink to="/give-back" onClick={() => setMobileMenuOpen(false)}>
-                  Requests
-                </MobileNavLink>
-
-              </>
-            ) : user?.role === 'CUSTOMER' ? (
-              <>
-                <MobileNavLink to="/browse" onClick={() => setMobileMenuOpen(false)}>
-                  Browse Food
-                </MobileNavLink>
-                <MobileNavLink to="/profile" onClick={() => setMobileMenuOpen(false)}>
-                  Profile
-                </MobileNavLink>
-                <MobileNavLink to="/impact" onClick={() => setMobileMenuOpen(false)}>
-                  Contribution
-                </MobileNavLink>
-                <MobileNavLink to="/providers" onClick={() => setMobileMenuOpen(false)}>
-                  Providers
-                </MobileNavLink>
-              </>
-            ) : user?.role !== 'ADMIN' && user?.role !== 'SYSTEM_ADMIN' && user?.role !== 'MANAGER' && (
-              <>
-                <MobileNavLink to="/donation-centers" onClick={() => setMobileMenuOpen(false)}>
-                  Donation Centers
-                </MobileNavLink>
-                <MobileNavLink to="/give-back" onClick={() => setMobileMenuOpen(false)}>
-                  Requests
-                </MobileNavLink>
-                <MobileNavLink to="/profile" onClick={() => setMobileMenuOpen(false)}>
-                  Profile
-                </MobileNavLink>
-                <MobileNavLink to="/impact" onClick={() => setMobileMenuOpen(false)}>
-                  Contribution
-                </MobileNavLink>
-                <MobileNavLink to="/providers" onClick={() => setMobileMenuOpen(false)}>
-                  Providers
-                </MobileNavLink>
-              </>
-            )}
+            <MobileNavLink to="/donation-centers" onClick={() => setMobileMenuOpen(false)}>
+              Donation Centers
+            </MobileNavLink>
+            <MobileNavLink to="/give-back" onClick={() => setMobileMenuOpen(false)}>
+              Requests
+            </MobileNavLink>
+            <MobileNavLink to="/impact" onClick={() => setMobileMenuOpen(false)}>
+              Contribution
+            </MobileNavLink>
+            <MobileNavLink to="/providers" onClick={() => setMobileMenuOpen(false)}>
+              Providers
+            </MobileNavLink>
             
             {!user && (
               <>

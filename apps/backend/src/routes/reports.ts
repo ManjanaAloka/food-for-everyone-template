@@ -107,7 +107,7 @@ router.get('/customer', requireAuth, ah(async (req: any, res) => {
 
 router.get('/provider', requireAuth, ah(async (req: any, res) => {
   const userId = req.user.sub;
-  const { from, to } = req.query;
+  const { from, to, listingId } = req.query;
 
   const dateFilter: any = {};
   if (from) dateFilter.gte = new Date(from as string);
@@ -117,31 +117,136 @@ router.get('/provider', requireAuth, ah(async (req: any, res) => {
     where: { 
       providerId: userId, 
       status: { in: ['PAID', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED'] },
-      ...(from || to ? { createdAt: dateFilter } : {})
+      ...(from || to ? { createdAt: dateFilter } : {}),
+      ...(listingId ? { items: { some: { listingId: listingId as string } } } : {})
     },
-    include: { items: { include: { listing: true } } }
+    include: { 
+      items: { 
+        include: { listing: true },
+        // If we are filtering by a specific item, we might want to ONLY include those items in calculations
+        // but typically users want to see "Orders containing this item" and the revenue from *that item*
+      }, 
+      provider: true 
+    }
   });
 
   let savedKg = 0;
   let donationCount = 0;
+  let totalRevenue = 0;
+
+  // Analysis maps
+  const itemSalesMap = new Map<string, { id: string; title: string; qty: number; revenue: number; dailyQty: Map<string, number> }>();
+  const dailySalesMap = new Map<string, { count: number; revenue: number }>();
+  const locationMap = new Map<string, number>();
 
   for (const o of orders) {
+    const day = o.createdAt.toISOString().split('T')[0];
+    
+    // City logic: use order city, if missing use provider city (especially for pickup)
+    let city = (o.city || '').trim();
+    if (!city && o.provider?.city) {
+      city = o.provider.city.trim();
+    }
+    if (!city) city = 'Other';
+    
+    let orderMatch = false;
+    let orderRevenueFromTarget = 0;
+
     for (const it of o.items) {
+      // If we are filtering by listingId, we only care about stats for THAT item
+      if (listingId && it.listingId !== listingId) continue;
+      
+      orderMatch = true;
       const kg = (it.qty * (it.listing.weightGrams || 500)) / 1000;
       savedKg += kg;
+      orderRevenueFromTarget += Number(it.unitPrice) * it.qty;
+
+      // Item tracking
+      const itemData = itemSalesMap.get(it.listingId) || { id: it.listingId, title: it.listing.title, qty: 0, revenue: 0, dailyQty: new Map() };
+      itemData.qty += it.qty;
+      itemData.revenue += Number(it.unitPrice) * it.qty;
+      
+      const currentDailyQty = itemData.dailyQty.get(day) || 0;
+      itemData.dailyQty.set(day, currentDailyQty + it.qty);
+      
+      itemSalesMap.set(it.listingId, itemData);
     }
-    if (o.type === 'DONATION') donationCount++;
+
+    if (orderMatch) {
+       totalRevenue += orderRevenueFromTarget;
+       
+       // Daily tracking
+       const daily = dailySalesMap.get(day) || { count: 0, revenue: 0 };
+       daily.count++;
+       daily.revenue += orderRevenueFromTarget;
+       dailySalesMap.set(day, daily);
+
+       // Location tracking
+       locationMap.set(city, (locationMap.get(city) || 0) + 1);
+       
+       if (o.type === 'DONATION') donationCount++;
+    }
   }
+
+  const topSellingItems = Array.from(itemSalesMap.values())
+    .map(item => {
+      let peakDay = '';
+      let maxQty = 0;
+      for (const [day, qty] of item.dailyQty.entries()) {
+        if (qty > maxQty) {
+          maxQty = qty;
+          peakDay = day;
+        }
+      }
+      return { 
+        id: item.id,
+        title: item.title, 
+        qty: item.qty, 
+        revenue: item.revenue, 
+        peakDay 
+      };
+    })
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 5);
+
+  const salesByDay = Array.from(dailySalesMap.entries())
+    .map(([date, data]) => ({ date, ...data }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  // Day of Week Analysis
+  const dayOfWeekNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayOfWeekMap = new Map<string, number>();
+  orders.forEach(o => {
+    const dayName = dayOfWeekNames[o.createdAt.getDay()];
+    dayOfWeekMap.set(dayName, (dayOfWeekMap.get(dayName) || 0) + 1);
+  });
+  const salesByDayOfWeek = dayOfWeekNames.map(name => ({ name, count: dayOfWeekMap.get(name) || 0 }));
+
+  const topLocations = Array.from(locationMap.entries())
+    .map(([city, count]) => ({ city, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  const orderLocations = orders
+    .filter(o => o.lat != null && o.lng != null)
+    .map(o => ({ 
+      id: o.id, 
+      lat: Number(o.lat), 
+      lng: Number(o.lng), 
+      count: o.items.filter(it => !listingId || it.listingId === listingId).reduce((sum, it) => (Number(sum) + (Number(it.qty) || 0)), 0)
+    }))
+    .filter(o => o.count > 0);
 
   res.json({
     ordersCount: orders.length,
     foodSavedKg: Number(savedKg.toFixed(2)),
     co2eAvoidedKg: Number((savedKg * CO2E_PER_KG).toFixed(2)),
     donationCount,
-    // For providers, "moneySaved" isn't exactly applicable in the same way, 
-    // but we can return total sales or similar if needed. 
-    // For now, let's keep it consistent with the frontend fields.
-    moneySaved: 0, 
-    totalDonationsAmount: 0 
+    totalRevenue: Number(totalRevenue.toFixed(2)),
+    topSellingItems,
+    salesByDay,
+    salesByDayOfWeek,
+    topLocations,
+    orderLocations
   });
 }));

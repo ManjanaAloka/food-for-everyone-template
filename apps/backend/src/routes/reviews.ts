@@ -45,12 +45,43 @@ router.get('/provider/:providerId', ah(async (req, res) => {
   res.json({ reviews });
 }));
 
+router.get('/my-reviews', requireAuth, ah(async (req: any, res) => {
+  const reviews = await prisma.review.findMany({ 
+    where: { providerId: req.user!.sub },
+    include: { 
+      reviewer: { select: { name: true } }, 
+      order: { 
+        select: { 
+          id: true, 
+          items: { include: { listing: { select: { title: true } } } } 
+        } 
+      } 
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json({ reviews });
+}));
+
+router.patch('/:id/status', requireAuth, ah(async (req: any, res) => {
+  const { id } = req.params;
+  const { status } = z.object({ status: z.enum(['APPROVED', 'REJECTED']) }).parse(req.body);
+  const review = await prisma.review.findUnique({ where: { id } });
+  if (!review) return res.status(404).json({ error: 'Review not found' });
+  
+  if (review.providerId !== req.user!.sub && !['ADMIN', 'SYSTEM_ADMIN'].includes(req.user!.role)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const updated = await prisma.review.update({ where: { id }, data: { status } });
+  res.json({ review: updated });
+}));
+
 router.post('/:id/respond', requireAuth, ah(async (req: any, res) => {
   const { id } = req.params;
   const { response } = z.object({ response: z.string().min(2) }).parse(req.body);
   const review = await prisma.review.findUnique({ where: { id } });
   if (!review) return res.status(404).json({ error: 'Not found' });
-  if (review.providerId !== req.user!.sub && req.user!.role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' });
+  if (review.providerId !== req.user!.sub && !['ADMIN', 'SYSTEM_ADMIN'].includes(req.user!.role)) return res.status(403).json({ error: 'Forbidden' });
   const updated = await prisma.review.update({ where: { id }, data: { providerResponse: response } });
   res.json({ review: updated });
 }));

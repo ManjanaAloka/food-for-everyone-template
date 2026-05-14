@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
 import { MapPicker } from '../../components/MapPicker';
+import { useAuth } from '../../state/auth';
 
 type DonationCenterSettingsForm = {
   name: string;
@@ -17,6 +18,7 @@ type DonationCenterSettingsForm = {
 
 export function DonationCenterSettingsPage() {
   const qc = useQueryClient();
+  const { updateUser } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -33,11 +35,12 @@ export function DonationCenterSettingsPage() {
       reset({
         name: data.center.name || '',
         address: data.center.address || '',
-        description: data.center.description || '',
-        image: data.center.image || '',
+        city: data.center.city || '',
+        lat: data.center.lat || undefined,
+        lng: data.center.lng || undefined,
         phone: data.center.phone || '',
-        lat: data.center.lat,
-        lng: data.center.lng
+        description: data.center.description || '',
+        image: data.center.image || ''
       });
     }
   }, [data, reset]);
@@ -65,8 +68,9 @@ export function DonationCenterSettingsPage() {
     mutationFn: async (formData: DonationCenterSettingsForm) => {
       return api.patch('/donation-centers/me', formData);
     },
-    onSuccess: () => {
+    onSuccess: (res, variables) => {
       toast.success('Center profile updated successfully!');
+      updateUser({ name: variables.name });
       qc.invalidateQueries({ queryKey: ['centerMe'] });
     },
     onError: (err: any) => {
