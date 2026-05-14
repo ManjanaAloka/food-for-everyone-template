@@ -57,6 +57,8 @@ export function ApprovalsPage() {
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-widest">Name / Business</th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-widest">BR / Reg No</th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-widest">Location</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-widest">Contact Email</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-widest">Joined Date</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-widest text-right">Actions</th>
@@ -68,7 +70,27 @@ export function ApprovalsPage() {
                 <tr key={p.userId} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="font-bold text-gray-900">{p.businessName}</div>
-                    <div className="text-xs text-gray-500">Provider ID: {p.userId.slice(-8)}</div>
+                    <div className="text-[10px] text-gray-400 font-mono">ID: {p.userId.slice(-8)}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-lg text-xs font-bold border border-blue-100">
+                      {p.brNo || 'N/A'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-xs text-gray-600 max-w-[200px] truncate" title={p.address}>
+                      {p.address || 'No address'}
+                    </div>
+                    {p.lat && p.lng && (
+                      <a 
+                        href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] text-green-600 font-bold hover:underline flex items-center gap-1 mt-1"
+                      >
+                        📍 View on Map
+                      </a>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">{p.user.email}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{new Date(p.createdAt).toLocaleDateString()}</td>
@@ -83,14 +105,34 @@ export function ApprovalsPage() {
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-400">No pending providers.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-400 italic">No pending providers found.</td></tr>
               )
             ) : (
               centersQ.data?.centers?.length ? centersQ.data.centers.map((c: any) => (
                 <tr key={c.userId} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="font-bold text-gray-900">{c.name}</div>
-                    <div className="text-xs text-gray-500">Center ID: {c.userId.slice(-8)}</div>
+                    <div className="text-[10px] text-gray-400 font-mono">ID: {c.userId.slice(-8)}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded-lg text-xs font-bold border border-purple-100">
+                      {c.registrationNo || 'N/A'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-xs text-gray-600 max-w-[200px] truncate" title={c.address}>
+                      {c.address || 'No address'}
+                    </div>
+                    {c.lat && c.lng && (
+                      <a 
+                        href={`https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] text-green-600 font-bold hover:underline flex items-center gap-1 mt-1"
+                      >
+                        📍 View on Map
+                      </a>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">{c.user.email}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{new Date(c.createdAt).toLocaleDateString()}</td>
@@ -105,7 +147,7 @@ export function ApprovalsPage() {
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-400">No pending centers.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-400 italic">No pending donation centers found.</td></tr>
               )
             )}
           </tbody>

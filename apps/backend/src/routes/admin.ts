@@ -73,6 +73,18 @@ router.post('/centers/:userId/reject', ah(async (req: any, res) => {
 // ─── REVIEW MODERATION ───────────────────────────────────────────────────────
 router.get('/reviews', ah(async (req, res) => {
   const status = (req.query.status as string) || 'PENDING';
+  const type = (req.query.type as string) || 'PROVIDER';
+
+  if (type === 'SITE') {
+    const reviews = await prisma.siteReview.findMany({
+      where: { status: status as any },
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { createdAt: 'desc' }
+    });
+    // Map 'user' to 'reviewer' for consistency in frontend
+    return res.json({ reviews: reviews.map((r: any) => ({ ...r, reviewer: r.user })) });
+  }
+
   const reviews = await prisma.review.findMany({
     where: { status: status as any },
     include: { reviewer: { select: { name: true, email: true } } },
@@ -80,6 +92,19 @@ router.get('/reviews', ah(async (req, res) => {
   });
   res.json({ reviews });
 }));
+
+router.post('/site-reviews/:id/approve', ah(async (req: any, res) => {
+  await prisma.siteReview.update({ where: { id: req.params.id }, data: { status: 'APPROVED' } });
+  await audit(req.user!.sub, 'APPROVE_SITE_REVIEW', 'SiteReview', req.params.id);
+  res.json({ ok: true });
+}));
+
+router.post('/site-reviews/:id/reject', ah(async (req: any, res) => {
+  await prisma.siteReview.update({ where: { id: req.params.id }, data: { status: 'REJECTED' } });
+  await audit(req.user!.sub, 'REJECT_SITE_REVIEW', 'SiteReview', req.params.id);
+  res.json({ ok: true });
+}));
+
 
 router.post('/reviews/:id/approve', ah(async (req: any, res) => {
   const review = await prisma.review.update({ where: { id: req.params.id }, data: { status: 'APPROVED' } });

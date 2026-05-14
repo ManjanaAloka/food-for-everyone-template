@@ -51,11 +51,32 @@ router.get('/:id', requireAuth, ah(async (req: any, res) => {
         }
       }, 
       payment: true,
-      review: true
+      review: true,
+      buyer: {
+        select: {
+          name: true,
+          email: true,
+          phone: true,
+          customerProfile: true
+        }
+      },
+      donationCenter: {
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+              phone: true
+            }
+          }
+        }
+      }
+
     } 
   });
   if (!order) return res.status(404).json({ error: 'Not found' });
-  if (order.buyerId !== req.user!.sub && req.user!.role !== 'ADMIN' && order.providerId !== req.user!.sub) return res.status(403).json({ error: 'Forbidden' });
+  if (order.buyerId !== req.user!.sub && req.user!.role !== 'ADMIN' && order.providerId !== req.user!.sub && order.donationCenterId !== req.user!.sub) return res.status(403).json({ error: 'Forbidden' });
+
   res.json({ order });
 }));
 
@@ -138,7 +159,8 @@ router.post('/', requireAuth, ah(async (req: any, res) => {
 // Provider/admin fulfillment updates
 router.patch('/:id/status', requireAuth, requireRole('PROVIDER', 'ADMIN'), ah(async (req: any, res) => {
   const { id } = req.params;
-  const { status } = z.object({ status: z.enum(['PENDING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELED']) }).parse(req.body);
+  const { status } = z.object({ status: z.enum(['PENDING', 'READY_FOR_PICKUP', 'READY_FOR_DELIVERY', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELED']) }).parse(req.body);
+
 
 
   const order = await prisma.order.findUnique({ where: { id }, include: { buyer: true, provider: { include: { user: true } }, donationCenter: { include: { user: true } } } });
@@ -225,22 +247,39 @@ function canTransition(current: string, next: string, mode: string) {
     AWAITING_PAYMENT: ['CANCELED'],
     PAID: ['PENDING', 'CANCELED'],
     RESERVED: ['PENDING', 'CANCELED'],
-    PENDING: mode === 'PICKUP' ? ['READY_FOR_PICKUP', 'CANCELED'] : ['OUT_FOR_DELIVERY', 'CANCELED'],
+    PENDING: mode === 'PICKUP' ? ['READY_FOR_PICKUP', 'CANCELED'] : ['READY_FOR_DELIVERY', 'CANCELED'],
     READY_FOR_PICKUP: ['DELIVERED', 'CANCELED'],
+    READY_FOR_DELIVERY: ['OUT_FOR_DELIVERY', 'CANCELED'],
     OUT_FOR_DELIVERY: ['DELIVERED', 'CANCELED']
+
   };
 
+  if (current === next) return true;
   if (!fromTo[current]) return false;
   return fromTo[current].includes(next);
+
 }
 async function notifyStatusChange(order: any, status: string, byCenter = false) {
-  const displayId = order.orderNumber ? `O-${order.orderNumber.toString().padStart(4, '0')}` : order.id;
-  const subject = `Order ${displayId} status: ${status}`;
-  const msg = `<p>Status update for your order <strong>${displayId}</strong>: <strong>${status}</strong>.</p>`;
-  await notifyEmail(order.buyer?.email, subject, msg);
-
-  if (order.type === 'DONATION') {
-    await notifyEmail(order.donationCenter?.user?.email, subject, msg);
-    await notifyEmail(order.provider?.user?.email, subject, msg);
+  try {
+    const displayId = order.orderNumber ? `O-${order.orderNumber.toString().padStart(4, '0')}` : order.id;
+    const subject = `Order ${displayId} status: ${status}`;
+    const msg = `<p>Status update for your order <strong>${displayId}</strong>: <strong>${status}</strong>.</p>`;
+    
+    if (order.buyer?.email) {
+      await notifyEmail(order.buyer.email, subject, msg);
+    }
+  
+    if (order.type === 'DONATION') {
+      if (order.donationCenter?.user?.email) {
+        await notifyEmail(order.donationCenter.user.email, subject, msg);
+      }
+      if (order.provider?.user?.email) {
+        await notifyEmail(order.provider.user.email, subject, msg);
+      }
+    }
+  } catch (err) {
+    console.error('Failed to send status update emails:', err);
+    // Don't throw, let the main request succeed
   }
 }
+

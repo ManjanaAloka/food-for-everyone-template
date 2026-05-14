@@ -22,6 +22,43 @@ router.get('/requests', ah(async (_req, res) => {
   res.json({ requests });
 }));
 
+router.get('/me', requireAuth, requireRole('DONATION_CENTER'), ah(async (req: any, res) => {
+  const center = await prisma.donationCenter.findUnique({
+    where: { userId: req.user.sub },
+    include: { user: { select: { email: true, name: true } } }
+  });
+  res.json({ center });
+}));
+
+router.patch('/me', requireAuth, requireRole('DONATION_CENTER'), ah(async (req: any, res) => {
+  try {
+    const data = z.object({
+      name: z.string().optional(),
+      address: z.string().optional(),
+      lat: z.number().nullable().optional(),
+      lng: z.number().nullable().optional(),
+      image: z.string().nullable().optional(),
+      description: z.string().nullable().optional(),
+      phone: z.string().nullable().optional(),
+      centerType: z.string().nullable().optional()
+    }).parse(req.body);
+    
+    const { phone, ...rest } = data;
+    const center = await prisma.donationCenter.update({
+      where: { userId: req.user.sub },
+      data: {
+        ...rest,
+        phone,
+        user: phone ? { update: { phone } } : undefined
+      }
+    });
+    res.json({ center });
+  } catch (err: any) {
+    console.error('Update Center Error:', err);
+    res.status(500).json({ error: err.message || 'Failed to update' });
+  }
+}));
+
 router.get('/:id', ah(async (req, res) => {
   const { id } = req.params;
   const center = await prisma.donationCenter.findUnique({

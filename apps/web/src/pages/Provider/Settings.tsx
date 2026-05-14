@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
+import { MapPicker } from '../../components/MapPicker';
+
 
 type ProviderSettingsForm = {
   businessName: string;
@@ -14,7 +16,10 @@ type ProviderSettingsForm = {
   accountName: string;
   accountNumber: string;
   branchCode: string;
+  lat?: number;
+  lng?: number;
 };
+
 
 export function ProviderSettingsPage() {
   const qc = useQueryClient();
@@ -23,7 +28,10 @@ export function ProviderSettingsPage() {
     queryFn: async () => (await api.get('/providers/me')).data
   });
 
-  const { register, handleSubmit, reset } = useForm<ProviderSettingsForm>();
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<ProviderSettingsForm>();
+  const watchedAddress = watch('address');
+
+
 
   // Reset form when data loads
   useEffect(() => {
@@ -51,7 +59,10 @@ export function ProviderSettingsPage() {
         tin: formData.tin,
         address: formData.address,
         city: formData.city,
+        lat: formData.lat,
+        lng: formData.lng,
         // We temporarily store payout details in deliveryOptions for now
+
         deliveryOptions: {
           ...(data?.provider?.deliveryOptions || {}),
           payoutDetails: {
@@ -85,27 +96,75 @@ export function ProviderSettingsPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-4">Business Information</h2>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
-                <input {...register('businessName', { required: true })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Business Name <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  {...register('businessName', { required: 'Business name is required' })} 
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none ${errors.businessName ? 'border-red-500' : 'border-gray-300'}`} 
+                />
+                {errors.businessName && <p className="text-red-500 text-xs mt-1">{errors.businessName.message}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">BR Number</label>
-                <input {...register('brNo')} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  BR Number <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  {...register('brNo', { required: 'BR Number is required' })} 
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none ${errors.brNo ? 'border-red-500' : 'border-gray-300'}`} 
+                />
+                {errors.brNo && <p className="text-red-500 text-xs mt-1">{errors.brNo.message}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">TIN Number</label>
                 <input {...register('tin')} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
               </div>
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <input {...register('address')} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Address <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  {...register('address', { required: 'Address is required' })} 
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none ${errors.address ? 'border-red-500' : 'border-gray-300'}`} 
+                />
+                {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address.message}</p>}
               </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                <input {...register('city')} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+              <div className="hidden">
+                <input {...register('city')} />
+              </div>
+
+
+              <div className="col-span-2 mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Business Location on Map <span className="text-red-500">*</span>
+                </label>
+                <div className="relative group">
+                  <MapPicker 
+                    address={watchedAddress}
+                    initialLat={data?.provider?.lat}
+                    initialLng={data?.provider?.lng}
+                    onLocationSelect={(lat, lng) => { 
+                      setValue('lat', lat as any); 
+                      setValue('lng', lng as any); 
+                    }} 
+                    onAddressSelect={(loc) => { 
+                      setValue('address', loc.address); 
+                      setValue('city', loc.city); 
+                    }}
+                  />
+                  <div className="absolute top-4 left-4 pointer-events-none">
+                    <span className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold text-green-600 shadow-sm border border-green-100">
+                      LIVE SYNC ACTIVE 🛰️
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-2 italic">
+                  Tip: Typing your address will auto-pin the map, or click the map to auto-fill the address.
+                </p>
               </div>
             </div>
           </div>
+
 
           {/* Payment Details */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">

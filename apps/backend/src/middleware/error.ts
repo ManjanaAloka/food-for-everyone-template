@@ -18,6 +18,14 @@ export function errorMiddleware(err: any, _req: Request, res: Response, _next: N
     });
   }
 
+  // Handle Prisma Unique Constraint Errors
+  if (err.code === 'P2002') {
+    const field = err.meta?.target || 'field';
+    return res.status(400).json({ 
+      error: `A user with this ${field} already exists.`
+    });
+  }
+
   console.error('Unhandled Error:', err);
   return res.status(500).json({ error: 'Internal Server Error' });
 }

@@ -47,7 +47,14 @@ router.get('/center/my-requests', requireAuth, requireRole('DONATION_CENTER'), a
     where: { centerId: req.user!.sub },
     include: {
       listing: { select: { title: true, images: true, discountPrice: true } },
-      donations: { where: { status: 'SUCCEEDED' }, select: { amount: true, createdAt: true } }
+      donations: { 
+        where: { status: 'SUCCEEDED' }, 
+        select: { amount: true, createdAt: true, customer: { select: { name: true } } } 
+      },
+      activities: {
+        orderBy: { createdAt: 'desc' },
+        take: 1
+      }
     },
     orderBy: { createdAt: 'desc' }
   });

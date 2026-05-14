@@ -32,12 +32,17 @@ router.get('/me', requireAuth, requireRole('PROVIDER'), ah(async (req: any, res)
 
 router.patch('/me', requireAuth, requireRole('PROVIDER'), ah(async (req: any, res) => {
   const data = z.object({
-    businessName: z.string().optional(),
-    address: z.string().optional(),
+    businessName: z.string().min(1, 'Business name is required'),
+    brNo: z.string().min(1, 'BR Number is required'),
+    address: z.string().min(1, 'Address is required'),
     city: z.string().optional(),
+    tin: z.string().optional(),
+
+    deliveryOptions: z.any().optional(),
     lat: z.coerce.number().optional(),
     lng: z.coerce.number().optional()
   }).parse(req.body);
+
   const updated = await prisma.serviceProvider.update({ where: { userId: req.user!.sub }, data });
   res.json({ provider: updated });
 }));

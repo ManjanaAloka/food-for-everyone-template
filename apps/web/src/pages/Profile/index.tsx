@@ -1,6 +1,7 @@
 import { useAuth } from '../../state/auth';
 import { CustomerSettingsPage } from '../Customer/Settings';
 import { ProviderSettingsPage } from '../Provider/Settings';
+import { DonationCenterSettingsPage } from '../Donation/DonationCenterSettings';
 
 export function ProfilePage() {
   const { user } = useAuth();
@@ -11,6 +12,10 @@ export function ProfilePage() {
 
   if (user?.role === 'CUSTOMER') {
     return <CustomerSettingsPage />;
+  }
+
+  if (user?.role === 'DONATION_CENTER') {
+    return <DonationCenterSettingsPage />;
   }
 
   return (

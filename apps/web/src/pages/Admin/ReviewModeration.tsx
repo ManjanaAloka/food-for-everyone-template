@@ -6,10 +6,14 @@ import { useNavigate } from 'react-router-dom';
 export function ReviewModerationPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [status, setStatus] = useState<'PENDING'|'APPROVED'|'REJECTED'>('PENDING');
-  const [ratingFilter, setRatingFilter] = useState<'ALL'|'HIGH'|'LOW'>('ALL');
+  const [status, setStatus] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
+  const [ratingFilter, setRatingFilter] = useState<'ALL' | 'HIGH' | 'LOW'>('ALL');
+  const [type, setType] = useState<'PROVIDER' | 'SITE'>('PROVIDER');
 
-  const reviewsQ = useQuery({ queryKey: ['adminReviews', status], queryFn: async () => (await api.get('/admin/reviews', { params: { status } })).data });
+  const reviewsQ = useQuery({ 
+    queryKey: ['adminReviews', status, type], 
+    queryFn: async () => (await api.get('/admin/reviews', { params: { status, type } })).data 
+  });
   
   const filteredReviews = reviewsQ.data?.reviews?.filter((r: any) => {
     if (ratingFilter === 'ALL') return true;
@@ -18,14 +22,47 @@ export function ReviewModerationPage() {
     return true;
   }) || [];
 
-  const approve = useMutation({ mutationFn: async (id: string) => api.post(`/admin/reviews/${id}/approve`, {}), onSuccess: () => qc.invalidateQueries({ queryKey: ['adminReviews', status] }) });
-  const reject = useMutation({ mutationFn: async (id: string) => api.post(`/admin/reviews/${id}/reject`, {}), onSuccess: () => qc.invalidateQueries({ queryKey: ['adminReviews', status] }) });
+  const approve = useMutation({ 
+    mutationFn: async (id: string) => {
+      const url = type === 'SITE' ? `/admin/site-reviews/${id}/approve` : `/admin/reviews/${id}/approve`;
+      return api.post(url, {});
+    }, 
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminReviews', status, type] }) 
+  });
+
+  const reject = useMutation({ 
+    mutationFn: async (id: string) => {
+      const url = type === 'SITE' ? `/admin/site-reviews/${id}/reject` : `/admin/reviews/${id}/reject`;
+      return api.post(url, {});
+    }, 
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminReviews', status, type] }) 
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const url = type === 'SITE' ? `/site-reviews/${id}` : `/admin/reviews/${id}`;
+      return api.delete(url);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminReviews', status, type] })
+  });
 
   return (
     <div className="space-y-6">
       {/* Filter Buttons */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
         <div className="flex flex-col md:flex-row gap-6 mb-8">
+          <div className="flex gap-2 p-1 bg-gray-50 rounded-2xl border border-gray-100">
+            {(['PROVIDER', 'SITE'] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => setType(t)}
+                className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${type === t ? 'bg-white text-emerald-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                {t === 'PROVIDER' ? 'Provider Reviews' : 'Site Reviews'}
+              </button>
+            ))}
+          </div>
+
           <div className="flex gap-2 p-1 bg-gray-50 rounded-2xl border border-gray-100">
             {(['PENDING', 'APPROVED', 'REJECTED'] as const).map(s => (
               <button
@@ -71,8 +108,20 @@ export function ReviewModerationPage() {
                   </div>
                   <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">{new Date(r.createdAt).toLocaleString()}</div>
                 </div>
-                <div className="text-xs font-bold bg-gray-100 text-gray-500 px-3 py-1 rounded-full">
-                  ID: {r.id.slice(-6)}
+                <div className="text-right">
+                  <div className="text-xs font-bold bg-gray-100 text-gray-500 px-3 py-1 rounded-full mb-2 inline-block">
+                    ID: {r.id.slice(-6)}
+                  </div>
+                  {status !== 'PENDING' && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Delete this review forever?')) remove.mutate(r.id);
+                      }}
+                      className="block w-full text-[10px] text-red-400 hover:text-red-600 font-bold transition-colors uppercase tracking-tighter"
+                    >
+                      🗑️ Remove
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="text-gray-600 leading-relaxed mb-6 bg-gray-50 p-4 rounded-xl italic">
@@ -94,6 +143,7 @@ export function ReviewModerationPage() {
                   </button>
                 </div>
               )}
+
             </div>
           )) : (
             <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">

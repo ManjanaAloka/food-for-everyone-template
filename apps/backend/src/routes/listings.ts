@@ -38,8 +38,10 @@ router.get('/', ah(async (req, res) => {
     where,
     orderBy,
     take: 100,
-    include: { provider: { select: { businessName: true, city: true, ratingAvg: true, ratingCount: true, lat: true, lng: true } } }
+    include: { provider: { select: { userId: true, businessName: true, city: true, ratingAvg: true, ratingCount: true, lat: true, lng: true } } }
   });
+
+
 
   // Spatial filtering (Radius in KM)
   if (lat && lng && radius) {
@@ -48,20 +50,24 @@ router.get('/', ah(async (req, res) => {
     const rad = Number(radius);
 
     listings = listings.filter((l: any) => {
-      if (!l.provider?.lat || !l.provider?.lng) return false;
+      const pLat = Number(l.provider?.lat);
+      const pLng = Number(l.provider?.lng);
+      
+      if (isNaN(pLat) || isNaN(pLng)) return false;
       
       const R = 6371; // Earth's radius in km
-      const dLat = (l.provider.lat - userLat) * Math.PI / 180;
-      const dLng = (l.provider.lng - userLng) * Math.PI / 180;
+      const dLat = (pLat - userLat) * Math.PI / 180;
+      const dLng = (pLng - userLng) * Math.PI / 180;
       const a = 
         Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(userLat * Math.PI / 180) * Math.cos(l.provider.lat * Math.PI / 180) * 
+        Math.cos(userLat * Math.PI / 180) * Math.cos(pLat * Math.PI / 180) * 
         Math.sin(dLng/2) * Math.sin(dLng/2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       const distance = R * c;
       
       return distance <= rad;
     });
+
   }
 
   res.json({ listings });

@@ -8,7 +8,8 @@ export function DonationCentersPage() {
   const { user } = useAuth();
   const centers = useQuery({ queryKey: ['centers'], queryFn: async () => (await api.get('/donation-centers')).data });
   const requests = useQuery({ queryKey: ['requests'], queryFn: async () => (await api.get('/donation-centers/requests')).data });
-  const [activeTab, setActiveTab] = useState<'centers' | 'requests'>('centers');
+  const stories = useQuery({ queryKey: ['global-stories'], queryFn: async () => (await api.get('/public/latest-stories')).data });
+  const [activeTab, setActiveTab] = useState<'centers' | 'requests' | 'stories'>('centers');
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20 pb-12">
@@ -45,6 +46,16 @@ export function DonationCentersPage() {
             }`}
           >
             📝 Active Requests
+          </button>
+          <button
+            onClick={() => setActiveTab('stories')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+              activeTab === 'stories'
+                ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-md'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            📸 Community Impact
           </button>
         </div>
 
@@ -185,6 +196,60 @@ export function DonationCentersPage() {
           </div>
         )}
 
+        {/* Stories Tab */}
+        {activeTab === 'stories' && (
+          <div>
+            {stories.isLoading ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+                <p className="text-gray-600 mt-4">Loading impact stories...</p>
+              </div>
+            ) : stories.data?.activities?.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                <div className="text-6xl mb-4">📸</div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">No stories yet</h2>
+                <p className="text-gray-600">Donation centers haven't shared any activities yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {stories.data?.activities?.map((a: any) => (
+                  <div key={a.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col hover:shadow-lg transition-all">
+                    <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-xl">
+                          {a.center.image ? <img src={a.center.image} className="w-full h-full object-cover rounded-full" alt="" /> : '🏥'}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-gray-900 text-sm leading-none mb-1">{a.center.name}</h4>
+                          <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{new Date(a.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <Link 
+                        to={`/donation-centers/${a.center.userId}`}
+                        className="text-xs font-bold text-orange-600 hover:underline"
+                      >
+                        Visit Center →
+                      </Link>
+                    </div>
+                    <div className="p-6">
+                      {a.request && (
+                        <div className="mb-3 inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-[10px] font-bold border border-orange-100 uppercase tracking-widest">
+                          <span>🤝</span> {a.request.title.replace('Fundraising for:', '')}
+                        </div>
+                      )}
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">{a.title}</h3>
+                      <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap line-clamp-4">{a.content}</p>
+                    </div>
+                    <div className="mt-auto border-t border-gray-50">
+                       <CentersImageGrid images={a.images || []} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Info Banner */}
         {user?.role !== 'DONATION_CENTER' && (
           <div className="mt-12 bg-gradient-to-r from-orange-600 to-red-600 rounded-xl p-8 text-white">
@@ -200,6 +265,28 @@ export function DonationCentersPage() {
                 Browse Food to Donate
               </a>
             </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CentersImageGrid({ images }: { images: string[] }) {
+  if (!images || images.length === 0) return null;
+  
+  if (images.length === 1) {
+    return <img src={images[0]} className="w-full h-64 object-cover" alt="Story" />;
+  }
+  
+  return (
+    <div className="grid grid-cols-2 gap-0.5 h-64">
+      <img src={images[0]} className="w-full h-full object-cover" alt="Story" />
+      <div className="relative h-full">
+        <img src={images[1] || images[0]} className="w-full h-full object-cover" alt="Story" />
+        {images.length > 2 && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold">
+            +{images.length - 2}
           </div>
         )}
       </div>

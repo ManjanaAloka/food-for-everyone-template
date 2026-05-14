@@ -247,10 +247,23 @@ export function AdminDashboardPage() {
           <h2 className="text-xl font-bold text-gray-900 mb-6">⚡ Management Shortcuts</h2>
           <div className="grid grid-cols-2 gap-4">
             {user?.role !== 'MANAGER' && (
-              <Link to="/admin/approvals" className="p-4 bg-orange-50 rounded-2xl border border-orange-100 hover:shadow-md transition-all group">
-                <div className="text-2xl mb-2">⏳</div>
-                <p className="font-bold text-gray-900">Approvals</p>
-                <p className="text-xs text-gray-500">{pendingCount} pending</p>
+              <Link 
+                to="/admin/approvals" 
+                className={`p-4 rounded-2xl border transition-all group relative overflow-hidden ${
+                  pendingCount > 0 
+                    ? 'bg-orange-100 border-orange-400 animate-alert shadow-lg' 
+                    : 'bg-orange-50 border-orange-100 hover:shadow-md'
+                }`}
+              >
+                {pendingCount > 0 && (
+                  <div className="absolute top-2 right-2 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                  </div>
+                )}
+                <div className={`text-2xl mb-2 ${pendingCount > 0 ? 'animate-bounce' : ''}`}>⏳</div>
+                <p className={`font-bold ${pendingCount > 0 ? 'text-orange-900' : 'text-gray-900'}`}>Approvals</p>
+                <p className={`text-xs ${pendingCount > 0 ? 'text-orange-600 font-black' : 'text-gray-500'}`}>{pendingCount} pending</p>
               </Link>
             )}
             <Link to="/admin/reviews" className="p-4 bg-yellow-50 rounded-2xl border border-yellow-100 hover:shadow-md transition-all">
@@ -303,4 +316,21 @@ export function AdminDashboardPage() {
       </div>
     </div>
   );
+}
+
+const style = `
+  @keyframes alert-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(249, 115, 22, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+  }
+  .animate-alert {
+    animation: alert-pulse 2s infinite;
+  }
+`;
+
+if (typeof document !== 'undefined') {
+  const s = document.createElement('style');
+  s.innerHTML = style;
+  document.head.appendChild(s);
 }

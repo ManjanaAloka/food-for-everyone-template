@@ -18,8 +18,9 @@ export function OrderReviewPage() {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      return await api.post(`/orders/${id}/review`, { rating, comment });
+      return await api.post('/reviews', { orderId: id, rating, comment });
     },
+
     onSuccess: () => {
       toast.success('Review published successfully!');
       qc.invalidateQueries({ queryKey: ['myOrders'] });

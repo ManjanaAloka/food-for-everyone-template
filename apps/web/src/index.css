@@ -96,3 +96,25 @@ html, body, #root { height: 100%; }
 .animation-delay-4000 {
   animation-delay: 4s;
 }
+
+/* Google Maps InfoWindow Customization */
+.gm-ui-hover-effect {
+  display: none !important;
+}
+
+.gm-style-iw {
+  padding: 0 !important;
+  max-height: none !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
+}
+
+.gm-style-iw-d {
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+
+.gm-style-iw-tc::after {
+  background: white !important;
+}
+

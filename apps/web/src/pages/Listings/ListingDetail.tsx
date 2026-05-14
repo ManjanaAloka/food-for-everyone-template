@@ -315,9 +315,10 @@ export function ListingDetailPage() {
                     >−</button>
                     <span className="w-12 text-center font-semibold text-lg">{qty}</span>
                     <button
-                      onClick={() => setQty(Math.min(listing.qtyAvailable, qty + 1))}
+                      onClick={() => setQty(prev => Math.min(Number(listing.qtyAvailable), prev + 1))}
                       className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors flex items-center justify-center"
                     >+</button>
+
                   </div>
                 </div>
                 {!isDonateMode && (
@@ -560,28 +561,51 @@ export function ListingDetailPage() {
                   </div>
                   <button 
                     onClick={() => {
-                      const remaining = selectedReq.targetQty - (selectedReq.fulfilledQty || 0);
-                      setDonateQty(Math.min(remaining, donateQty + 1));
+                      const unitPrice = Number(listing.discountPrice) || 1;
+                      const remainingAmt = Number(selectedReq.targetAmount) - (Number(selectedReq.raisedAmount) || 0);
+                      const remainingReqQty = Math.floor(remainingAmt / unitPrice);
+                      const remainingQty = Math.max(1, Math.min(listing.qtyAvailable, remainingReqQty));
+                      setDonateQty(prev => Math.min(remainingQty, prev + 1));
                     }}
                     className="w-12 h-12 rounded-full border-2 border-gray-100 flex items-center justify-center text-2xl font-bold text-gray-400 hover:border-green-500 hover:text-green-600 transition-all"
                   >
                     +
                   </button>
+
+
+
                 </div>
               </div>
 
               {/* Quick Picks */}
               <div className="flex gap-2 justify-center">
-                {[5, 10, 20].map(v => (
-                  <button 
-                    key={v}
-                    onClick={() => setDonateQty(v)}
-                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${donateQty === v ? 'bg-green-600 text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                  >
-                    +{v} Units
-                  </button>
-                ))}
+                {[5, 10, 20].map(v => {
+                  const unitPrice = Number(listing.discountPrice) || 1;
+                  const remainingAmt = Number(selectedReq.targetAmount) - (Number(selectedReq.raisedAmount) || 0);
+                  const remainingReqQty = Math.floor(remainingAmt / unitPrice);
+                  const remainingQty = Math.max(0, Math.min(listing.qtyAvailable, remainingReqQty));
+                  const canSelect = v <= remainingQty;
+                  return (
+                    <button 
+                      key={v}
+                      onClick={() => setDonateQty(v)}
+                      disabled={!canSelect}
+                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        donateQty === v 
+                          ? 'bg-green-600 text-white shadow-lg' 
+                          : canSelect 
+                            ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                      }`}
+                    >
+                      +{v} Units
+                    </button>
+                  );
+                })}
+
+
               </div>
+
 
               {/* Impact Message */}
               <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100 text-center">

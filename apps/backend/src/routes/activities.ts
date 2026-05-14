@@ -10,14 +10,15 @@ router.get('/center/:centerId', ah(async (req, res) => {
   const { centerId } = req.params;
   const activities = await prisma.donationCenterActivity.findMany({
     where: { centerId },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
+    include: { request: { select: { title: true } } }
   });
   res.json({ activities });
 }));
 
 // POST a new activity (Donation Center only)
 router.post('/', requireAuth, requireRole('DONATION_CENTER'), ah(async (req: any, res) => {
-  const { title, content, images } = req.body;
+  const { title, content, images, requestId } = req.body;
   const centerId = req.user.sub;
 
   const activity = await prisma.donationCenterActivity.create({
@@ -25,7 +26,8 @@ router.post('/', requireAuth, requireRole('DONATION_CENTER'), ah(async (req: any
       centerId,
       title,
       content,
-      images: images || []
+      images: images || [],
+      requestId
     }
   });
 

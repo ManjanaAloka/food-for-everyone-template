@@ -47,7 +47,9 @@ enum OrderStatus {
   PAID
   PENDING
   READY_FOR_PICKUP
+  READY_FOR_DELIVERY
   OUT_FOR_DELIVERY
+
   DELIVERED
   CANCELED
   EXPIRED
@@ -101,7 +103,9 @@ model User {
   donations             Donation[]
   customerProfile       CustomerProfile?
   savedPaymentMethods   SavedPaymentMethod[]
+  siteReviews           SiteReview[]
 }
+
 
 model ServiceProvider {
   userId        String   @id
@@ -139,6 +143,7 @@ model DonationCenter {
   lat            Float?
   lng            Float?
   needsProfile   Json?
+  description    String?   @db.Text
   verifiedAt     DateTime?
   
   centerType     String?   // Elderly Home, Childcare, NGO
@@ -159,6 +164,8 @@ model DonationCenterActivity {
   id           String   @id @default(cuid())
   centerId     String
   center       DonationCenter @relation(fields: [centerId], references: [userId])
+  requestId    String?
+  request      DonationRequest? @relation(fields: [requestId], references: [id])
   title        String
   content      String   @db.Text
   images       Json?
@@ -235,6 +242,7 @@ model DonationRequest {
 
   orders       Order[]
   donations    Donation[]
+  activities   DonationCenterActivity[]
 }
 
 model Order {
@@ -359,4 +367,19 @@ model Donation {
 
   @@index([donationRequestId])
   @@index([customerId])
-}
+}
+
+model SiteReview {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  rating      Int
+  comment     String?
+  status      ReviewStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+

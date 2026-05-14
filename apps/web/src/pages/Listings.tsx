@@ -6,6 +6,8 @@ import { useAuth } from '../state/auth';
 import { io } from 'socket.io-client';
 import { WS_URL } from '../env';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { ListingsMap } from '../components/ListingsMap';
+
 
 function getUrgencyBadge(expiresAt: string) {
   const diffHours = (new Date(expiresAt).getTime() - Date.now()) / 3600000;
@@ -29,6 +31,8 @@ export function ListingsPage() {
   const [urgency, setUrgency] = useState('');
   const [sort, setSort] = useState('soonest');
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(
     initialLat && initialLng ? { lat: Number(initialLat), lng: Number(initialLng) } : null
   );
@@ -66,16 +70,36 @@ export function ListingsPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-green-50 pt-20 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <div className="inline-block bg-green-100 rounded-full px-4 sm:px-6 py-2 mb-3 sm:mb-4">
-            <span className="text-green-700 font-semibold text-xs sm:text-sm">🍔 Available Food</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="inline-block bg-green-100 rounded-full px-4 sm:px-6 py-2 mb-3 sm:mb-4">
+                <span className="text-green-700 font-semibold text-xs sm:text-sm">🍔 Available Food</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
+                {providerId ? 'Browse Provider Food' : 'Browse Available Food'}
+              </h1>
+              <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl">
+                {providerId ? 'Food from this provider' : 'Discover surplus food from local businesses and save money while reducing waste'}
+              </p>
+            </div>
+            
+            {/* View Mode Toggle */}
+            <div className="flex bg-white p-1 rounded-2xl border border-gray-200 shadow-sm self-start">
+              <button 
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${viewMode === 'grid' ? 'bg-green-600 text-white shadow-lg' : 'text-gray-500 hover:text-green-600'}`}
+              >
+                <span>📱</span> Grid
+              </button>
+              <button 
+                onClick={() => setViewMode('map')}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${viewMode === 'map' ? 'bg-green-600 text-white shadow-lg' : 'text-gray-500 hover:text-green-600'}`}
+              >
+                <span>🗺️</span> Map
+              </button>
+            </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
-            {providerId ? 'Browse Provider Food' : 'Browse Available Food'}
-          </h1>
-          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl">
-            {providerId ? 'Food from this provider' : 'Discover surplus food from local businesses and save money while reducing waste'}
-          </p>
+
           {providerId && (
             <button
               onClick={() => window.location.href = '/browse'}
@@ -84,9 +108,10 @@ export function ListingsPage() {
               ← View All Providers
             </button>
           )}
-        </div>
 
         {/* Search & Filters */}
+
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
             <input 
@@ -144,7 +169,8 @@ export function ListingsPage() {
                 <option value="price-desc">Price: High to Low</option>
               </select>
 
-              <div className="flex gap-2">
+              <div className="md:col-span-2 flex flex-col sm:flex-row gap-3">
+
                 <button
                   onClick={() => {
                     if (userLocation) {
@@ -157,23 +183,35 @@ export function ListingsPage() {
                       );
                     }
                   }}
-                  className={`flex-1 px-4 py-2 rounded-lg font-bold text-sm transition-all border ${userLocation ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300 hover:border-green-500'}`}
+                  className={`flex-1 sm:w-48 px-4 py-3 rounded-xl font-bold text-sm transition-all border shadow-sm flex items-center justify-center gap-2 ${userLocation ? 'bg-green-600 text-white border-green-600 shadow-green-100' : 'bg-white text-gray-700 border-gray-300 hover:border-green-500'}`}
                 >
                   {userLocation ? '📍 My Location Set' : '📍 Set My Location'}
                 </button>
                 {userLocation && (
-                  <select 
-                    value={radius} 
-                    onChange={e => setRadius(e.target.value)}
-                    className="w-24 px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white text-sm"
-                  >
-                    <option value="">Radius</option>
-                    <option value="2">2 km</option>
-                    <option value="5">5 km</option>
-                    <option value="10">10 km</option>
-                    <option value="25">25 km</option>
-                  </select>
+                  <div className="flex-[2] flex flex-col gap-2 p-3 bg-green-50/50 rounded-xl border border-green-100 shadow-inner">
+
+                    <div className="flex justify-between items-center px-1">
+                      <span className="text-[10px] font-bold text-green-700 uppercase tracking-widest">Search Radius</span>
+                      <span className="px-2 py-0.5 bg-green-600 text-white text-[10px] font-black rounded-full shadow-sm">
+                        {radius || '25'} km
+                      </span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="1" 
+                      max="50" 
+                      step="1"
+                      value={radius || '25'} 
+                      onChange={e => setRadius(e.target.value)}
+                      className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600 hover:accent-green-700 transition-all"
+                    />
+                    <div className="flex justify-between text-[8px] text-gray-400 font-bold px-1">
+                      <span>1 KM</span>
+                      <span>50 KM</span>
+                    </div>
+                  </div>
                 )}
+
               </div>
             </div>
           )}
@@ -187,119 +225,123 @@ export function ListingsPage() {
             <p className="mt-4 text-gray-600">Loading delicious food...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {data?.listings?.map((l: any) => (
-              <div key={l.id} className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden">
-                {/* Image */}
-                <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-50 to-emerald-50">
-                  {l.images?.[0] ? (
-                    <img src={l.images[0]} alt={l.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-6xl">🍲</span>
-                    </div>
-                  )}
-                  {/* Category Badge */}
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-semibold text-gray-700 shadow-lg">
-                    {l.category}
-                  </div>
-                  {/* Discount Badge */}
-                  <div className="absolute top-3 left-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-full px-3 py-1 text-xs font-bold shadow-lg">
-                    {Math.round((1 - Number(l.discountPrice) / Number(l.unitPrice)) * 100)}% OFF
-                  </div>
-                {/* Urgency Badge */}
-                  {(() => { const u = getUrgencyBadge(l.expiresAt); return u ? <div className={`absolute bottom-3 left-3 ${u.cls} rounded-full px-2 py-0.5 text-xs font-bold shadow`}>{u.label}</div> : null; })()}
-                </div>
+          <div className="animate-fadeIn">
 
-                {/* Content */}
-                <div className="p-4 sm:p-6">
-                  <div className="flex flex-col gap-1 mb-2">
-                    <Link to={`/listings/${l.id}`}>
-                      <h3 className="font-bold text-base sm:text-lg text-gray-900 line-clamp-1 hover:text-green-600 transition-colors">{l.title}</h3>
-                    </Link>
-                    {l.provider && (
-                      <div className="flex items-center justify-between text-xs font-medium">
-                        <Link to={`/providers/${l.providerId}`} className="text-emerald-600 hover:underline">
-                          🏪 {l.provider.businessName}
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {data?.listings?.map((l: any) => (
+                  <div key={l.id} className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden">
+                    {/* Image */}
+                    <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-50 to-emerald-50">
+                      {l.images?.[0] ? (
+                        <img src={l.images[0]} alt={l.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-6xl">🍲</span>
+                        </div>
+                      )}
+                      {/* Category Badge */}
+                      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-semibold text-gray-700 shadow-lg">
+                        {l.category}
+                      </div>
+                      {/* Discount Badge */}
+                      <div className="absolute top-3 left-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-full px-3 py-1 text-xs font-bold shadow-lg">
+                        {Math.round((1 - Number(l.discountPrice) / Number(l.unitPrice)) * 100)}% OFF
+                      </div>
+                    {/* Urgency Badge */}
+                      {(() => { const u = getUrgencyBadge(l.expiresAt); return u ? <div className={`absolute bottom-3 left-3 ${u.cls} rounded-full px-2 py-0.5 text-xs font-bold shadow`}>{u.label}</div> : null; })()}
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4 sm:p-6">
+                      <div className="flex flex-col gap-1 mb-2">
+                        <Link to={`/listings/${l.id}`}>
+                          <h3 className="font-bold text-base sm:text-lg text-gray-900 line-clamp-1 hover:text-green-600 transition-colors">{l.title}</h3>
                         </Link>
-                        <div className="flex items-center gap-1 text-gray-500">
-                          <span>⭐</span>
-                          <span>{l.provider.ratingAvg?.toFixed(1) || '0.0'}</span>
+                        {l.provider && (
+                          <div className="flex items-center justify-between text-xs font-medium">
+                            <Link to={`/providers/${l.providerId}`} className="text-emerald-600 hover:underline">
+                              🏪 {l.provider.businessName}
+                            </Link>
+                            <div className="flex items-center gap-1 text-gray-500">
+                              <span>⭐</span>
+                              <span>{l.provider.ratingAvg?.toFixed(1) || '0.0'}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Description */}
+                      {l.description && (
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{l.description}</p>
+                      )}
+
+                      {/* Price */}
+                      <div className="mb-3 sm:mb-4">
+                        <div className="flex items-baseline gap-2 mb-1">
+                          <span className="text-xl sm:text-2xl font-bold text-green-600">LKR {Number(l.discountPrice).toFixed(2)}</span>
+                          <span className="text-xs sm:text-sm text-gray-500 line-through">LKR {Number(l.unitPrice).toFixed(2)}</span>
                         </div>
                       </div>
-                    )}
-                  </div>
-                  
-                  {/* Description */}
-                  {l.description && (
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{l.description}</p>
-                  )}
 
-                  {/* Price */}
-                  <div className="mb-3 sm:mb-4">
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="text-xl sm:text-2xl font-bold text-green-600">LKR {Number(l.discountPrice).toFixed(2)}</span>
-                      <span className="text-xs sm:text-sm text-gray-500 line-through">LKR {Number(l.unitPrice).toFixed(2)}</span>
+                      {/* Stock & Expires */}
+                      <div className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                          <span>📦</span>
+                          <span>{l.qtyAvailable} available</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                          <span>⏰</span>
+                          <span>Expires: {new Date(l.expiresAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="space-y-2">
+                        {user?.role === 'DONATION_CENTER' ? (
+                          <Link
+                            to={`/listings/${l.id}`}
+                            className="block text-center w-full px-4 py-2.5 sm:py-3 bg-orange-100 hover:bg-orange-200 text-orange-700 font-bold rounded-lg transition-colors border border-orange-200"
+                          >
+                            🏥 Request Donation
+                          </Link>
+                        ) : (
+                          <>
+                            <button 
+                              className="w-full px-4 py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white text-sm sm:text-base font-semibold rounded-lg hover:shadow-lg transform hover:scale-105 transition-all"
+                              onClick={() => {
+                                add({ listingId: l.id, title: l.title, providerId: l.providerId, price: Number(l.discountPrice), expiresAt: l.expiresAt, qtyAvailable: l.qtyAvailable }, 1);
+                                nav('/checkout');
+                              }}
+                            >
+                              🛍️ Add to Cart
+                            </button>
+                            <Link
+                              to={`/listings/${l.id}?mode=donate`}
+                              className="block text-center w-full px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors border border-green-200 text-sm"
+                            >
+                              🤝 Donate this item
+                            </Link>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-
-                  {/* Stock & Expires */}
-                  <div className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4">
-                    <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
-                      <span>📦</span>
-                      <span>{l.qtyAvailable} available</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
-                      <span>⏰</span>
-                      <span>Expires: {new Date(l.expiresAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="space-y-2">
-                    {user?.role === 'DONATION_CENTER' ? (
-                      <Link
-                        to={`/listings/${l.id}`}
-                        className="block text-center w-full px-4 py-2.5 sm:py-3 bg-orange-100 hover:bg-orange-200 text-orange-700 font-bold rounded-lg transition-colors border border-orange-200"
-                      >
-                        🏥 Request Donation
-                      </Link>
-                    ) : (
-                      <>
-                        <button 
-                          className="w-full px-4 py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white text-sm sm:text-base font-semibold rounded-lg hover:shadow-lg transform hover:scale-105 transition-all"
-                          onClick={() => {
-                            add({ listingId: l.id, title: l.title, providerId: l.providerId, price: Number(l.discountPrice), expiresAt: l.expiresAt, qtyAvailable: l.qtyAvailable }, 1);
-                            nav('/checkout');
-                          }}
-                        >
-                          🛍️ Add to Cart
-                        </button>
-                        <Link
-                          to={`/listings/${l.id}?mode=donate`}
-                          className="block text-center w-full px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors border border-green-200 text-sm"
-                        >
-                          🤝 Donate this item
-                        </Link>
-                      </>
-                    )}
-                  </div>
-                </div>
+                ))}
               </div>
+            ) : (
+              <ListingsMap 
+                listings={data?.listings || []} 
+                userLocation={userLocation} 
+                radius={Number(radius) || 25}
+              />
 
-            ))}
+            )}
           </div>
-        )}
 
-        {/* Empty State */}
-        {!isLoading && data?.listings?.length === 0 && (
-          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-12 text-center">
-            <div className="text-6xl mb-4">😢</div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">No food available</h3>
-            <p className="text-gray-600">Check back soon for new listings!</p>
-          </div>
         )}
       </div>
     </div>
   );
 }
+

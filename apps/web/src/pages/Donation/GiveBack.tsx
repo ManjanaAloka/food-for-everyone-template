@@ -6,13 +6,13 @@ import { toast } from 'sonner';
 import { io as socketIO } from 'socket.io-client';
 import { Link } from 'react-router-dom';
 
-function ProgressBar({ raised, target }: { raised: number; target: number }) {
-  const pct = target > 0 ? Math.min(100, (raised / target) * 100) : 0;
+function ProgressBar({ fulfilledQty, targetQty }: { fulfilledQty: number; targetQty: number }) {
+  const pct = targetQty > 0 ? Math.min(100, (fulfilledQty / targetQty) * 100) : 0;
   return (
     <div>
       <div className="flex justify-between text-sm mb-1">
-        <span className="text-gray-600">Raised</span>
-        <span className="font-semibold text-gray-900">LKR {raised.toFixed(0)} / {target.toFixed(0)}</span>
+        <span className="text-gray-600 font-bold">Collected</span>
+        <span className="font-black text-gray-900">{fulfilledQty} / {targetQty} Units</span>
       </div>
       <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
         <div
@@ -20,10 +20,11 @@ function ProgressBar({ raised, target }: { raised: number; target: number }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <div className="text-right text-xs text-gray-500 mt-0.5">{pct.toFixed(0)}% funded</div>
+      <div className="text-right text-xs text-gray-500 mt-1 font-bold">{pct.toFixed(0)}% Fulfilled</div>
     </div>
   );
 }
+
 
 function DonateModal({ request, onClose }: { request: any; onClose: () => void }) {
   const [amount, setAmount] = useState('');
@@ -67,19 +68,20 @@ function DonateModal({ request, onClose }: { request: any; onClose: () => void }
         <p className="text-gray-600 text-sm mb-4">Supporting: <strong>{request.title}</strong></p>
 
         <div className="mb-4">
-          <div className="text-sm font-medium text-gray-700 mb-2">Quick amounts:</div>
+          <div className="text-sm font-medium text-gray-700 mb-2">Select quantity to gift:</div>
           <div className="grid grid-cols-4 gap-2">
-            {presets.map(p => (
+            {[1, 5, 10, 20].map(q => (
               <button
-                key={p}
-                onClick={() => setAmount(String(p))}
-                className={`py-2 rounded-lg text-sm font-semibold border transition-all ${amount === String(p) ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-300 text-gray-700'}`}
+                key={q}
+                onClick={() => setAmount(String(q * (Number(request.listing?.discountPrice) || 150)))}
+                className={`py-2 rounded-lg text-sm font-semibold border transition-all ${amount === String(q * (Number(request.listing?.discountPrice) || 150)) ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-300 text-gray-700'}`}
               >
-                LKR {p}
+                {q} Unit{q > 1 ? 's' : ''}
               </button>
             ))}
           </div>
         </div>
+
 
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-1">Custom amount (LKR)</label>
@@ -102,8 +104,9 @@ function DonateModal({ request, onClose }: { request: any; onClose: () => void }
             disabled={!amount || Number(amount) < 10 || isPending}
             className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            {isPending ? '⏳ Processing...' : `💳 Donate LKR ${amount || '—'}`}
+            {isPending ? '⏳ Processing...' : `🎁 Gift ${Math.floor(Number(amount) / (Number(request.listing?.discountPrice) || 150))} Units`}
           </button>
+
         </div>
       </div>
     </div>
@@ -150,11 +153,12 @@ export function GiveBackPage() {
             ❤️ Give Back
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Help Feed a Community
+            Support Community Food Requests
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Donation centers post requests for food. Your contribution helps purchase and deliver meals to those who need it most.
+            Donation centers request specific food items. Choose a request below to gift the needed units and help feed those in need.
           </p>
+
         </div>
 
         {/* Impact Stats */}
@@ -169,10 +173,11 @@ export function GiveBackPage() {
           </div>
           <div className="bg-white rounded-2xl p-5 text-center shadow-sm border border-gray-100">
             <div className="text-3xl font-bold text-blue-600">
-              {requests.reduce((s: number, r: any) => s + Number(r.raisedAmount || 0), 0).toFixed(0)}
+              {requests.reduce((s: number, r: any) => s + Number(r.fulfilledQty || 0), 0)}
             </div>
-            <div className="text-sm text-gray-500 mt-1">LKR Raised Total</div>
+            <div className="text-sm text-gray-500 mt-1">Total Items Provided</div>
           </div>
+
         </div>
 
         {/* Loading Skeleton */}
@@ -221,7 +226,8 @@ export function GiveBackPage() {
                       </Link>
                     )}
 
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{r.title}</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{r.title.replace('Fundraising for:', 'Request for:')}</h3>
+
                     {r.description && <p className="text-gray-600 text-sm mb-4 line-clamp-2">{r.description}</p>}
 
                     {/* Linked listing */}
@@ -237,8 +243,9 @@ export function GiveBackPage() {
 
                     {/* Progress */}
                     <div className="mb-4">
-                      <ProgressBar raised={raised} target={target} />
+                      <ProgressBar fulfilledQty={live?.fulfilledQty ?? r.fulfilledQty} targetQty={r.targetQty} />
                     </div>
+
 
                     {/* Meta */}
                     <div className="flex items-center justify-between text-sm text-gray-500 mb-5">
@@ -250,8 +257,9 @@ export function GiveBackPage() {
                       onClick={() => setSelectedRequest(r)}
                       className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold rounded-xl transition-all transform hover:scale-[1.02] shadow-md shadow-orange-200"
                     >
-                      ❤️ Donate Now
+                      🎁 Gift Food Units
                     </button>
+
                   </div>
                 );
               })}
@@ -270,11 +278,12 @@ export function GiveBackPage() {
                     <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✅ Fulfilled</span>
                     <span className="text-xs text-gray-400">{new Date(r.updatedAt).toLocaleDateString()}</span>
                   </div>
-                  <h4 className="font-semibold text-gray-900 mb-1">{r.title}</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">{r.title.replace('Fundraising for:', 'Request for:')}</h4>
                   {r.center && <p className="text-xs text-gray-500">by {r.center.name}</p>}
                   <div className="mt-3 text-sm text-green-700 font-semibold">
-                    LKR {Number(r.raisedAmount).toFixed(0)} raised by {r.donorCount} donors
+                    {r.fulfilledQty} units provided by {r.donorCount} community members
                   </div>
+
                 </div>
               ))}
             </div>

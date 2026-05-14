@@ -29,7 +29,11 @@ const registerSchema = z.object({
   // Donation Center specific
   centerName: z.string().optional(),
   centerType: z.string().optional(),
-  beneficiariesCount: z.coerce.number().optional()
+  beneficiariesCount: z.coerce.number().optional(),
+
+  // Location
+  lat: z.coerce.number().optional(),
+  lng: z.coerce.number().optional()
 });
 
 router.post('/register', ah(async (req, res) => {
@@ -50,6 +54,8 @@ router.post('/register', ah(async (req, res) => {
         brNo: data.brNo,
         address: data.address,
         city: data.city,
+        lat: data.lat,
+        lng: data.lng,
         openHours: data.openHours,
         businessType: data.businessType,
         contactPerson: data.contactPerson
@@ -65,6 +71,8 @@ router.post('/register', ah(async (req, res) => {
         phone: data.phone,
         address: data.address,
         city: data.city,
+        lat: data.lat,
+        lng: data.lng,
         beneficiariesCount: data.beneficiariesCount
       } 
     });
@@ -73,12 +81,58 @@ router.post('/register', ah(async (req, res) => {
       data: {
         userId: user.id,
         address: data.address,
-        city: data.city
+        city: data.city,
+        lat: data.lat,
+        lng: data.lng
       }
     });
   }
 
   res.json({ id: user.id, status: user.status });
+
+  // ─── NOTIFY ADMINS ─────────────────────────────────────────────────────────
+  if (status === 'PENDING') {
+    try {
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'SYSTEM_ADMIN'] } },
+        select: { id: true }
+      });
+
+      if (admins.length > 0) {
+        const type = data.role === 'PROVIDER' ? 'NEW_PROVIDER' : 'NEW_DONATION_CENTER';
+        const title = data.role === 'PROVIDER' ? 'New Provider Registration' : 'New Donation Center Registration';
+        const name = data.role === 'PROVIDER' ? (data.businessName || data.name) : (data.centerName || data.name);
+
+        await prisma.notification.createMany({
+          data: admins.map(admin => ({
+            userId: admin.id,
+            type: type,
+            channel: 'IN_APP',
+            payload: {
+              title: title,
+              message: `${name} has registered and is awaiting your approval.`,
+              userId: user.id,
+              role: data.role
+            }
+          }))
+        });
+        
+        // Also trigger via socket if available
+        const io = (global as any).__io;
+        if (io) {
+          admins.forEach(admin => {
+            io.to(`user:${admin.id}`).emit('notification', {
+              type,
+              title,
+              message: `${name} is awaiting approval.`
+            });
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error sending admin notifications:', error);
+    }
+  }
 }));
 
 router.post('/login', ah(async (req, res) => {

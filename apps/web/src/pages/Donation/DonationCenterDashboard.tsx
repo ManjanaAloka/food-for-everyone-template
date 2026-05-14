@@ -5,14 +5,17 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
-function ProgressBar({ raised, target }: { raised: number; target: number }) {
-  const pct = target > 0 ? Math.min(100, (raised / target) * 100) : 0;
+function ProgressBar({ raised, target, fulfilledQty, targetQty }: { raised: number; target: number; fulfilledQty?: number; targetQty?: number }) {
+  const pct = targetQty && targetQty > 0 
+    ? Math.min(100, (fulfilledQty! / targetQty) * 100) 
+    : (target > 0 ? Math.min(100, (raised / target) * 100) : 0);
+  
   const isComplete = pct >= 100;
   return (
     <div>
       <div className="flex justify-between text-xs mb-1">
-        <span className="text-gray-500">Raised: LKR {raised.toFixed(0)}</span>
-        <span className="font-semibold text-gray-700">Target: LKR {target.toFixed(0)}</span>
+        <span className="text-gray-500 font-bold">Collected: {fulfilledQty || 0} Units</span>
+        <span className="font-semibold text-gray-700">Goal: {targetQty || 0} Units</span>
       </div>
       <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
         <div
@@ -20,10 +23,11 @@ function ProgressBar({ raised, target }: { raised: number; target: number }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <div className="text-right text-xs text-gray-400 mt-0.5">{pct.toFixed(0)}%</div>
+      <div className="text-right text-[10px] text-gray-400 mt-0.5 font-bold">{pct.toFixed(0)}% Fulfilled</div>
     </div>
   );
 }
+
 
 function CreateRequestModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
@@ -45,10 +49,11 @@ function CreateRequestModal({ onClose }: { onClose: () => void }) {
       const res = await api.post('/donations', {
         title: form.title,
         description: form.description || undefined,
-        targetAmount: Number(form.targetAmount),
+        targetQty: Number(form.targetAmount), // Reusing field for Qty
         listingId: form.listingId || undefined,
         closesAt: form.closesAt || undefined
       });
+
       return res.data;
     },
     onSuccess: () => {
@@ -88,9 +93,10 @@ function CreateRequestModal({ onClose }: { onClose: () => void }) {
                 setForm({
                   ...form,
                   listingId: lid,
-                  title: listing ? `Fundraising for: ${listing.title}` : form.title,
-                  targetAmount: listing ? String(Number(listing.discountPrice) * 10) : form.targetAmount
+                  title: listing ? `Request for: ${listing.title}` : form.title,
+                  targetAmount: '10' // Default to 10 units
                 });
+
               }}
               className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
             >
@@ -116,15 +122,16 @@ function CreateRequestModal({ onClose }: { onClose: () => void }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Target (LKR) *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Target Quantity *</label>
               <input
                 type="number"
                 value={form.targetAmount}
                 onChange={e => setForm({ ...form, targetAmount: e.target.value })}
-                placeholder="e.g., 5000"
+                placeholder="e.g., 50"
                 className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
+
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Close Date</label>
@@ -158,7 +165,8 @@ function CreateRequestModal({ onClose }: { onClose: () => void }) {
 export function DonationCenterDashboardPage() {
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'REQUESTS' | 'INCOMING'>('REQUESTS');
+  const [creatingStoryFor, setCreatingStoryFor] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'REQUESTS' | 'ACTIVITIES'>('REQUESTS');
   const qc = useQueryClient();
 
   const { data: requestsData, isLoading: requestsLoading } = useQuery({
@@ -167,15 +175,15 @@ export function DonationCenterDashboardPage() {
   });
 
   const { data: activitiesData, isLoading: activitiesLoading } = useQuery({
-    queryKey: ['center-activities', user?.sub],
-    queryFn: async () => (await api.get(`/activities/center/${user?.sub}`)).data,
-    enabled: !!user?.sub
+    queryKey: ['center-activities', user?.id],
+    queryFn: async () => (await api.get(`/activities/center/${user?.id}`)).data,
+    enabled: !!user?.id
   });
 
   const { data: incomingData, isLoading: incomingLoading } = useQuery({
     queryKey: ['center-incoming-orders'],
     queryFn: async () => (await api.get('/orders/center')).data,
-    enabled: !!user?.sub
+    enabled: !!user?.id
   });
 
   const confirmReceived = useMutation({
@@ -190,6 +198,7 @@ export function DonationCenterDashboardPage() {
   const incomingOrders = incomingData?.orders || [];
   const activities = activitiesData?.activities || [];
   const [editingActivity, setEditingActivity] = useState<any>(null);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
   
   const stats = [
     { label: 'Active Requests', value: requests.filter((r: any) => r.status === 'OPEN').length, icon: '📋' },
@@ -210,30 +219,39 @@ export function DonationCenterDashboardPage() {
       <ActivityFormModal 
         isOpen={activeTab === 'POST_ACTIVITY' || !!editingActivity} 
         onClose={() => {
-          setActiveTab('ACTIVITIES');
+          setActiveTab(editingActivity ? 'ACTIVITIES' : 'REQUESTS');
           setEditingActivity(null);
         }} 
         editingActivity={editingActivity}
+        defaultTitle={selectedRequest ? `Success Story: ${selectedRequest.title}` : ''}
       />
+
+      {selectedRequest && (
+        <RequestDetailModal 
+          request={selectedRequest} 
+          onClose={() => setSelectedRequest(null)}
+          onPostStory={() => {
+            setSelectedRequest(null);
+            setActiveTab('POST_ACTIVITY');
+          }}
+          incomingOrders={incomingOrders.filter((o: any) => o.donationRequestId === selectedRequest.id)}
+          onConfirmReceived={(oid: string) => confirmReceived.mutate(oid)}
+        />
+      )}
 
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">🏥 Donation Center Dashboard</h1>
-            <p className="text-gray-500">Manage your requests and track incoming food donations.</p>
+            <p className="text-gray-500">Manage your requests and celebrate your community impact.</p>
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setActiveTab('POST_ACTIVITY')}
-              className="px-6 py-3 bg-white text-orange-600 border border-orange-200 font-bold rounded-xl shadow-sm hover:bg-orange-50 transition-all"
-            >
-              + Share Story
-            </button>
-            <button
               onClick={() => setShowModal(true)}
-              className="px-6 py-3 bg-orange-600 text-white font-bold rounded-xl shadow-lg hover:bg-orange-700 transition-all"
+              className="px-6 py-3 bg-orange-600 text-white font-bold rounded-xl shadow-lg hover:bg-orange-700 transition-all flex items-center gap-2"
             >
-              + New Request
+              <span>➕</span>
+              <span>New Request</span>
             </button>
           </div>
         </div>
@@ -249,98 +267,26 @@ export function DonationCenterDashboardPage() {
           ))}
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-gray-200">
-          <button 
-            onClick={() => setActiveTab('REQUESTS')}
-            className={`px-6 py-3 font-bold text-sm transition-all border-b-2 ${activeTab === 'REQUESTS' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            Fundraising ({requests.length})
-          </button>
-          <button 
-            onClick={() => setActiveTab('INCOMING')}
-            className={`px-6 py-3 font-bold text-sm transition-all border-b-2 ${activeTab === 'INCOMING' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            Incoming Food ({incomingOrders.length})
-          </button>
-          <button 
-            onClick={() => setActiveTab('ACTIVITIES')}
-            className={`px-6 py-3 font-bold text-sm transition-all border-b-2 ${activeTab === 'ACTIVITIES' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            Impact Stories ({activities.length})
-          </button>
+        {/* Header with count */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-gray-800">Your Food Requests ({requests.length})</h2>
+          <div className="flex gap-2">
+             <button 
+              onClick={() => setActiveTab('REQUESTS')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'REQUESTS' ? 'bg-orange-100 text-orange-700' : 'text-gray-500'}`}
+             >
+               All Requests
+             </button>
+             <button 
+              onClick={() => setActiveTab('ACTIVITIES')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'ACTIVITIES' ? 'bg-orange-100 text-orange-700' : 'text-gray-500'}`}
+             >
+               Impact Stories
+             </button>
+          </div>
         </div>
 
-        {activeTab === 'REQUESTS' ? (
-          <div className="space-y-4">
-            {requests.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300">
-                <div className="text-5xl mb-4">📝</div>
-                <h3 className="text-xl font-bold text-gray-900">No requests yet</h3>
-                <p className="text-gray-500">Create a fundraising request to start receiving help.</p>
-              </div>
-            ) : (
-              requests.map((r: any) => (
-                <div key={r.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900">{r.title}</h3>
-                      <p className="text-sm text-gray-500">{r.description}</p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${r.status === 'OPEN' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
-                      {r.status}
-                    </span>
-                  </div>
-                  <ProgressBar raised={Number(r.raisedAmount)} target={Number(r.targetAmount)} />
-                </div>
-              ))
-            )}
-          </div>
-        ) : activeTab === 'INCOMING' ? (
-          <div className="space-y-4">
-            {incomingOrders.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300">
-                <div className="text-5xl mb-4">📦</div>
-                <h3 className="text-xl font-bold text-gray-900">No incoming food yet</h3>
-                <p className="text-gray-500">Food donations from community members will appear here.</p>
-              </div>
-            ) : (
-              incomingOrders.map((o: any) => (
-                <div key={o.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded uppercase">Order #{o.id.slice(-6)}</span>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase ${o.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {o.status}
-                      </span>
-                    </div>
-                    <div className="text-gray-900 font-bold">
-                      {o.items.map((it: any) => `${it.qty}x ${it.listing.title}`).join(', ')}
-                    </div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      From: <span className="font-medium text-gray-700">{o.buyer.name}</span> · {new Date(o.createdAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                  
-                  {o.status !== 'DELIVERED' && (
-                    <button 
-                      onClick={() => confirmReceived.mutate(o.id)}
-                      disabled={confirmReceived.isPending}
-                      className="w-full md:w-auto px-6 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-all disabled:opacity-50"
-                    >
-                      {confirmReceived.isPending ? '⏳ Confirming...' : '✅ Confirm Received'}
-                    </button>
-                  )}
-                  {o.status === 'DELIVERED' && (
-                    <div className="text-green-600 font-bold flex items-center gap-2">
-                      <span>✓ Received & Verified</span>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        ) : (
+        {activeTab === 'ACTIVITIES' ? (
           <div className="space-y-6">
             {activities.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300">
@@ -390,6 +336,11 @@ export function DonationCenterDashboardPage() {
 
                     {/* Content Area */}
                     <div className="p-4">
+                      {a.request && (
+                        <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 text-orange-600 rounded-full text-[10px] font-bold border border-orange-100 uppercase tracking-tight">
+                          <span>🤝</span> {a.request.title.replace('Fundraising for:', '')}
+                        </div>
+                      )}
                       <h3 className="text-base font-bold text-gray-900 mb-1">{a.title}</h3>
                       <p className="text-xs text-gray-600 line-clamp-2">{a.content}</p>
                     </div>
@@ -403,8 +354,79 @@ export function DonationCenterDashboardPage() {
               </div>
             )}
           </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            {requests.length === 0 ? (
+              <div className="col-span-2 text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300">
+                <div className="text-5xl mb-4">📝</div>
+                <h3 className="text-xl font-bold text-gray-900">No requests yet</h3>
+                <p className="text-gray-500">Create a food request to start receiving help from the community.</p>
+              </div>
+            ) : (
+              requests.map((r: any) => (
+                <div 
+                  key={r.id} 
+                  onClick={() => setSelectedRequest(r)}
+                  className="group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-1"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 group-hover:text-orange-600 transition-colors">{r.title.replace('Fundraising for:', 'Request for:')}</h3>
+                      <p className="text-sm text-gray-500 line-clamp-1">{r.description}</p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${r.status === 'OPEN' ? 'bg-orange-100 text-orange-700 shadow-sm shadow-orange-100' : 'bg-green-100 text-green-700 shadow-sm shadow-green-100'}`}>
+                      {r.status}
+                    </span>
+                  </div>
+                  <ProgressBar 
+                    raised={Number(r.raisedAmount)} 
+                    target={Number(r.targetAmount)} 
+                    fulfilledQty={r.fulfilledQty}
+                    targetQty={r.targetQty}
+                  />
+
+                  <div className="mt-6 flex items-center justify-between">
+                    <div className="flex -space-x-2">
+                      {r.donations?.slice(0, 5).map((d: any, i: number) => (
+                        <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-orange-100 flex items-center justify-center text-[10px] font-bold text-orange-700">
+                          {d.customer.name[0]}
+                        </div>
+                      ))}
+                      {r.donations?.length > 5 && (
+                        <div className="w-8 h-8 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                          +{r.donations.length - 5}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-xs font-bold text-orange-600 group-hover:underline flex items-center gap-1">
+                      View Details <span>→</span>
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         )}
+
       </div>
+
+      {/* Modals */}
+      <RequestDetailModal 
+        request={selectedRequest}
+        onClose={() => setSelectedRequest(null)}
+        onConfirmReceived={(orderId: string) => confirmReceived.mutate(orderId)}
+        onPostStory={() => { setCreatingStoryFor(selectedRequest); setSelectedRequest(null); }}
+        onViewStory={(activity: any) => { setEditingActivity(activity); setSelectedRequest(null); }}
+        incomingOrders={incomingOrders.filter((o: any) => o.requestId === selectedRequest?.id)}
+      />
+
+      <ActivityFormModal 
+        isOpen={!!creatingStoryFor || !!editingActivity}
+        onClose={() => { setCreatingStoryFor(null); setEditingActivity(null); }}
+        editingActivity={editingActivity}
+        defaultTitle={creatingStoryFor ? `Success Story: ${creatingStoryFor.title.replace('Fundraising for:', '')}` : ''}
+        requestId={creatingStoryFor?.id || editingActivity?.requestId}
+      />
     </div>
   );
 }
@@ -455,9 +477,123 @@ function ImageGrid({ images }: { images: string[] }) {
   );
 }
 
-function ActivityFormModal({ isOpen, onClose, editingActivity }: { isOpen: boolean; onClose: () => void; editingActivity?: any }) {
+function RequestDetailModal({ request, onClose, onPostStory, incomingOrders, onConfirmReceived, onViewStory }: any) {
+  if (!request) return null;
+  const listingPrice = Number(request.listing?.discountPrice) || 150;
+  
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl animate-fadeInUp max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">{request.title.replace('Fundraising for:', 'Request for:')}</h2>
+            <p className="text-gray-500 text-sm">Created on {new Date(request.createdAt).toLocaleDateString()}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-3xl">×</button>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8 mb-8">
+          <div>
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">Goal Progress</h3>
+            <ProgressBar 
+              raised={Number(request.raisedAmount)} 
+              target={Number(request.targetAmount)} 
+              fulfilledQty={request.fulfilledQty}
+              targetQty={request.targetQty}
+            />
+            <div className="mt-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
+               <div className="text-xs text-orange-700 font-bold mb-1 uppercase">Target Item</div>
+               <div className="text-sm font-black text-gray-900">{request.listing?.title || 'General Food Donation'}</div>
+               <div className="text-xs text-gray-500">LKR {listingPrice} per unit</div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">Contributors ({request.donations?.length || 0})</h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+              {request.donations?.map((d: any, idx: number) => (
+                <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-xs font-bold text-orange-700">
+                      {d.customer.name[0]}
+                    </div>
+                    <div className="text-xs font-bold text-gray-700">{d.customer.name}</div>
+                  </div>
+                  <div className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100">
+                    {Math.floor(Number(d.amount) / listingPrice)} UNITS
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Action Center */}
+        <div className="border-t border-gray-100 pt-6">
+          {request.status === 'FULFILLED' ? (
+            <div className="space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
+                <div className="text-3xl mb-2">🎉</div>
+                <h3 className="text-lg font-bold text-green-800 mb-2">This request was successful!</h3>
+                <p className="text-sm text-green-700 mb-4">Your community came together to provide {request.fulfilledQty} items.</p>
+                
+                {/* Incoming Orders for this request */}
+                <div className="space-y-3">
+                  {incomingOrders.map((o: any) => (
+                    <div key={o.id} className="bg-white p-4 rounded-xl border border-green-100 flex justify-between items-center text-left">
+                       <div>
+                         <div className="text-xs font-bold text-gray-400 uppercase">Order Status</div>
+                         <div className="font-black text-gray-900 uppercase text-xs">{o.status}</div>
+                       </div>
+                       {o.status !== 'DELIVERED' ? (
+                         <button 
+                           onClick={() => onConfirmReceived(o.id)}
+                           className="px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700"
+                         >
+                           Confirm Received
+                         </button>
+                       ) : (
+                         <div className="text-green-600 font-bold text-xs flex items-center gap-1">
+                           <span>✅ RECEIVED</span>
+                         </div>
+                       )}
+                    </div>
+                  ))}
+                </div>
+
+                {request.activities && request.activities.length > 0 ? (
+                  <button 
+                    onClick={() => onViewStory(request.activities[0])}
+                    className="mt-6 w-full py-4 bg-white border-2 border-orange-500 text-orange-600 font-black rounded-2xl hover:bg-orange-50 transition-all flex items-center justify-center gap-2"
+                  >
+                    <span>📸</span> View Shared Story
+                  </button>
+                ) : (
+                  <button 
+                    onClick={onPostStory}
+                    className="mt-6 w-full py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white font-black rounded-2xl shadow-xl shadow-orange-200 hover:scale-[1.02] transition-transform"
+                  >
+                    🚀 Post Success Story & Photos
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 text-center">
+              <div className="text-2xl mb-2">⏳</div>
+              <h3 className="text-base font-bold text-blue-800">Still Gathering Support</h3>
+              <p className="text-sm text-blue-600 mt-1">Once the goal is reached, you'll be able to track the food and share a success story.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActivityFormModal({ isOpen, onClose, editingActivity, defaultTitle, requestId }: { isOpen: boolean; onClose: () => void; editingActivity?: any; defaultTitle?: string; requestId?: string }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState<{title: string, content: string, images: string[]}>({ title: '', content: '', images: [] });
+  const [form, setForm] = useState<{title: string, content: string, images: string[], requestId?: string}>({ title: '', content: '', images: [], requestId });
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -467,12 +603,13 @@ function ActivityFormModal({ isOpen, onClose, editingActivity }: { isOpen: boole
       setForm({
         title: editingActivity.title,
         content: editingActivity.content,
-        images: editingActivity.images || []
+        images: editingActivity.images || [],
+        requestId: editingActivity.requestId
       });
     } else {
-      setForm({ title: '', content: '', images: [] });
+      setForm({ title: defaultTitle || '', content: '', images: [], requestId });
     }
-  }, [editingActivity, isOpen]);
+  }, [editingActivity, isOpen, defaultTitle]);
 
   const handleFileUpload = async (file: File) => {
     if (form.images.length >= 5) {
@@ -536,6 +673,13 @@ function ActivityFormModal({ isOpen, onClose, editingActivity }: { isOpen: boole
           <h3 className="text-xl font-bold text-gray-900">{editingActivity ? '✏️ Edit Story' : '📸 Share Story'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
         </div>
+
+        {defaultTitle && (
+          <div className="mb-6 p-4 bg-orange-50 rounded-xl border border-orange-100">
+            <div className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Related Request</div>
+            <div className="text-sm font-bold text-orange-700">{defaultTitle.replace('Success Story:', '')}</div>
+          </div>
+        )}
 
         <div className="space-y-4">
           <div>
