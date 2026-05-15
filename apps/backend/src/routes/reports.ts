@@ -73,14 +73,49 @@ router.get('/customer', requireAuth, ah(async (req: any, res) => {
   let totalSpent = 0;
   let donationCount = 0;
 
+  const dailySalesMap = new Map<string, { count: number; savings: number; spent: number }>();
+  const categoryMap = new Map<string, { count: number; savings: number }>();
+  const providerLocationMap = new Map<string, { lat: number; lng: number; count: number; businessName: string }>();
+
   for (const o of orders) {
+    const day = o.createdAt.toISOString().split('T')[0];
+    const dayData = dailySalesMap.get(day) || { count: 0, savings: 0, spent: 0 };
+    dayData.count++;
+
     for (const it of o.items) {
       const kg = (it.qty * (it.listing.weightGrams || 500)) / 1000;
       savedKg += kg;
       const unitSaving = Number(it.listing.unitPrice) - Number(it.listing.discountPrice);
-      moneySaved += (unitSaving * it.qty);
-      totalSpent += (Number(it.listing.discountPrice) * it.qty);
+      const itemSaving = unitSaving * it.qty;
+      const itemSpent = Number(it.listing.discountPrice) * it.qty;
+      
+      moneySaved += itemSaving;
+      totalSpent += itemSpent;
+      
+      dayData.savings += itemSaving;
+      dayData.spent += itemSpent;
+
+      // Category tracking
+      const cat = it.listing.category || 'Other';
+      const catData = categoryMap.get(cat) || { count: 0, savings: 0 };
+      catData.count += it.qty;
+      catData.savings += itemSaving;
+      categoryMap.set(cat, catData);
     }
+    dailySalesMap.set(day, dayData);
+
+    // Location tracking (Provider locations)
+    const pId = o.providerId;
+    if (pId) {
+      const provider = await prisma.serviceProvider.findUnique({ where: { userId: pId } });
+      if (provider && provider.lat && provider.lng) {
+        const locKey = `${provider.lat},${provider.lng}`;
+        const locData = providerLocationMap.get(locKey) || { lat: Number(provider.lat), lng: Number(provider.lng), count: 0, businessName: provider.businessName };
+        locData.count++;
+        providerLocationMap.set(locKey, locData);
+      }
+    }
+
     if (o.type === 'DONATION') donationCount++;
   }
 
@@ -101,7 +136,10 @@ router.get('/customer', requireAuth, ah(async (req: any, res) => {
     moneySaved: Number(moneySaved.toFixed(2)),
     totalSpent: Number(totalSpent.toFixed(2)),
     donationCount,
-    totalDonationsAmount: Number(totalDonationsAmount.toFixed(2))
+    totalDonationsAmount: Number(totalDonationsAmount.toFixed(2)),
+    trends: Array.from(dailySalesMap.entries()).map(([date, data]) => ({ date, ...data })).sort((a, b) => a.date.localeCompare(b.date)),
+    categories: Array.from(categoryMap.entries()).map(([name, data]) => ({ name, ...data })),
+    locations: Array.from(providerLocationMap.values())
   });
 }));
 

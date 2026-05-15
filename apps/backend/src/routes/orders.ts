@@ -41,6 +41,25 @@ router.get('/center', requireAuth, requireRole('DONATION_CENTER'), ah(async (req
   res.json({ orders });
 }));
 
+router.get('/me', requireAuth, ah(async (req: any, res) => {
+  const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+  const orders = await prisma.order.findMany({
+    where: { 
+      buyerId: req.user!.sub
+    },
+    include: {
+      items: {
+        include: {
+          listing: true
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit
+  });
+  res.json({ orders });
+}));
+
 router.get('/:id', requireAuth, ah(async (req: any, res) => {
   const order = await prisma.order.findUnique({ 
     where: { id: req.params.id }, 

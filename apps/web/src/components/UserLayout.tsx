@@ -25,14 +25,15 @@ export function UserLayout({ children }: UserLayoutProps) {
 
     // 3. Transactions & Impact
     { label: 'My Orders', path: '/orders', icon: '🛍️', roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
+    { label: 'Impact Report', path: '/reports/mine', icon: '🌱', roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
     { label: 'Reviews', path: '/provider/reviews', icon: '⭐', roles: ['PROVIDER'] },
-    { label: 'Contributions', path: '/reports/mine', icon: '🌱', roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
     
-    // 4. Settings / Analytics
-    { label: 'Analytics', path: '/customer/settings', icon: '⚙️', roles: ['CUSTOMER'] },
+    // 4. Analytics & Settings
+    { label: 'Analytics', path: '/customer/analytics', icon: '📈', roles: ['CUSTOMER'] },
     { label: 'Analytics', path: '/provider/analytics', icon: '📈', roles: ['PROVIDER'] },
-    { label: 'Analytics', path: '/center/settings', icon: '⚙️', roles: ['DONATION_CENTER'] },
-    { label: 'Profile', path: '/profile', icon: '👤', roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
+    { label: 'Center Settings', path: '/center/settings', icon: '⚙️', roles: ['DONATION_CENTER'] },
+    { label: 'Account Settings', path: '/customer/settings', icon: '⚙️', roles: ['CUSTOMER'] },
+    { label: 'My Profile', path: '/profile', icon: '👤', roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
   ];
 
   const filteredMenu = menuItems.filter(item => item.roles.includes(user?.role as any));
