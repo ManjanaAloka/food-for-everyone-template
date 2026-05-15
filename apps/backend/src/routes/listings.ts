@@ -11,7 +11,14 @@ router.get('/', ah(async (req, res) => {
   const { q, category, providerId, city, urgency, minPrice, maxPrice, sort, lat, lng, radius } = req.query;
   const now = new Date();
 
-  const where: any = { status: 'ACTIVE', expiresAt: { gt: now }, qtyAvailable: { gt: 0 } };
+  const where: any = { 
+    status: { not: 'DELETED' }, 
+    expiresAt: { gt: now }, 
+    qtyAvailable: { gt: 0 } 
+  };
+  // By default only show ACTIVE for public, but if filtering by providerId we might show HIDDEN?
+  // Actually, for public browse, it should only be ACTIVE.
+  if (!providerId) where.status = 'ACTIVE';
   if (q) where.OR = [{ title: { contains: String(q) } }, { description: { contains: String(q) } }];
   if (category) where.category = String(category);
   if (providerId) where.providerId = String(providerId);
@@ -88,7 +95,7 @@ router.get('/:id', ah(async (req, res) => {
       }
     }
   });
-  if (!listing) return res.status(404).json({ error: 'Listing not found' });
+  if (!listing || listing.status === 'DELETED') return res.status(404).json({ error: 'Listing not found' });
 
   // Fetch approved reviews for the provider
   const reviews = await prisma.review.findMany({
@@ -146,6 +153,10 @@ router.patch('/:id', requireAuth, requireRole('PROVIDER'), ah(async (req: any, r
 
 router.delete('/:id', requireAuth, requireRole('PROVIDER'), ah(async (req: any, res) => {
   const id = req.params.id;
-  await prisma.listing.update({ where: { id, providerId: req.user!.sub }, data: { status: 'HIDDEN' } });
+  // Use DELETED status for "permanent" removal behavior
+  await prisma.listing.update({ 
+    where: { id, providerId: req.user!.sub }, 
+    data: { status: 'DELETED' } 
+  });
   res.json({ ok: true });
 }));

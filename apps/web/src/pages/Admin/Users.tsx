@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { useAuth } from '../../state/auth';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -44,6 +45,7 @@ function BanModal({ user, onClose }: { user: any; onClose: () => void }) {
 }
 
 export function AdminUsersPage() {
+  const { user } = useAuth();
   const qc = useQueryClient();
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [banTarget, setBanTarget] = useState<any>(null);
@@ -71,6 +73,18 @@ export function AdminUsersPage() {
       setSelectedUser(null);
     },
     onError: (e: any) => toast.error(e.response?.data?.error || 'Failed to delete user')
+  });
+
+  const { mutate: verifyUser } = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const endpoint = role === 'PROVIDER' ? `/admin/providers/${userId}/approve` : `/admin/centers/${userId}/approve`;
+      return api.post(endpoint);
+    },
+    onSuccess: () => {
+      toast.success('User verified successfully');
+      qc.invalidateQueries({ queryKey: ['adminUsers'] });
+    },
+    onError: (e: any) => toast.error(e.response?.data?.error || 'Failed to verify user')
   });
 
   const filteredUsers = usersQ.data?.users?.filter((u: any) =>
@@ -148,16 +162,18 @@ export function AdminUsersPage() {
             </div>
 
             <div className="flex gap-3">
-              <button 
-                onClick={() => {
-                  if (confirm('Are you sure you want to delete this user?')) {
-                    deleteUser(selectedUser.id);
-                  }
-                }}
-                className="flex-1 py-3 bg-red-100 text-red-600 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-all"
-              >
-                🗑️ Delete
-              </button>
+              {user?.role === 'SYSTEM_ADMIN' && (
+                <button 
+                  onClick={() => {
+                    if (confirm('Are you sure you want to delete this user?')) {
+                      deleteUser(selectedUser.id);
+                    }
+                  }}
+                  className="flex-1 py-3 bg-red-100 text-red-600 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-all"
+                >
+                  🗑️ Delete
+                </button>
+              )}
               <button onClick={() => setSelectedUser(null)} className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all">
                 Close
               </button>
@@ -207,18 +223,18 @@ export function AdminUsersPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-3 mb-1">
                       <span className="font-bold text-gray-900 truncate text-lg">{u.name}</span>
-                      {(() => {
+                         {(() => {
                          const isVerified = u.providerProfile?.verifiedAt || u.donationCenterProfile?.verifiedAt;
                          if (u.status === 'SUSPENDED') return <span className="text-[10px] font-black uppercase tracking-widest bg-red-100 text-red-600 px-2 py-0.5 rounded">Suspended</span>;
                          if (u.status === 'PENDING') return <span className="text-[10px] font-black uppercase tracking-widest bg-orange-100 text-orange-600 px-2 py-0.5 rounded animate-pulse">Pending</span>;
                          if (u.status === 'ACTIVE') {
-                           if (u.role === 'CUSTOMER') return <span className="text-[10px] font-black uppercase tracking-widest bg-green-100 text-green-600 px-2 py-0.5 rounded">Active</span>;
+                           if (u.role === 'CUSTOMER' || u.role === 'ADMIN' || u.role === 'SYSTEM_ADMIN') return <span className="text-[10px] font-black uppercase tracking-widest bg-green-100 text-green-600 px-2 py-0.5 rounded">Active</span>;
                            return isVerified 
                              ? <span className="text-[10px] font-black uppercase tracking-widest bg-green-100 text-green-600 px-2 py-0.5 rounded">Verified</span>
                              : <span className="text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-600 px-2 py-0.5 rounded">Pending Verify</span>;
                          }
                          return null;
-                      })()}
+                       })()}
                     </div>
                     <div className="text-sm text-gray-500 flex items-center gap-2">
                        <span className="truncate">{u.email}</span>
@@ -233,7 +249,18 @@ export function AdminUsersPage() {
                      u.status === 'SUSPENDED' ? (
                         <button onClick={(e) => { e.stopPropagation(); unban(u.id); }} className="px-4 py-2 text-xs font-bold bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all shadow-lg shadow-green-100">Restore</button>
                      ) : (
-                        <button onClick={(e) => { e.stopPropagation(); setBanTarget(u); }} className="px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-all border border-red-100">Suspend</button>
+                        <div className="flex gap-2">
+                           {/* Quick Verify Button */}
+                           {(u.role === 'PROVIDER' || u.role === 'DONATION_CENTER') && !(u.providerProfile?.verifiedAt || u.donationCenterProfile?.verifiedAt) && (
+                             <button 
+                               onClick={(e) => { e.stopPropagation(); verifyUser({ userId: u.id, role: u.role }); }} 
+                               className="px-4 py-2 text-xs font-bold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
+                             >
+                               Verify Now
+                             </button>
+                           )}
+                           <button onClick={(e) => { e.stopPropagation(); setBanTarget(u); }} className="px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-all border border-red-100">Suspend</button>
+                        </div>
                      )
                    )}
                    <div className="text-gray-300 group-hover:translate-x-1 transition-transform">→</div>

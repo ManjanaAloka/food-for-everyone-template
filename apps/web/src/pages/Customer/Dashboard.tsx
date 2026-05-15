@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useAuth } from '../../state/auth';
 import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
@@ -16,12 +17,27 @@ export function CustomerDashboardPage() {
   });
 
   // Fetch recent orders
-  const { data: ordersData, isLoading: ordersLoading } = useQuery({
+  const ordersQ = useQuery({
     queryKey: ['recentOrders'],
     queryFn: async () => (await api.get('/orders/me', { params: { limit: 5 } })).data
   });
 
-  const isLoading = statsLoading || ordersLoading;
+  // Fetch recent donations
+  const donationsQ = useQuery({
+    queryKey: ['recentDonations'],
+    queryFn: async () => (await api.get('/donations/my/history')).data
+  });
+
+  const isLoading = statsLoading || ordersQ.isLoading || donationsQ.isLoading;
+
+  const combinedActivity = useMemo(() => {
+    const orders = (ordersQ.data?.orders || []).map((o: any) => ({ ...o, activityType: 'ORDER' }));
+    const donations = (donationsQ.data?.donations || []).map((d: any) => ({ ...d, activityType: 'DONATION' }));
+    
+    return [...orders, ...donations]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5);
+  }, [ordersQ.data, donationsQ.data]);
 
   if (isLoading) {
     return (
@@ -76,7 +92,7 @@ export function CustomerDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Orders */}
+        {/* Recent Activity */}
         <div className="lg:col-span-2 bg-white rounded-[40px] border border-gray-100 shadow-sm p-8">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-xl font-black text-gray-900">Recent Activity</h2>
@@ -84,34 +100,45 @@ export function CustomerDashboardPage() {
           </div>
           
           <div className="space-y-4">
-            {ordersData?.orders?.length === 0 ? (
+            {combinedActivity.length === 0 ? (
               <div className="text-center py-10 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">No orders yet</p>
+                <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">No activity yet</p>
               </div>
             ) : (
-              ordersData?.orders?.map((order: any) => (
-                <Link 
-                  key={order.id} 
-                  to={`/orders/${order.id}`}
-                  className="flex items-center justify-between p-6 rounded-3xl border border-gray-50 hover:bg-gray-50/50 hover:border-green-100 transition-all group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                      🛍️
+              combinedActivity.map((act: any) => {
+                const isOrder = act.activityType === 'ORDER';
+                const linkTo = isOrder ? `/orders/${act.id}` : `/give-back`;
+                const title = isOrder ? (act.items?.[0]?.listing?.title || 'Food Order') : (act.donationRequest?.title || 'Monetary Donation');
+                const icon = isOrder ? '🛍️' : '❤️';
+                const status = isOrder ? act.status : 'DONATED';
+                const statusColor = isOrder 
+                  ? (act.status === 'DELIVERED' || act.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600')
+                  : 'bg-pink-100 text-pink-600';
+
+                return (
+                  <Link 
+                    key={act.id} 
+                    to={linkTo}
+                    className="flex items-center justify-between p-6 rounded-3xl border border-gray-50 hover:bg-gray-50/50 hover:border-green-100 transition-all group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                        {icon}
+                      </div>
+                      <div>
+                        <p className="font-black text-gray-900 line-clamp-1">{title}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase">{new Date(act.createdAt).toLocaleDateString()}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-black text-gray-900 line-clamp-1">{order.items[0]?.listing?.title || 'Food Order'}</p>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase">{new Date(order.createdAt).toLocaleDateString()}</p>
+                    <div className="text-right">
+                      <p className="font-black text-gray-900">LKR {Number(act.amount || act.total).toLocaleString()}</p>
+                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${statusColor}`}>
+                        {status}
+                      </span>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-black text-gray-900">LKR {Number(order.total).toLocaleString()}</p>
-                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${order.status === 'DELIVERED' || order.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
-                      {order.status}
-                    </span>
-                  </div>
-                </Link>
-              ))
+                  </Link>
+                );
+              })
             )}
           </div>
         </div>

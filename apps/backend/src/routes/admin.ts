@@ -24,8 +24,14 @@ router.post('/providers/:userId/approve', ah(async (req: any, res) => {
   const { userId } = z.object({ userId: z.string() }).parse(req.params);
   const before = await prisma.user.findUnique({ where: { id: userId }, select: { status: true } });
   await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error('User not found');
     await tx.user.update({ where: { id: userId }, data: { status: 'ACTIVE' } });
-    await tx.serviceProvider.update({ where: { userId }, data: { verifiedAt: new Date() } });
+    await tx.serviceProvider.upsert({
+      where: { userId },
+      create: { userId, businessName: user.name || 'Unknown Provider', verifiedAt: new Date() },
+      update: { verifiedAt: new Date() }
+    });
   });
   await audit(req.user!.sub, 'APPROVE_PROVIDER', 'ServiceProvider', userId, before, { status: 'ACTIVE' });
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -52,8 +58,14 @@ router.get('/pending/centers', ah(async (_req, res) => {
 router.post('/centers/:userId/approve', ah(async (req: any, res) => {
   const { userId } = z.object({ userId: z.string() }).parse(req.params);
   await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error('User not found');
     await tx.user.update({ where: { id: userId }, data: { status: 'ACTIVE' } });
-    await tx.donationCenter.update({ where: { userId }, data: { verifiedAt: new Date() } });
+    await tx.donationCenter.upsert({
+      where: { userId },
+      create: { userId, name: user.name || 'Unknown Center', verifiedAt: new Date() },
+      update: { verifiedAt: new Date() }
+    });
   });
   await audit(req.user!.sub, 'APPROVE_CENTER', 'DonationCenter', userId);
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -211,7 +223,11 @@ router.post('/users/:id/unban', ah(async (req: any, res) => {
 
 // ─── LISTINGS MANAGEMENT ─────────────────────────────────────────────────────
 router.get('/listings', ah(async (_req, res) => {
-  const listings = await prisma.listing.findMany({ take: 100, orderBy: { createdAt: 'desc' } });
+  const listings = await prisma.listing.findMany({ 
+    where: { status: { not: 'DELETED' } },
+    take: 100, 
+    orderBy: { createdAt: 'desc' } 
+  });
   const providerIds = [...new Set(listings.map(l => l.providerId))];
   const providers = await prisma.serviceProvider.findMany({
     where: { userId: { in: providerIds } },
@@ -230,12 +246,12 @@ router.patch('/listings/:id', ah(async (req, res) => {
 
 router.delete('/listings/:id', ah(async (req: any, res) => {
   const { id } = req.params;
-  // Use soft-delete (HIDDEN) because hard-delete fails if there are associated orders/reviews
+  // Use soft-delete (DELETED) to avoid breaking historical data/relations
   await prisma.listing.update({ 
     where: { id }, 
-    data: { status: 'HIDDEN' } 
+    data: { status: 'DELETED' } 
   });
-  await audit(req.user!.sub, 'SOFT_DELETE_LISTING', 'Listing', id);
+  await audit(req.user!.sub, 'PERMANENT_DELETE_LISTING', 'Listing', id);
   res.json({ ok: true });
 }));
 

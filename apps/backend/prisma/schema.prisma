@@ -28,6 +28,7 @@ enum ListingStatus {
   SOLD_OUT
   EXPIRED
   HIDDEN
+  DELETED
 }
 
 enum OrderType {

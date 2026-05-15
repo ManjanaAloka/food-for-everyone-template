@@ -2,8 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../state/auth';
-import { useState, useEffect } from 'react';
-
+import React, { useState, useEffect } from 'react';
+import { GoogleMap, MarkerF, useJsApiLoader } from '@react-google-maps/api';
+import { GOOGLE_MAPS_API_KEY } from '../../env';
 
 export function OrderDetailPage() {
   const { id } = useParams();
@@ -14,13 +15,19 @@ export function OrderDetailPage() {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
 
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: ['places']
+  });
+
   const { data, isLoading } = useQuery({ 
     queryKey: ['order', id], 
     queryFn: async () => (await api.get(`/orders/${id}`)).data, 
     enabled: !!id 
   });
 
-  // Initialize status state when data is loaded
+  // ... (rest of the state logic remains same)
   useEffect(() => {
     if (data?.order?.status) {
       setProviderStatus(data.order.status);
@@ -71,6 +78,8 @@ export function OrderDetailPage() {
   if (!data?.order) return <div>Not found.</div>;
   const o = data.order;
 
+  const deliveryCoords = o.lat && o.lng ? { lat: Number(o.lat), lng: Number(o.lng) } : null;
+
   return (
     <div>
       <div className="flex justify-between items-start mb-2 print:hidden">
@@ -102,27 +111,55 @@ export function OrderDetailPage() {
       {/* Customer / Donation Center Details Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 print:hidden">
         {/* Fulfillment Details */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col h-full">
           <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
             📍 Fulfillment Info
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-4 flex-1">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Method:</span>
-              <span className="font-bold text-gray-900">{o.fulfillmentMode}</span>
+              <span className="font-bold text-gray-900 tracking-wide uppercase">{o.fulfillmentMode}</span>
             </div>
             {o.addressLine && (
               <div className="text-sm">
-                <span className="text-gray-500 block mb-1">Delivery Address:</span>
-                <p className="font-bold text-gray-900 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                <div className="flex justify-between items-center mb-1">
+                   <span className="text-gray-500">Delivery Address:</span>
+                   {deliveryCoords && (
+                     <a 
+                       href={`https://www.google.com/maps/dir/?api=1&destination=${deliveryCoords.lat},${deliveryCoords.lng}`}
+                       target="_blank"
+                       rel="noreferrer"
+                       className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline"
+                     >
+                       🧭 Open in Maps
+                     </a>
+                   )}
+                </div>
+                <p className="font-bold text-gray-900 bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed">
                   {o.addressLine}, {o.city}
                 </p>
               </div>
             )}
+            
+            {/* Delivery Destination Map for Provider */}
+            {user?.role === 'PROVIDER' && o.fulfillmentMode === 'DELIVERY' && deliveryCoords && isLoaded && (
+               <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm h-48 relative group">
+                  <GoogleMap
+                    mapContainerStyle={{ width: '100%', height: '100%' }}
+                    center={deliveryCoords}
+                    zoom={15}
+                    options={{ disableDefaultUI: true, zoomControl: false }}
+                  >
+                    <MarkerF position={deliveryCoords} />
+                  </GoogleMap>
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none" />
+               </div>
+            )}
+
             {o.scheduledTime && (
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Scheduled:</span>
-                <span className="font-bold text-green-700">{new Date(o.scheduledTime).toLocaleString()}</span>
+              <div className="flex justify-between text-sm bg-green-50/50 p-3 rounded-xl border border-green-100/50">
+                <span className="text-gray-500">Scheduled Time:</span>
+                <span className="font-bold text-green-700 tracking-tight">{new Date(o.scheduledTime).toLocaleString()}</span>
               </div>
             )}
           </div>
@@ -193,47 +230,131 @@ export function OrderDetailPage() {
       </div>
 
       {user?.role === 'PROVIDER' && (
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 mb-6 shadow-sm border border-green-100 print:hidden">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center text-white text-xl">⚙️</div>
-            <div>
-              <h3 className="font-black text-gray-900">Update Order Status</h3>
-              <p className="text-xs text-gray-500">Move the order through the fulfillment process</p>
+        <div className="bg-white rounded-3xl p-8 mb-8 shadow-xl shadow-green-900/5 border border-slate-100 print:hidden overflow-hidden relative">
+          <div className="absolute top-0 left-0 w-2 h-full bg-green-600" />
+          
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-2xl">⚡</div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800">Fulfillment Workflow</h3>
+                  <p className="text-sm text-slate-500 font-medium italic">Complete each step to finalize the order</p>
+                </div>
+              </div>
+
+              {/* Visual Stepper */}
+              <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 no-scrollbar">
+                {(() => {
+                  const steps = o.fulfillmentMode === 'PICKUP' 
+                    ? ['PENDING', 'READY_FOR_PICKUP', 'DELIVERED']
+                    : ['PENDING', 'READY_FOR_DELIVERY', 'OUT_FOR_DELIVERY', 'DELIVERED'];
+                  
+                  const currentIndex = steps.indexOf(o.status);
+                  
+                  return steps.map((step, idx) => (
+                    <React.Fragment key={step}>
+                      <div className="flex flex-col items-center min-w-[100px]">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black transition-all ${
+                          idx < currentIndex ? 'bg-green-600 text-white' : 
+                          idx === currentIndex ? 'bg-green-100 text-green-700 ring-4 ring-green-50' : 
+                          'bg-slate-100 text-slate-400'
+                        }`}>
+                          {idx < currentIndex ? '✓' : idx + 1}
+                        </div>
+                        <span className={`text-[9px] font-black uppercase tracking-widest mt-2 ${
+                          idx <= currentIndex ? 'text-slate-800' : 'text-slate-400'
+                        }`}>
+                          {step.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                      {idx < steps.length - 1 && (
+                        <div className={`h-[2px] w-12 mb-6 ${idx < currentIndex ? 'bg-green-600' : 'bg-slate-100'}`} />
+                      )}
+                    </React.Fragment>
+                  ));
+                })()}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 min-w-[280px]">
+              {o.status === 'DELIVERED' ? (
+                <div className="bg-green-50 border border-green-200 p-6 rounded-2xl text-center">
+                  <span className="text-3xl block mb-2">🎉</span>
+                  <p className="text-green-800 font-black uppercase tracking-widest text-sm">Order Completed</p>
+                </div>
+              ) : o.status === 'CANCELED' ? (
+                <div className="bg-red-50 border border-red-200 p-6 rounded-2xl text-center">
+                  <span className="text-3xl block mb-2">❌</span>
+                  <p className="text-red-800 font-black uppercase tracking-widest text-sm">Order Canceled</p>
+                </div>
+              ) : (
+                <>
+                  {/* Dynamic Primary Action Button */}
+                  {(() => {
+                    let nextStatus = '';
+                    let label = '';
+                    let icon = '';
+                    
+                    if (o.status === 'PENDING' || o.status === 'PAID') {
+                      nextStatus = o.fulfillmentMode === 'PICKUP' ? 'READY_FOR_PICKUP' : 'READY_FOR_DELIVERY';
+                      label = o.fulfillmentMode === 'PICKUP' ? 'Mark as Ready for Pickup' : 'Mark as Ready for Delivery';
+                      icon = '📦';
+                    } else if (o.status === 'READY_FOR_PICKUP') {
+                      nextStatus = 'DELIVERED';
+                      label = 'Confirm Customer Handover';
+                      icon = '🤝';
+                    } else if (o.status === 'READY_FOR_DELIVERY') {
+                      nextStatus = 'OUT_FOR_DELIVERY';
+                      label = 'Mark as Dispatched';
+                      icon = '🚚';
+                    } else if (o.status === 'OUT_FOR_DELIVERY') {
+                      nextStatus = 'DELIVERED';
+                      label = 'Confirm Delivery Success';
+                      icon = '✅';
+                    }
+
+                    if (!nextStatus) return null;
+
+                    return (
+                      <button 
+                        onClick={() => {
+                          if (window.confirm(`Advance order to ${nextStatus.replace(/_/g, ' ')}?`)) {
+                            updateStatus.mutate(nextStatus);
+                          }
+                        }}
+                        disabled={updateStatus.isPending}
+                        className="w-full bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white font-black py-4 px-6 rounded-2xl shadow-xl shadow-green-200 hover:shadow-green-300 transform hover:-translate-y-1 active:translate-y-0 transition-all flex items-center justify-center gap-3 text-sm uppercase tracking-wider"
+                      >
+                        <span className="text-xl">{icon}</span>
+                        {updateStatus.isPending ? 'Processing...' : label}
+                      </button>
+                    );
+                  })()}
+
+                  <button 
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to cancel this order?')) {
+                        updateStatus.mutate('CANCELED');
+                      }
+                    }}
+                    className="w-full bg-white border-2 border-slate-100 text-slate-400 hover:text-red-500 hover:border-red-100 hover:bg-red-50 font-black py-3 px-6 rounded-2xl transition-all text-[10px] uppercase tracking-[0.2em]"
+                  >
+                    Cancel Order
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <select 
-              value={providerStatus} 
-              onChange={(e)=>setProviderStatus(e.target.value)} 
-              className="flex-1 bg-white border-2 border-green-200 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-green-500/20 focus:border-green-500 font-bold text-gray-700 transition-all appearance-none"
-            >
-              <option value="PENDING">🕒 PENDING</option>
-              {o.fulfillmentMode === 'PICKUP' ? (
-                <option value="READY_FOR_PICKUP">✅ READY FOR PICKUP</option>
-              ) : (
-                <>
-                  <option value="READY_FOR_DELIVERY">📦 READY FOR DELIVERY</option>
-                  <option value="OUT_FOR_DELIVERY">🚚 OUT FOR DELIVERY</option>
-                </>
-              )}
-              <option value="DELIVERED">🎉 DELIVERED</option>
-              <option value="CANCELED">❌ CANCELED</option>
-            </select>
-            
-            <button 
-              className="bg-green-600 hover:bg-green-700 text-white font-black px-8 py-3 rounded-xl transition-all shadow-lg hover:shadow-green-500/30 active:scale-95 disabled:opacity-50" 
-              onClick={()=>updateStatus.mutate(providerStatus)}
-              disabled={updateStatus.isPending}
-            >
-              {updateStatus.isPending ? 'PROCESSING...' : 'UPDATE NOW'}
-            </button>
-          </div>
-
-          {o.paymentMethod === 'COD' && providerStatus === 'DELIVERED' && (
-            <div className="mt-4 flex items-center gap-3 bg-orange-100 text-orange-800 p-3 rounded-lg border border-orange-200 text-sm font-bold animate-pulse">
-              <span>⚠️</span>
-              Confirm you have collected LKR {Number(o.total).toFixed(2)} in cash.
+          {/* Special Reminders */}
+          {o.paymentMethod === 'COD' && o.status !== 'DELIVERED' && (
+            <div className="mt-8 flex items-center gap-4 bg-orange-50 border border-orange-100 p-5 rounded-2xl">
+              <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-xl">💵</div>
+              <p className="text-sm font-bold text-orange-800">
+                <span className="block text-[10px] uppercase tracking-widest opacity-60 mb-0.5">Cash on Delivery Reminder</span>
+                Ensure you collect <span className="text-lg">LKR {Number(o.total).toFixed(2)}</span> during handover.
+              </p>
             </div>
           )}
         </div>

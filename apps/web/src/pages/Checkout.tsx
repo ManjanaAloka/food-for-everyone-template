@@ -60,7 +60,9 @@ export function CheckoutPage() {
   };
 
   useEffect(() => {
-    if (paymentMethod === 'COD' && fulfillmentMode === 'DELIVERY') {
+    // Automatically try to get location for any order if not set
+    // to populate the heatmap data accurately
+    if (!watch('lat') && !watch('lng')) {
       handleGetLocation();
     }
   }, [paymentMethod, fulfillmentMode]);

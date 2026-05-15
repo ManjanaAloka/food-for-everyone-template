@@ -17,6 +17,8 @@ const createOrderSchema = z.object({
   scheduledTime: z.string().optional(),
   addressLine: z.string().optional(),
   city: z.string().optional(),
+  lat: z.coerce.number().optional(),
+  lng: z.coerce.number().optional(),
   deliveryFee: z.coerce.number().optional()
 });
 
@@ -165,6 +167,8 @@ router.post('/', requireAuth, ah(async (req: any, res) => {
         scheduledTime: body.scheduledTime ? new Date(body.scheduledTime) : null,
         addressLine: body.addressLine,
         city: body.city,
+        lat: body.lat,
+        lng: body.lng,
         deliveryFee: deliveryFee.toFixed(2),
         subtotal: subtotal.toFixed(2),
         total: total.toFixed(2),
@@ -184,6 +188,29 @@ router.post('/', requireAuth, ah(async (req: any, res) => {
     }
     return o;
   });
+
+  // Notify Provider about the new order (ONLY for COD)
+  if (body.paymentMethod === 'COD') {
+    try {
+      const message = `New COD Order Received! Order #${order.id}.`;
+      await createNotification(order.providerId, 'NEW_ORDER', 'IN_APP', { 
+        orderId: order.id, 
+        message,
+        action: 'VIEW_ORDER_DETAIL'
+      });
+
+      const io = (global as any).__io;
+      if (io) {
+        io.to(`user:${order.providerId}`).emit('notification', { 
+          type: 'NEW_ORDER', 
+          message, 
+          orderId: order.id 
+        });
+      }
+    } catch (notifyErr) {
+      console.error('Notification failed but order was created:', notifyErr);
+    }
+  }
 
   res.json({ orderId: order.id, total, status: order.status });
 }));

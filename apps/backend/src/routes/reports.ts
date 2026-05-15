@@ -120,17 +120,38 @@ router.get('/customer', requireAuth, ah(async (req: any, res) => {
   }
 
   // Monetary Donations
+  // Monetary Donations
   const donations = await prisma.donation.findMany({
     where: { 
       customerId: userId, 
       status: 'SUCCEEDED',
       ...(from || to ? { createdAt: dateFilter } : {})
+    },
+    include: {
+      donationRequest: {
+        include: { listing: true }
+      }
     }
   });
-  const totalDonationsAmount = donations.reduce((sum, d) => sum + Number(d.amount), 0);
+
+  let totalMealsFromDonations = 0;
+  const totalDonationsAmount = donations.reduce((sum, d) => {
+    const amount = Number(d.amount);
+    
+    // Calculate accurate meal count based on linked listing price
+    const listingPrice = Number(d.donationRequest?.listing?.discountPrice);
+    if (listingPrice > 0) {
+      totalMealsFromDonations += Math.floor(amount / listingPrice);
+    } else {
+      // Fallback to average if no listing linked
+      totalMealsFromDonations += Math.floor(amount / 150);
+    }
+    
+    return sum + amount;
+  }, 0);
 
   res.json({
-    ordersCount: orders.length,
+    ordersCount: orders.length + totalMealsFromDonations,
     foodSavedKg: Number(savedKg.toFixed(2)),
     co2eAvoidedKg: Number((savedKg * CO2E_PER_KG).toFixed(2)),
     moneySaved: Number(moneySaved.toFixed(2)),

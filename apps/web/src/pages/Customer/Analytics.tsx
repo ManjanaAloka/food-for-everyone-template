@@ -33,6 +33,20 @@ export function CustomerAnalyticsPage() {
     </div>
   );
 
+  const foodSaved = analytics?.foodSavedKg || 0;
+  let impactTier = "Seedling Starter";
+  if (foodSaved > 100) impactTier = "Platinum Elite";
+  else if (foodSaved > 50) impactTier = "Gold Champion";
+  else if (foodSaved > 20) impactTier = "Silver Guardian";
+  else if (foodSaved > 5) impactTier = "Bronze Saver";
+
+  const co2Score = Math.min(100, (analytics?.co2eAvoidedKg || 0) * 2).toFixed(1);
+
+  const donations = analytics?.totalDonationsAmount || 0;
+  let impactStatus = "Supporter";
+  if (donations >= 5000) impactStatus = "Verified Hero";
+  else if (donations > 0) impactStatus = "Generous Donor";
+
   return (
     <div className="space-y-8 pb-20 animate-fadeIn print:space-y-0 print:pb-0 print:p-0">
       {/* PAGE 1: COVER & SUMMARY */}
@@ -269,15 +283,28 @@ export function CustomerAnalyticsPage() {
                The data presented in this audit represents a verified commitment to the circular economy. By prioritizing surplus food reclamation, the account holder has directly mitigated environmental degradation and supported community food security programs. This dedication defines a gold standard in responsible consumption.
              </p>
              <div className="grid grid-cols-2 gap-6 mt-auto print:gap-12 print:mt-12">
-                <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 print:p-12 print:bg-slate-50 print:border-none">
+                <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 print:p-12 print:bg-slate-50 print:border-none relative group cursor-help">
                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 print:text-xs">Social Impact Tier</p>
-                   <p className="text-2xl font-black italic text-emerald-600 print:text-4xl">Platinum Elite</p>
-                   <p className="text-[9px] text-slate-400 mt-2 font-bold uppercase tracking-tighter print:text-[10px]">Verified by FreshSave Audit System</p>
+                   <p className="text-2xl font-black italic text-emerald-600 print:text-4xl">{impactTier}</p>
+                   <p className="text-[9px] text-slate-400 mt-2 font-bold uppercase tracking-tighter print:text-[10px]">Based on {foodSaved}kg food saved</p>
+                   
+                   {/* Ranges Tooltip */}
+                   <div className="absolute bottom-full left-0 mb-4 w-64 bg-slate-900 text-white p-5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-2xl print:hidden">
+                      <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-2">Tier Requirements</p>
+                      <ul className="space-y-2 text-[10px] font-bold">
+                        <li className="flex justify-between text-slate-400"><span>Seedling Starter</span> <span>0-5 kg</span></li>
+                        <li className="flex justify-between text-amber-700"><span>Bronze Saver</span> <span>6-20 kg</span></li>
+                        <li className="flex justify-between text-slate-300"><span>Silver Guardian</span> <span>21-50 kg</span></li>
+                        <li className="flex justify-between text-amber-400"><span>Gold Champion</span> <span>51-100 kg</span></li>
+                        <li className="flex justify-between text-emerald-400 font-black"><span>Platinum Elite</span> <span>101+ kg</span></li>
+                      </ul>
+                      <div className="absolute -bottom-2 left-8 w-4 h-4 bg-slate-900 rotate-45"></div>
+                   </div>
                 </div>
                 <div className="p-8 bg-slate-900 rounded-3xl shadow-xl shadow-slate-200 print:p-12 print:bg-slate-900">
                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 print:text-xs">Environmental Score</p>
-                   <p className="text-2xl font-black italic text-white print:text-4xl">98.4 / 100</p>
-                   <p className="text-[9px] text-slate-600 mt-2 font-bold uppercase tracking-tighter print:text-[10px]">Sustainability Rating A+</p>
+                   <p className="text-2xl font-black italic text-white print:text-4xl">{co2Score} / 100</p>
+                   <p className="text-[9px] text-slate-600 mt-2 font-bold uppercase tracking-tighter print:text-[10px]">Sustainability Rating</p>
                 </div>
              </div>
           </div>
@@ -296,9 +323,20 @@ export function CustomerAnalyticsPage() {
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 print:text-xs">Cumulative Donations</p>
                     <p className="text-2xl font-black print:text-4xl">LKR {analytics?.totalDonationsAmount?.toLocaleString() || 0}</p>
                   </div>
-                  <div className="px-8 py-4 bg-emerald-500/10 backdrop-blur-xl rounded-[24px] border border-emerald-500/10 print:bg-emerald-50 print:border-none print:p-8">
+                  <div className="px-8 py-4 bg-emerald-500/10 backdrop-blur-xl rounded-[24px] border border-emerald-500/10 print:bg-emerald-50 print:border-none print:p-8 relative group cursor-help">
                     <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1 print:text-xs">Impact Status</p>
-                    <p className="text-2xl font-black italic print:text-4xl">Verified Hero</p>
+                    <p className="text-2xl font-black italic print:text-4xl">{impactStatus}</p>
+
+                    {/* Ranges Tooltip */}
+                    <div className="absolute bottom-full left-0 mb-4 w-56 bg-white text-slate-800 p-5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-2xl border border-slate-100 print:hidden">
+                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">Status Levels (Donations)</p>
+                      <ul className="space-y-2 text-[10px] font-bold text-slate-500">
+                        <li className="flex justify-between"><span>Supporter</span> <span>0 LKR</span></li>
+                        <li className="flex justify-between text-blue-500"><span>Generous Donor</span> <span>&gt; 0 LKR</span></li>
+                        <li className="flex justify-between font-black text-emerald-600"><span>Verified Hero</span> <span>5,000+ LKR</span></li>
+                      </ul>
+                      <div className="absolute -bottom-2 left-8 w-4 h-4 bg-white border-b border-r border-slate-100 rotate-45"></div>
+                    </div>
                   </div>
                 </div>
               </div>

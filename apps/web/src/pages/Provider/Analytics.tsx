@@ -5,54 +5,12 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   BarChart, Bar, PieChart, Pie, Cell, Legend 
 } from 'recharts';
-import { GoogleMap, MarkerF, useJsApiLoader } from '@react-google-maps/api';
-import { GOOGLE_MAPS_API_KEY } from '../../env';
-
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EF4444'];
-
-const mapContainerStyle = {
-  width: '100%',
-  height: '500px',
-  borderRadius: '40px'
-};
-
-const mapOptions = {
-  styles: [
-    {
-      "featureType": "all",
-      "elementType": "labels.text.fill",
-      "stylers": [{"saturation": 36}, {"color": "#333333"}, {"lightness": 40}]
-    },
-    {
-      "featureType": "all",
-      "elementType": "labels.text.stroke",
-      "stylers": [{"visibility": "on"}, {"color": "#ffffff"}, {"lightness": 16}]
-    },
-    {
-      "featureType": "water",
-      "elementType": "geometry",
-      "stylers": [{"color": "#e9e9e9"}, {"lightness": 17}]
-    },
-    {
-      "featureType": "landscape",
-      "elementType": "geometry",
-      "stylers": [{"color": "#f5f5f5"}, {"lightness": 20}]
-    }
-  ],
-  disableDefaultUI: true,
-  zoomControl: true,
-};
 
 export function ProviderAnalyticsPage() {
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
   const [viewMode, setViewMode] = useState<'summary' | 'charts'>('summary');
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
-
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: ['places']
-  });
 
   const analyticsQ = useQuery({
     queryKey: ['providerAnalytics', dateRange, selectedListingId],
@@ -63,15 +21,6 @@ export function ProviderAnalyticsPage() {
 
   const data = analyticsQ.data;
   const selectedItemName = data?.topSellingItems?.find((i: any) => i.id === selectedListingId)?.title;
-
-  const mapCenter = useMemo(() => {
-    if (data?.orderLocations?.length > 0) {
-      const avgLat = data.orderLocations.reduce((s: any, l: any) => s + l.lat, 0) / data.orderLocations.length;
-      const avgLng = data.orderLocations.reduce((s: any, l: any) => s + l.lng, 0) / data.orderLocations.length;
-      return { lat: avgLat, lng: avgLng };
-    }
-    return { lat: 6.9271, lng: 79.8612 }; // Colombo default
-  }, [data?.orderLocations]);
 
   const soldCount = data?.totalItemsSold || 0;
   const limit = 50;
@@ -244,53 +193,6 @@ export function ProviderAnalyticsPage() {
            ) : (
              /* Chart Mode View */
              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                {/* Map Visualization */}
-                <div className="bg-white p-4 rounded-[48px] border border-gray-100 shadow-xl overflow-hidden">
-                   <div className="p-8">
-                     <h3 className="text-2xl font-black text-gray-900 mb-2 flex items-center gap-3">
-                       <span className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-xl">🗺️</span>
-                       Order Heatmap
-                     </h3>
-                     <p className="text-gray-500 text-sm font-medium">Visualizing geographic sales distribution for {selectedItemName || 'your store'}</p>
-                   </div>
-                   
-                   <div className="relative">
-                      {isLoaded ? (
-                        <GoogleMap
-                          mapContainerStyle={mapContainerStyle}
-                          center={mapCenter}
-                          zoom={10}
-                          options={mapOptions as any}
-                        >
-                          {data?.orderLocations?.map((loc: any) => (
-                            <MarkerF
-                              key={loc.id}
-                              position={{ lat: loc.lat, lng: loc.lng }}
-                              icon={{
-                                path: window.google.maps.SymbolPath.CIRCLE,
-                                scale: 8 + (loc.count * 2),
-                                fillOpacity: 0.6,
-                                fillColor: '#3B82F6',
-                                strokeColor: '#ffffff',
-                                strokeWeight: 2,
-                              }}
-                              label={{
-                                text: loc.count > 1 ? loc.count.toString() : '',
-                                color: '#ffffff',
-                                fontSize: '10px',
-                                fontWeight: '900'
-                              }}
-                            />
-                          ))}
-                        </GoogleMap>
-                      ) : (
-                        <div className="h-[500px] w-full bg-gray-100 flex items-center justify-center rounded-[40px]">
-                           <p className="text-gray-400 font-bold">Loading Map...</p>
-                        </div>
-                      )}
-                   </div>
-                </div>
-
                 {/* Main Revenue Chart */}
                 <div className="bg-white p-10 rounded-[48px] border border-gray-100 shadow-xl shadow-green-900/5">
                    <h3 className="text-2xl font-black text-gray-900 mb-12 flex items-center gap-3">

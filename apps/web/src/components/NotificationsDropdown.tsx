@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../state/auth';
+import { useNavigate } from 'react-router-dom';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import { Link } from 'react-router-dom';
 
 export function NotificationsDropdown() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const { user } = useAuth();
   const { data } = useQuery({
@@ -38,6 +39,18 @@ export function NotificationsDropdown() {
 
   const notifications = data?.notifications || [];
   const unreadCount = data?.unreadCount || 0;
+
+  const handleNotificationClick = (n: any) => {
+    if (!n.readAt) markRead(n.id);
+    setOpen(false);
+
+    // Auto-navigate based on payload
+    if (n.payload?.orderId) {
+      navigate(`/orders/${n.payload.orderId}`);
+    } else if (n.type === 'APPROVAL') {
+      navigate('/dashboard');
+    }
+  };
 
   return (
     <div className="relative" ref={ref}>
@@ -78,14 +91,13 @@ export function NotificationsDropdown() {
                 {notifications.map((n: any) => (
                   <div 
                     key={n.id} 
-                    className={`p-4 transition-colors ${n.readAt ? 'bg-white opacity-70' : 'bg-green-50/30'}`}
-                    onClick={() => {
-                      if (!n.readAt) markRead(n.id);
-                    }}
+                    className={`p-4 transition-colors cursor-pointer hover:bg-gray-50 ${n.readAt ? 'bg-white opacity-70' : 'bg-green-50/30'}`}
+                    onClick={() => handleNotificationClick(n)}
                   >
                     <div className="flex gap-3">
                       <div className="text-2xl">
                         {n.type === 'DONATION_FULFILLED' ? '🎉' : 
+                         n.type === 'NEW_ORDER' ? '🛍️' : 
                          n.type === 'ORDER_CREATED' ? '🛍️' : 
                          n.type === 'ORDER_UPDATE' ? '📦' :
                          n.type === 'APPROVAL' ? '✅' : '🔔'}
