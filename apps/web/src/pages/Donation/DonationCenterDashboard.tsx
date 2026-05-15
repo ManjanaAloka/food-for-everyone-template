@@ -50,10 +50,13 @@ function CreateRequestModal({ onClose }: { onClose: () => void }) {
 
   const { mutate: create, isPending } = useMutation({
     mutationFn: async () => {
+      const qty = Number(form.targetAmount);
+      const unitPrice = Number(selectedListing?.discountPrice || 0);
       const res = await api.post('/donations', {
         title: form.title,
         description: form.description || undefined,
-        targetQty: Number(form.targetAmount),
+        targetQty: qty,
+        targetAmount: qty * unitPrice,
         listingId: selectedListing?.id,
         closesAt: form.closesAt || undefined
       });
@@ -326,17 +329,6 @@ export function DonationCenterDashboardPage() {
             <p className="text-slate-500 font-bold mt-1 italic uppercase tracking-widest text-[11px]">Manage requests and track impact</p>
           </div>
           <div className="flex items-center gap-4">
-            <Link 
-              to="/cart"
-              className="relative w-12 h-12 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center text-2xl hover:border-green-500 hover:scale-110 transition-all shadow-sm group"
-            >
-              <span>🛒</span>
-              {cartItems.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-green-600 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-4 border-white shadow-lg group-hover:scale-110 transition-transform">
-                  {cartItems.length}
-                </span>
-              )}
-            </Link>
             <button
               onClick={() => setShowModal(true)}
               className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white font-black rounded-2xl shadow-xl shadow-orange-200 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"

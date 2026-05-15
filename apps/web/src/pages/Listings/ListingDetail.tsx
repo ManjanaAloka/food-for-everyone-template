@@ -151,10 +151,13 @@ export function ListingDetailPage() {
   const { mutate: createRequest, isPending: isRequesting } = useMutation({
     mutationFn: async () => {
       if (!listing) throw new Error("Listing not found");
+      const qty = Number(reqForm.targetQty);
+      const unitPrice = Number(listing.discountPrice);
       const res = await api.post('/donations', {
         title: reqForm.title,
         description: reqForm.description || undefined,
-        targetQty: Number(reqForm.targetQty),
+        targetQty: qty,
+        targetAmount: qty * unitPrice,
         listingId: id,
         closesAt: reqForm.closesAt || undefined
       });
