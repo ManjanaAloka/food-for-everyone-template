@@ -42,25 +42,10 @@ function CountdownTimer({ expiresAt }: { expiresAt: string }) {
 
 function ProgressBar({ raised, target, raisedQty, targetQty, price, requestId }: { raised: number; target: number; raisedQty?: number; targetQty?: number; price?: number; requestId?: string }) {
   const pct = target > 0 ? Math.min(100, (raised / target) * 100) : 0;
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
 
   // If quantities aren't provided, estimate them from the price
   const displayRaisedQty = raisedQty || (price ? Math.floor(raised / price) : 0);
   const displayTargetQty = targetQty || (price ? Math.floor(target / price) : 0);
-
-  const handleSimulate = async () => {
-    if (!requestId) return;
-    try {
-      const res = await api.post('/payments/simulate-success', { donationRequestId: requestId });
-      if (res.data.success) {
-        toast.success('Donation simulated successfully! 💝');
-        queryClient.invalidateQueries();
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Simulation failed. Click "Donate" first!');
-    }
-  };
 
   return (
     <div className="relative pt-1">
@@ -69,15 +54,6 @@ function ProgressBar({ raised, target, raisedQty, targetQty, price, requestId }:
           <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-green-600 bg-green-200">
             {pct.toFixed(0)}% Donated
           </span>
-          {/* Always show in dev mode if we have a requestId */}
-          {requestId && (
-            <button 
-              onClick={handleSimulate}
-              className="ml-2 text-[10px] bg-yellow-400 hover:bg-yellow-500 text-yellow-900 px-2 py-0.5 rounded-md font-bold transition-colors shadow-sm"
-            >
-              🛠 Simulate Pay
-            </button>
-          )}
         </div>
         <div className="text-right">
           <span className="text-xs font-semibold inline-block text-green-600">

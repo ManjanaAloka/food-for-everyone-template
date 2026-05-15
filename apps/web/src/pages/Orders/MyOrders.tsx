@@ -111,7 +111,7 @@ export function MyOrdersPage() {
                             {o.status}
                           </span>
                           <span className="text-sm text-orange-700 font-black">
-                            {(o.amount / 150).toFixed(0)} Items Donated
+                            {(o.amount / (o.donationRequest.listing?.discountPrice || 150)).toFixed(0)} Items Donated
                           </span>
                           <span className="text-[10px] text-gray-400 font-medium">
                             {new Date(o.createdAt).toLocaleString()}
@@ -171,7 +171,12 @@ export function MyOrdersPage() {
                             📦 {o.items.reduce((acc: number, it: any) => acc + (it.qty || 0), 0)} Items
                           </span>
                         ) : (
-                          <span className="text-sm text-gray-500">LKR {Number(o.total).toFixed(2)}</span>
+                          <div className="flex items-center gap-3">
+                             <span className="text-sm text-green-700 font-black flex items-center gap-1">
+                               📦 {o.items.reduce((acc: number, it: any) => acc + (it.qty || 0), 0)} Items
+                             </span>
+                             <span className="text-sm text-gray-500 font-medium">LKR {Number(o.total).toFixed(2)}</span>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -275,17 +280,17 @@ export function MyOrdersPage() {
                   <p className="text-xs font-black uppercase tracking-widest text-white/60">My Impact</p>
                   <div className="flex justify-around">
                     <div className="text-center">
-                      <div className="text-3xl font-black">{(selectedDonation.amount / 150 * 2.5).toFixed(0)}</div>
+                      <div className="text-3xl font-black">{(selectedDonation.amount / (selectedDonation.donationRequest.listing?.discountPrice || 150) * 2.5).toFixed(0)}</div>
                       <div className="text-[10px] font-bold uppercase text-white/60 tracking-wider mt-1">🍽 Meals</div>
                     </div>
                     <div className="w-px bg-white/20" />
                     <div className="text-center">
-                      <div className="text-3xl font-black">{(selectedDonation.amount / 150 * 1.2).toFixed(1)}kg</div>
+                      <div className="text-3xl font-black">{(selectedDonation.amount / (selectedDonation.donationRequest.listing?.discountPrice || 150) * 1.2).toFixed(1)}kg</div>
                       <div className="text-[10px] font-bold uppercase text-white/60 tracking-wider mt-1">🌱 CO2 Saved</div>
                     </div>
                     <div className="w-px bg-white/20" />
                     <div className="text-center">
-                      <div className="text-3xl font-black">{(selectedDonation.amount / 150).toFixed(0)}</div>
+                      <div className="text-3xl font-black">{(selectedDonation.amount / (selectedDonation.donationRequest.listing?.discountPrice || 150)).toFixed(0)}</div>
                       <div className="text-[10px] font-bold uppercase text-white/60 tracking-wider mt-1">📦 Items</div>
                     </div>
                   </div>

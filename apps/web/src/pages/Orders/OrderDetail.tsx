@@ -95,25 +95,7 @@ export function OrderDetailPage() {
           {o.paymentMethod === 'COD' && o.status !== 'DELIVERED' && <span className="ml-1 text-orange-600 font-semibold">(To Collect)</span>}
           {o.paymentMethod === 'ONLINE' && ['PAID', 'PENDING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(o.status) && <span className="ml-1 text-green-600 font-semibold">(Paid)</span>}
           {o.paymentMethod === 'ONLINE' && ['AWAITING_PAYMENT', 'CREATED', 'RESERVED'].includes(o.status) && (
-            <>
-              <span className="ml-1 text-orange-600 font-semibold">(Pending)</span>
-              <button 
-                onClick={async () => {
-                  if (window.confirm('DEBUG: Simulate payment success?')) {
-                    try {
-                      await api.post('/payments/simulate-success', { orderId: o.id });
-                      qc.invalidateQueries({ queryKey: ['order', id] });
-                      alert('✅ Payment simulated successfully!');
-                    } catch (err: any) {
-                      alert('❌ Failed: ' + (err.response?.data?.error || err.message));
-                    }
-                  }
-                }}
-                className="ml-3 px-2 py-0.5 bg-gray-800 text-white text-[10px] rounded hover:bg-black transition-colors"
-              >
-                🛠 Simulate Pay
-              </button>
-            </>
+            <span className="ml-1 text-orange-600 font-semibold">(Pending)</span>
           )}
         </div>
       </div>

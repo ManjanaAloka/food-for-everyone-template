@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useCart } from '../state/cart';
+import { api } from '../lib/api';
 
 export function CheckoutSuccessPage() {
   const [searchParams] = useSearchParams();
@@ -9,9 +10,24 @@ export function CheckoutSuccessPage() {
   const nav = useNavigate();
   const [countdown, setCountdown] = useState(5);
 
+  const simulated = useRef(false);
   useEffect(() => {
     // Clear cart on successful payment
     clear();
+
+    // Automate simulation in dev environment
+    if (orderId && !simulated.current) {
+      simulated.current = true;
+      const simulatePayment = async () => {
+        try {
+          await api.post('/payments/simulate-success', { orderId });
+          console.log('Payment simulation triggered automatically');
+        } catch (err) {
+          console.error('Auto-simulation failed:', err);
+        }
+      };
+      simulatePayment();
+    }
 
     // Countdown to redirect
     const timer = setInterval(() => {
@@ -26,7 +42,7 @@ export function CheckoutSuccessPage() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [clear, nav]);
+  }, [clear, nav, orderId]);
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20 pb-12">

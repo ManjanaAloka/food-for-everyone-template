@@ -153,7 +153,17 @@ router.post('/login', ah(async (req, res) => {
   if (!user || !(await argon2.verify(user.passwordHash, password))) return res.status(401).json({ error: 'Invalid credentials' });
   if (user.status === 'PENDING' && user.role !== 'CUSTOMER') return res.status(403).json({ error: 'Awaiting admin approval' });
 
-  const accessToken = signAccessToken({ sub: user.id, role: user.role, name: user.name });
+  const fullUser = await prisma.user.findUnique({ 
+    where: { id: user.id },
+    include: {
+      providerProfile: { select: { businessName: true } },
+      donationCenterProfile: { select: { name: true } }
+    }
+  });
+
+  const displayName = fullUser?.providerProfile?.businessName || fullUser?.donationCenterProfile?.name || user.name;
+
+  const accessToken = signAccessToken({ sub: user.id, role: user.role, name: displayName });
   const refreshToken = crypto.randomBytes(32).toString('hex');
   const tokenHash = await argon2.hash(refreshToken);
   const ttl = process.env.REFRESH_TOKEN_TTL || '30d';
@@ -162,7 +172,7 @@ router.post('/login', ah(async (req, res) => {
   await prisma.refreshToken.create({ data: { userId: user.id, tokenHash, expiresAt: expires } });
 
   res.cookie('refresh_token', refreshToken, { httpOnly: true, sameSite: 'lax', secure: false, expires });
-  res.json({ accessToken, user: { id: user.id, role: user.role, name: user.name, status: user.status, permissions: user.permissions, forcePasswordChange: user.forcePasswordChange } });
+  res.json({ accessToken, user: { id: user.id, role: user.role, name: displayName, status: user.status, permissions: user.permissions, forcePasswordChange: user.forcePasswordChange } });
 }));
 
 router.post('/refresh', ah(async (req, res) => {
@@ -173,9 +183,16 @@ router.post('/refresh', ah(async (req, res) => {
   for (const r of all) { if (await argon2.verify(r.tokenHash, token)) { rt = r; break; } }
   if (!rt || rt.expiresAt < new Date()) return res.status(401).json({ error: 'Invalid refresh token' });
 
-  const user = await prisma.user.findUnique({ where: { id: rt.userId } });
+  const user = await prisma.user.findUnique({ 
+    where: { id: rt.userId },
+    include: {
+      providerProfile: { select: { businessName: true } },
+      donationCenterProfile: { select: { name: true } }
+    }
+  });
   if (!user) return res.status(401).json({ error: 'User not found' });
-  const accessToken = signAccessToken({ sub: user.id, role: user.role, name: user.name });
+  const displayName = user.providerProfile?.businessName || user.donationCenterProfile?.name || user.name;
+  const accessToken = signAccessToken({ sub: user.id, role: user.role, name: displayName });
   res.json({ accessToken });
 }));
 

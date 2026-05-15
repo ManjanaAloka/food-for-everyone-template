@@ -35,7 +35,13 @@ router.get('/', ah(async (req, res) => {
 router.get('/my/history', requireAuth, ah(async (req: any, res) => {
   const donations = await prisma.donation.findMany({
     where: { customerId: req.user!.sub, status: 'SUCCEEDED' },
-    include: { donationRequest: { select: { title: true, status: true } } },
+    include: { 
+      donationRequest: { 
+        include: { 
+          listing: { select: { discountPrice: true } } 
+        } 
+      } 
+    },
     orderBy: { createdAt: 'desc' }
   });
   res.json({ donations });

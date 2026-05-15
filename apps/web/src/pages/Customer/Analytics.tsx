@@ -188,17 +188,26 @@ export function CustomerAnalyticsPage() {
                 <AreaChart data={analytics?.trends}>
                   <defs>
                     <linearGradient id="colorSavings" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0f172a" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#0f172a" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }} dx={-10} />
                   <Tooltip 
                     contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '20px' }}
                   />
-                  <Area type="step" dataKey="savings" stroke="#0f172a" strokeWidth={4} fillOpacity={1} fill="url(#colorSavings)" />
+                  <Area 
+                    type="monotone" 
+                    dataKey="savings" 
+                    stroke="#ef4444" 
+                    strokeWidth={4} 
+                    fillOpacity={1} 
+                    fill="url(#colorSavings)"
+                    dot={{ r: 4, fill: '#ef4444', strokeWidth: 2, stroke: '#fff' }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
