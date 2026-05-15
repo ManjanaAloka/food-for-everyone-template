@@ -306,7 +306,10 @@ export function CheckoutPage() {
                             setValue('lng', lng);
                           }}
                           onAddressSelect={(data) => {
-                            setValue('addressLine', data.address);
+                            if (data.address) {
+                              setValue('addressLine', data.address);
+                            }
+                            // You can also set city here if you have a city field
                             setEditingAddress(true);
                           }}
                           initialLat={watch('lat')}
