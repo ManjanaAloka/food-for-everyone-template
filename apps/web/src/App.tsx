@@ -1,6 +1,7 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ModernNavbar } from './components/ModernNavbar';
 import { Protected, RoleGate } from './components/Protected';
+import { useAuth } from './state/auth';
 import { HomePage } from './pages/Home';
 import { ListingsPage } from './pages/Listings';
 import { ListingDetailPage } from './pages/Listings/ListingDetail';
@@ -43,13 +44,20 @@ import { CustomerAnalyticsPage } from './pages/Customer/Analytics';
 import { CustomerSettingsPage } from './pages/Customer/Settings';
 import { DonationCenterSettingsPage } from './pages/Donation/DonationCenterSettings';
 
+function BrowseRouteWrapper() {
+  const { user } = useAuth();
+  if (user?.role === 'CUSTOMER') {
+    return <Protected><UserLayout><ListingsPage /></UserLayout></Protected>;
+  }
+  return <><ModernNavbar /><div className="max-w-6xl mx-auto p-4 pt-20"><ListingsPage /></div></>;
+}
+
 export default function App() {
   return (
     <div className="min-h-full">
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
-        <Route path="/browse" element={<><ModernNavbar /><div className="max-w-6xl mx-auto p-4 pt-20"><ListingsPage /></div></>} />
         <Route path="/listings/:id" element={<><ModernNavbar /><ListingDetailPage /></>} />
         <Route path="/login" element={<><ModernNavbar /><div className="max-w-6xl mx-auto p-4 pt-20"><LoginPage /></div></>} />
         <Route path="/register" element={<><ModernNavbar /><div className="max-w-6xl mx-auto p-4 pt-20"><RegisterPage /></div></>} />
@@ -67,9 +75,16 @@ export default function App() {
         <Route path="/orders" element={<Protected><RoleGate roles={['CUSTOMER', 'PROVIDER', 'DONATION_CENTER']}><UserLayout><MyOrdersPage /></UserLayout></RoleGate></Protected>} />
         <Route path="/orders/:id" element={<Protected><RoleGate roles={['CUSTOMER', 'PROVIDER', 'DONATION_CENTER']}><UserLayout><OrderDetailPage /></UserLayout></RoleGate></Protected>} />
         <Route path="/orders/:id/review" element={<Protected><RoleGate roles={['CUSTOMER', 'PROVIDER', 'DONATION_CENTER']}><UserLayout><OrderReviewPage /></UserLayout></RoleGate></Protected>} />
-        <Route path="/reports/mine" element={<Protected><RoleGate roles={['CUSTOMER', 'PROVIDER', 'DONATION_CENTER']}><UserLayout><CustomerContributionPage /></UserLayout></RoleGate></Protected>} />
+        <Route path="/reports/mine" element={<Navigate to="/customer/analytics" replace />} />
+        
+        {/* Adaptive Browse Route */}
+        <Route path="/browse" element={
+          <BrowseRouteWrapper />
+        } />
+
+        <Route path="/cart" element={<Protected><RoleGate roles={['CUSTOMER', 'DONATION_CENTER']}><UserLayout><CheckoutPage /></UserLayout></RoleGate></Protected>} />
         <Route path="/checkout" element={<Protected><RoleGate roles={['CUSTOMER']}><UserLayout><CheckoutPage /></UserLayout></RoleGate></Protected>} />
-        <Route path="/customer/analytics" element={<Protected><RoleGate roles={['CUSTOMER']}><UserLayout><CustomerAnalyticsPage /></UserLayout></RoleGate></Protected>} />
+        <Route path="/customer/analytics" element={<Protected><RoleGate roles={['CUSTOMER', 'DONATION_CENTER']}><UserLayout><CustomerAnalyticsPage /></UserLayout></RoleGate></Protected>} />
         <Route path="/customer/settings" element={<Protected><RoleGate roles={['CUSTOMER']}><UserLayout><CustomerSettingsPage /></UserLayout></RoleGate></Protected>} />
 
         {/* Provider Routes (With Sidebar) */}

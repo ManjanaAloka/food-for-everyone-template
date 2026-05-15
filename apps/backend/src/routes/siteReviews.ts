@@ -17,7 +17,7 @@ router.post('/', requireAuth, ah(async (req: any, res) => {
       userId: req.user!.sub,
       rating,
       comment,
-      status: 'PENDING'
+      status: 'APPROVED'
     }
 
   });

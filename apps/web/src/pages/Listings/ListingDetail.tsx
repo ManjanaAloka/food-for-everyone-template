@@ -115,6 +115,12 @@ export function ListingDetailPage() {
   const queryClient = useQueryClient();
   const [paymentSession, setPaymentSession] = useState<any>(null);
   const [pendingDonationId, setPendingDonationId] = useState<string | null>(null);
+  const [reqForm, setReqForm] = useState({
+    title: '',
+    description: '',
+    targetQty: '10',
+    closesAt: ''
+  });
 
 
   const { data, isLoading, error } = useQuery({
@@ -128,17 +134,29 @@ export function ListingDetailPage() {
     enabled: !!id
   });
 
+  const listing = data?.listing;
+  const reviews = data?.reviews;
+
+  useEffect(() => {
+    if (listing) {
+      setReqForm(f => ({
+        ...f,
+        title: `Request for: ${listing.title}`,
+        description: `We need ${f.targetQty} units of ${listing.title} to help our community.`,
+        closesAt: new Date(listing.expiresAt).toISOString().split('T')[0]
+      }));
+    }
+  }, [listing]);
+
   const { mutate: createRequest, isPending: isRequesting } = useMutation({
     mutationFn: async () => {
-      const currentListing = data?.listing;
-      if (!currentListing) throw new Error("Listing not found");
-      const targetAmount = reqQty * Number(currentListing.discountPrice);
+      if (!listing) throw new Error("Listing not found");
       const res = await api.post('/donations', {
-        title: `Fundraising for: ${currentListing.title}`,
-        description: `We need ${reqQty} units of ${currentListing.title} to help our community.`,
-        targetAmount,
-        targetQty: reqQty,
-        listingId: id
+        title: reqForm.title,
+        description: reqForm.description || undefined,
+        targetQty: Number(reqForm.targetQty),
+        listingId: id,
+        closesAt: reqForm.closesAt || undefined
       });
       return res.data;
     },
@@ -196,7 +214,6 @@ export function ListingDetailPage() {
     </div>
   );
 
-  const { listing, reviews } = data;
   const images: string[] = Array.isArray(listing.images) ? listing.images : listing.images ? JSON.parse(listing.images) : [];
   const urgency = getUrgencyInfo(listing.expiresAt);
   const discountPct = Math.round((1 - Number(listing.discountPrice) / Number(listing.unitPrice)) * 100);
@@ -310,44 +327,48 @@ export function ListingDetailPage() {
               </div>
             ) : listing.status === 'ACTIVE' && listing.qtyAvailable > 0 ? (
               <div className="space-y-3">
-                {!isDonateMode && (
-                  <div className="flex items-center gap-4">
-                    <label className="text-sm font-medium text-gray-700">Quantity:</label>
-                    <div className="flex items-center gap-2">
+                {user?.role !== 'DONATION_CENTER' && (
+                  <>
+                    {!isDonateMode && (
+                      <div className="flex items-center gap-4">
+                        <label className="text-sm font-medium text-gray-700">Quantity:</label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setQty(Math.max(1, qty - 1))}
+                            className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors flex items-center justify-center"
+                          >−</button>
+                          <span className="w-12 text-center font-semibold text-lg">{qty}</span>
+                          <button
+                            onClick={() => setQty(prev => Math.min(Number(listing.qtyAvailable), prev + 1))}
+                            className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors flex items-center justify-center"
+                          >+</button>
+                        </div>
+                      </div>
+                    )}
+                    {!isDonateMode && (
                       <button
-                        onClick={() => setQty(Math.max(1, qty - 1))}
-                        className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors flex items-center justify-center"
-                      >−</button>
-                      <span className="w-12 text-center font-semibold text-lg">{qty}</span>
+                        onClick={handleAddToCart}
+                        className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl text-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-green-500/30"
+                      >
+                        🛒 Add to Cart — LKR {(Number(listing.discountPrice) * qty).toFixed(2)}
+                      </button>
+                    )}
+                    {isDonateMode ? (
                       <button
-                        onClick={() => setQty(prev => Math.min(Number(listing.qtyAvailable), prev + 1))}
-                        className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors flex items-center justify-center"
-                      >+</button>
-                    </div>
-                  </div>
-                )}
-                {!isDonateMode && (
-                  <button
-                    onClick={handleAddToCart}
-                    className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl text-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-green-500/30"
-                  >
-                    🛒 Add to Cart — LKR {(Number(listing.discountPrice) * qty).toFixed(2)}
-                  </button>
-                )}
-                {isDonateMode ? (
-                  <button
-                    onClick={() => document.getElementById('donation-requests')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="block w-full py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-xl text-center hover:from-orange-600 hover:to-red-700 shadow-lg shadow-orange-500/30 transition-all transform hover:scale-[1.02]"
-                  >
-                    💝 Donate Now
-                  </button>
-                ) : (
-                  <Link
-                    to="/checkout"
-                    className="block w-full py-3 border-2 border-green-500 text-green-600 font-semibold rounded-xl text-center hover:bg-green-50 transition-all"
-                  >
-                    ⚡ Buy Now
-                  </Link>
+                        onClick={() => document.getElementById('donation-requests')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="block w-full py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-xl text-center hover:from-orange-600 hover:to-red-700 shadow-lg shadow-orange-500/30 transition-all transform hover:scale-[1.02]"
+                      >
+                        💝 Donate Now
+                      </button>
+                    ) : (
+                      <Link
+                        to="/checkout"
+                        className="block w-full py-3 border-2 border-green-500 text-green-600 font-semibold rounded-xl text-center hover:bg-green-50 transition-all"
+                      >
+                        ⚡ Buy Now
+                      </Link>
+                    )}
+                  </>
                 )}
               </div>
             ) : (
@@ -424,7 +445,7 @@ export function ListingDetailPage() {
                     requestId={req.id} 
                   />
                   
-                  {user?.role !== 'DONATION_CENTER' && user?.role !== 'PROVIDER' && (
+                  {user?.role !== 'DONATION_CENTER' && user?.role !== 'PROVIDER' && listing.qtyAvailable > 0 && (
                     <button
                       onClick={() => {
                         setSelectedReq(req);
@@ -499,42 +520,99 @@ export function ListingDetailPage() {
         </div>
       </div>
 
-      {/* Request Modal */}
-      {showRequestModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Request for Donation</h3>
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">How many units of <strong>{listing.title}</strong> do you need?</p>
-              <div className="flex items-center gap-3">
-                <input 
-                  type="number" 
-                  min="1" 
-                  max={listing.qtyAvailable} 
-                  value={reqQty}
-                  onChange={e => setReqQty(Math.min(listing.qtyAvailable, Math.max(1, Number(e.target.value))))}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 text-center text-lg font-bold"
-                />
+      {showRequestModal && listing && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-800">📝 Create Donation Request</h3>
+                  <p className="text-sm text-slate-500 font-medium italic">Requesting: {listing.title}</p>
+                </div>
+                <button 
+                  onClick={() => setShowRequestModal(false)}
+                  className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors text-2xl"
+                >
+                  ×
+                </button>
               </div>
-              <p className="text-xs text-gray-500 mt-2 text-center">Available: {listing.qtyAvailable}</p>
-            </div>
-            
-            <div className="p-3 bg-orange-50 border border-orange-100 rounded-xl mb-6">
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-orange-800">Target Amount:</span>
-                <span className="font-bold text-orange-900">LKR {(reqQty * Number(listing.discountPrice)).toFixed(2)}</span>
-              </div>
-            </div>
 
-            <div className="flex gap-3">
-              <button onClick={() => setShowRequestModal(false)} className="flex-1 py-3 border border-gray-300 rounded-xl text-gray-600">Cancel</button>
-              <button 
-                onClick={() => createRequest()}
-                disabled={isRequesting}
-                className="flex-1 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl disabled:opacity-50"
-              >
-                {isRequesting ? 'Requesting...' : 'Request'}
-              </button>
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Request Title *</label>
+                    <input
+                      value={reqForm.title}
+                      onChange={e => setReqForm({ ...reqForm, title: e.target.value })}
+                      className="w-full border-2 border-slate-100 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-orange-500 transition-all font-bold text-slate-800"
+                      placeholder="e.g., Support our weekend soup kitchen"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Description</label>
+                    <textarea
+                      value={reqForm.description}
+                      onChange={e => setReqForm({ ...reqForm, description: e.target.value })}
+                      rows={3}
+                      className="w-full border-2 border-slate-100 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-orange-500 transition-all font-bold text-slate-800 resize-none"
+                      placeholder="Tell donors why this food is needed..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Target Quantity *</label>
+                      <input
+                        type="number"
+                        value={reqForm.targetQty}
+                        onChange={e => setReqForm({ ...reqForm, targetQty: e.target.value })}
+                        className="w-full border-2 border-slate-100 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-orange-500 transition-all font-bold text-slate-800"
+                      />
+                      <p className="text-[10px] text-slate-400 mt-1 font-bold italic">Max Available: {listing.qtyAvailable}</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Close Date</label>
+                      <input
+                        type="date"
+                        value={reqForm.closesAt}
+                        onChange={e => setReqForm({ ...reqForm, closesAt: e.target.value })}
+                        min={new Date().toISOString().split('T')[0]}
+                        max={new Date(listing.expiresAt).toISOString().split('T')[0]}
+                        className="w-full border-2 border-slate-100 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-orange-500 transition-all font-bold text-slate-800"
+                      />
+                      <p className="text-[10px] text-red-500 mt-1 font-bold italic flex items-center gap-1">
+                        <span>⏰ Item Expiry:</span>
+                        <span>{new Date(listing.expiresAt).toLocaleString()}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl">
+                   <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-orange-700 uppercase tracking-wider italic">Total Funding Goal</span>
+                      <span className="text-lg font-black text-orange-600">LKR {(Number(listing.discountPrice) * Number(reqForm.targetQty)).toFixed(2)}</span>
+                   </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button 
+                    onClick={() => setShowRequestModal(false)}
+                    className="flex-1 py-4 border-2 border-slate-100 rounded-2xl text-slate-500 font-bold hover:bg-slate-50 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => createRequest()}
+                    disabled={!reqForm.title || !reqForm.targetQty || isRequesting}
+                    className="flex-[2] py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white font-black rounded-2xl shadow-xl shadow-orange-200 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                  >
+                    {isRequesting ? '⏳ Creating...' : '🚀 Create Request'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

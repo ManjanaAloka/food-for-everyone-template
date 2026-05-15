@@ -190,13 +190,22 @@ async function handlePaymentEvent(event: any) {
 
             const listing = await tx.listing.findUnique({ where: { id: donation.donationRequest.listingId || '' } });
             const price = listing ? Number(listing.discountPrice) : 0;
-            const qtyToAdd = price > 0 ? Math.floor(Number(donation.amount) / price) : 0;
+            const qtyDonated = price > 0 ? Math.floor(Number(donation.amount) / price) : 0;
+
+            // Immediate stock decrement per donation
+            if (listing && qtyDonated > 0) {
+               await tx.listing.update({ 
+                 where: { id: listing.id }, 
+                 data: { qtyAvailable: { decrement: Math.min(listing.qtyAvailable, qtyDonated) } } 
+               });
+               console.log(`Decremented ${qtyDonated} units from listing ${listing.id} for donation ${donation.id}`);
+            }
 
             const updatedRequest = await tx.donationRequest.update({
               where: { id: donation.donationRequestId },
               data: {
                 raisedAmount: { increment: donation.amount },
-                fulfilledQty: { increment: qtyToAdd },
+                fulfilledQty: { increment: qtyDonated },
                 donorCount: { increment: 1 }
               },
               include: {
@@ -213,11 +222,11 @@ async function handlePaymentEvent(event: any) {
 
               if (updatedRequest.listingId) {
                 const listing = await tx.listing.findUnique({ where: { id: updatedRequest.listingId } });
-                if (listing && listing.qtyAvailable > 0) {
+                if (listing) {
                   const price = Number(listing.discountPrice);
-                  const qty = Math.max(1, Math.min(listing.qtyAvailable, Math.floor(Number(updatedRequest.raisedAmount) / price)));
+                  const totalQty = Math.floor(Number(updatedRequest.raisedAmount) / price);
                   
-                  const o = await tx.order.create({
+                  await tx.order.create({
                     data: {
                       buyerId: updatedRequest.centerId,
                       providerId: listing.providerId,
@@ -227,20 +236,21 @@ async function handlePaymentEvent(event: any) {
                       status: 'PAID',
                       donationCenterId: updatedRequest.centerId,
                       donationRequestId: updatedRequest.id,
-                      subtotal: price * qty,
-                      total: price * qty,
+                      subtotal: price * totalQty,
+                      total: price * totalQty,
+                      items: {
+                        create: {
+                          listingId: listing.id,
+                          providerId: listing.providerId,
+                          qty: totalQty,
+                          unitPrice: price,
+                          snapshotExpiresAt: listing.expiresAt
+                        }
+                      }
                     }
                   });
-                  await tx.orderItem.create({
-              data: { 
-                orderId: o.id, 
-                listingId: listing.id, 
-                providerId: listing.providerId,
-                qty, 
-                unitPrice: price, 
-                snapshotExpiresAt: listing.expiresAt
-              }
-            });      await tx.listing.update({ where: { id: listing.id }, data: { qtyAvailable: { decrement: qty } } });
+                  // Note: Stock was already decremented incrementally above, so we don't decrement again here.
+                  console.log(`Final fulfilled order created for donation request ${updatedRequest.id}`);
                 }
               }
             }

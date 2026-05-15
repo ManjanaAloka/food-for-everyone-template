@@ -7,115 +7,37 @@ import { io as socketIO } from 'socket.io-client';
 import { Link } from 'react-router-dom';
 
 function ProgressBar({ fulfilledQty, targetQty }: { fulfilledQty: number; targetQty: number }) {
-  const pct = targetQty > 0 ? Math.min(100, (fulfilledQty / targetQty) * 100) : 0;
+  const displayTarget = Math.max(1, targetQty);
+  const pct = Math.min(100, (fulfilledQty / displayTarget) * 100);
+  
   return (
-    <div>
-      <div className="flex justify-between text-sm mb-1">
-        <span className="text-gray-600 font-bold">Collected</span>
-        <span className="font-black text-gray-900">{fulfilledQty} / {targetQty} Units</span>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-black uppercase tracking-wider">
+            {pct.toFixed(0)}% Donated
+          </span>
+        </div>
+        <div className="text-right">
+          <span className="text-sm font-black text-gray-800">
+            {fulfilledQty} / {targetQty} Items
+          </span>
+        </div>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+      
+      <div className="relative w-full h-3 bg-gray-100 rounded-full overflow-hidden border border-gray-200/50">
         <div
-          className={`h-full rounded-full transition-all duration-700 ${pct >= 100 ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-gradient-to-r from-orange-500 to-red-500'}`}
+          className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-400 to-emerald-600 transition-all duration-1000 ease-out rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)]"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <div className="text-right text-xs text-gray-500 mt-1 font-bold">{pct.toFixed(0)}% Fulfilled</div>
     </div>
   );
 }
 
-
-function DonateModal({ request, onClose }: { request: any; onClose: () => void }) {
-  const [amount, setAmount] = useState('');
-  const presets = [100, 250, 500, 1000];
-  const { user } = useAuth();
-
-  const { mutate: donate, isPending } = useMutation({
-    mutationFn: async (amt: number) => {
-      const res = await api.post(`/donations/${request.id}/checkout`, { amount: amt });
-      return res.data;
-    },
-    onSuccess: (data) => {
-      if (data.url) window.location.href = data.url;
-    },
-    onError: (e: any) => {
-      toast.error(e.response?.data?.error || 'Failed to process donation');
-    }
-  });
-
-  if (!user) return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
-        <div className="text-4xl mb-4">🔐</div>
-        <h3 className="text-xl font-bold mb-2">Login Required</h3>
-        <p className="text-gray-600 mb-4">Please login to make a donation.</p>
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
-          <a href="/login" className="flex-1 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 text-center">Login</a>
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-gray-900">❤️ Make a Donation</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
-        </div>
-        <p className="text-gray-600 text-sm mb-4">Supporting: <strong>{request.title}</strong></p>
-
-        <div className="mb-4">
-          <div className="text-sm font-medium text-gray-700 mb-2">Select quantity to gift:</div>
-          <div className="grid grid-cols-4 gap-2">
-            {[1, 5, 10, 20].map(q => (
-              <button
-                key={q}
-                onClick={() => setAmount(String(q * (Number(request.listing?.discountPrice) || 150)))}
-                className={`py-2 rounded-lg text-sm font-semibold border transition-all ${amount === String(q * (Number(request.listing?.discountPrice) || 150)) ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-300 text-gray-700'}`}
-              >
-                {q} Unit{q > 1 ? 's' : ''}
-              </button>
-            ))}
-          </div>
-        </div>
-
-
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Custom amount (LKR)</label>
-          <input
-            type="number"
-            value={amount}
-            onChange={e => setAmount(e.target.value)}
-            placeholder="Enter amount..."
-            min="10"
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-green-500"
-          />
-        </div>
-
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">
-            Cancel
-          </button>
-          <button
-            onClick={() => donate(Number(amount))}
-            disabled={!amount || Number(amount) < 10 || isPending}
-            className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            {isPending ? '⏳ Processing...' : `🎁 Gift ${Math.floor(Number(amount) / (Number(request.listing?.discountPrice) || 150))} Units`}
-          </button>
-
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function GiveBackPage() {
-  const [selectedRequest, setSelectedRequest] = useState<any>(null);
-  const [liveData, setLiveData] = useState<Record<string, { raised: number; donorCount: number }>>({});
+  const [liveData, setLiveData] = useState<Record<string, { raised: number; donorCount: number; fulfilledQty: number }>>({});
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -126,8 +48,8 @@ export function GiveBackPage() {
   // Socket.io: real-time donation progress
   useEffect(() => {
     const socket = socketIO(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:4000');
-    socket.on('donation:progress', ({ requestId, raisedAmount, donorCount }: any) => {
-      setLiveData(prev => ({ ...prev, [requestId]: { raised: raisedAmount, donorCount } }));
+    socket.on('donation:progress', ({ requestId, raisedAmount, donorCount, fulfilledQty }: any) => {
+      setLiveData(prev => ({ ...prev, [requestId]: { raised: raisedAmount, donorCount, fulfilledQty } }));
     });
     socket.on('donation:fulfilled', ({ requestId }: any) => {
       toast.success('🎉 A donation request has been fully funded!');
@@ -142,42 +64,36 @@ export function GiveBackPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20 pb-16">
-      {selectedRequest && (
-        <DonateModal request={selectedRequest} onClose={() => setSelectedRequest(null)} />
-      )}
-
       <div className="max-w-6xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-5 py-2 rounded-full text-sm font-semibold mb-4">
-            ❤️ Give Back
+          <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-5 py-2 rounded-full text-sm font-semibold mb-4">
+            🤝 Community Support
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Support Community Food Requests
+            Active Donation Requests
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Donation centers request specific food items. Choose a request below to gift the needed units and help feed those in need.
+            Review specific food items requested by local donation centers. Help them reach their goals by contributing directly to these requests.
           </p>
-
         </div>
 
         {/* Impact Stats */}
         <div className="grid grid-cols-3 gap-4 mb-10">
           <div className="bg-white rounded-2xl p-5 text-center shadow-sm border border-gray-100">
-            <div className="text-3xl font-bold text-orange-600">{openRequests.length}</div>
-            <div className="text-sm text-gray-500 mt-1">Active Requests</div>
+            <div className="text-3xl font-bold text-green-600">{openRequests.length}</div>
+            <div className="text-sm text-gray-500 mt-1">Pending Requests</div>
           </div>
           <div className="bg-white rounded-2xl p-5 text-center shadow-sm border border-gray-100">
-            <div className="text-3xl font-bold text-green-600">{fulfilledRequests.length}</div>
-            <div className="text-sm text-gray-500 mt-1">Requests Fulfilled</div>
+            <div className="text-3xl font-bold text-emerald-600">{fulfilledRequests.length}</div>
+            <div className="text-sm text-gray-500 mt-1">Requests Completed</div>
           </div>
           <div className="bg-white rounded-2xl p-5 text-center shadow-sm border border-gray-100">
             <div className="text-3xl font-bold text-blue-600">
               {requests.reduce((s: number, r: any) => s + Number(r.fulfilledQty || 0), 0)}
             </div>
-            <div className="text-sm text-gray-500 mt-1">Total Items Provided</div>
+            <div className="text-sm text-gray-500 mt-1">Units Contributed</div>
           </div>
-
         </div>
 
         {/* Loading Skeleton */}
@@ -200,66 +116,85 @@ export function GiveBackPage() {
 
         {openRequests.length > 0 && (
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-5">🔴 Active Requests</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-5">🔴 Current Needs</h2>
             <div className="grid md:grid-cols-2 gap-6 mb-10">
               {openRequests.map((r: any) => {
                 const live = liveData[r.id];
-                const raised = live?.raised ?? Number(r.raisedAmount);
                 const donors = live?.donorCount ?? r.donorCount;
-                const target = Number(r.targetAmount);
                 const daysLeft = r.closesAt
                   ? Math.max(0, Math.ceil((new Date(r.closesAt).getTime() - Date.now()) / 86400000))
                   : null;
 
                 return (
-                  <div key={r.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-6">
-                    {/* Center name */}
-                    {r.center && (
-                      <Link 
-                        to={`/donation-centers/${r.centerId}`}
-                        className="flex items-center gap-2 mb-3 hover:text-orange-600 transition-colors group"
-                      >
-                        <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center group-hover:bg-orange-200 transition-colors overflow-hidden">
-                          {r.center.image ? <img src={r.center.image} className="w-full h-full object-cover" /> : <span className="text-sm">🏥</span>}
+                  <div key={r.id} className="group bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden">
+                    <div className="p-8 space-y-6">
+                      {/* Header with Center Badge */}
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            {r.center?.image ? <img src={r.center.image} className="w-full h-full object-cover rounded-xl" /> : <span className="text-xl">🏥</span>}
+                          </div>
+                          <div>
+                            <Link 
+                              to={`/donation-centers/${r.centerId}`}
+                              className="font-bold text-gray-900 hover:text-green-600 transition-colors"
+                            >
+                              {r.center?.name}
+                            </Link>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">📍 {r.center?.city || 'Local Area'}</p>
+                          </div>
                         </div>
-                        <span className="text-sm font-bold text-gray-700">{r.center.name}</span>
-                      </Link>
-                    )}
-
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{r.title.replace('Fundraising for:', 'Request for:')}</h3>
-
-                    {r.description && <p className="text-gray-600 text-sm mb-4 line-clamp-2">{r.description}</p>}
-
-                    {/* Linked listing */}
-                    {r.listing && (
-                      <div className="flex items-center gap-3 bg-green-50 rounded-xl p-3 mb-4 border border-green-100">
-                        <span className="text-2xl">🛒</span>
-                        <div>
-                          <div className="text-sm font-semibold text-green-800">{r.listing.title}</div>
-                          <div className="text-xs text-green-600">LKR {Number(r.listing.discountPrice).toFixed(0)} per unit</div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-black uppercase tracking-tighter border border-emerald-100">
+                            Active Request
+                          </span>
+                          {daysLeft !== null && daysLeft <= 1 && (
+                            <span className="px-3 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] font-black uppercase tracking-tighter border border-red-100 animate-pulse flex items-center gap-1">
+                              <span>⚠️</span> Expiring Soon
+                            </span>
+                          )}
                         </div>
                       </div>
-                    )}
 
-                    {/* Progress */}
-                    <div className="mb-4">
+                      {/* Request Content */}
+                      <div className="space-y-2">
+                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">
+                          {r.title.replace('Fundraising for:', 'Request for:')}
+                        </h3>
+                        {r.description && <p className="text-gray-500 text-sm line-clamp-2 leading-relaxed">{r.description}</p>}
+                      </div>
+
+                      {/* Linked listing */}
+                      {r.listing && (
+                        <div className="flex items-center gap-4 bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100/50 group-hover:bg-emerald-50 transition-colors">
+                          <div className="text-3xl bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm">🍱</div>
+                          <div>
+                            <div className="text-sm font-black text-emerald-900">{r.listing.title}</div>
+                            <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">
+                              Available: {r.listing.qtyAvailable} Units
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Progress Section */}
                       <ProgressBar fulfilledQty={live?.fulfilledQty ?? r.fulfilledQty} targetQty={r.targetQty} />
+
+                      {/* Meta & Button */}
+                      <div className="pt-4 space-y-4">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">
+                          <span className="flex items-center gap-1.5">👥 {donors} Contributors</span>
+                          <span className="flex items-center gap-1.5">⏳ {daysLeft !== null ? `${daysLeft} Days Left` : 'Ongoing'}</span>
+                        </div>
+
+                        <Link
+                          to={`/listings/${r.listingId}?mode=donate`}
+                          className="flex items-center justify-center gap-2 w-full py-4 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white font-black rounded-2xl shadow-lg shadow-green-200 hover:shadow-green-300 transform hover:-translate-y-1 active:translate-y-0 transition-all duration-300 text-sm uppercase tracking-widest"
+                        >
+                          💝 Help Fulfil Request
+                        </Link>
+                      </div>
                     </div>
-
-
-                    {/* Meta */}
-                    <div className="flex items-center justify-between text-sm text-gray-500 mb-5">
-                      <span>👥 {donors} donor{donors !== 1 ? 's' : ''}</span>
-                      {daysLeft !== null && <span>⏳ {daysLeft} day{daysLeft !== 1 ? 's' : ''} left</span>}
-                    </div>
-
-                    <button
-                      onClick={() => setSelectedRequest(r)}
-                      className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold rounded-xl transition-all transform hover:scale-[1.02] shadow-md shadow-orange-200"
-                    >
-                      🎁 Gift Food Units
-                    </button>
-
                   </div>
                 );
               })}
@@ -270,20 +205,19 @@ export function GiveBackPage() {
         {/* Fulfilled Requests */}
         {fulfilledRequests.length > 0 && (
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-5">✅ Recently Fulfilled</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-5">✅ Recently Completed</h2>
             <div className="grid md:grid-cols-3 gap-4">
               {fulfilledRequests.slice(0, 6).map((r: any) => (
                 <div key={r.id} className="bg-white rounded-xl border border-green-100 p-5 opacity-80">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✅ Fulfilled</span>
+                    <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✅ Completed</span>
                     <span className="text-xs text-gray-400">{new Date(r.updatedAt).toLocaleDateString()}</span>
                   </div>
                   <h4 className="font-semibold text-gray-900 mb-1">{r.title.replace('Fundraising for:', 'Request for:')}</h4>
                   {r.center && <p className="text-xs text-gray-500">by {r.center.name}</p>}
                   <div className="mt-3 text-sm text-green-700 font-semibold">
-                    {r.fulfilledQty} units provided by {r.donorCount} community members
+                    {r.fulfilledQty} units provided by community members
                   </div>
-
                 </div>
               ))}
             </div>
@@ -291,12 +225,12 @@ export function GiveBackPage() {
         )}
 
         {/* CTA Banner */}
-        <div className="mt-12 bg-gradient-to-r from-orange-500 to-red-600 rounded-2xl p-8 text-white text-center">
+        <div className="mt-12 bg-gradient-to-r from-green-600 to-emerald-700 rounded-2xl p-8 text-white text-center">
           <h2 className="text-2xl font-bold mb-2">Are you a donation center?</h2>
-          <p className="text-orange-100 mb-4">Register your organization and start posting food requests to the community.</p>
-          <a href="/register" className="inline-block bg-white text-orange-600 font-bold px-6 py-3 rounded-xl hover:bg-orange-50 transition-all">
+          <p className="text-green-50 mb-4">Register your organization and start posting food requests to the community.</p>
+          <Link to="/register" className="inline-block bg-white text-green-600 font-bold px-6 py-3 rounded-xl hover:bg-green-50 transition-all">
             Register as Donation Center →
-          </a>
+          </Link>
         </div>
       </div>
     </div>

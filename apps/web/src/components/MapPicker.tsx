@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
 import { GOOGLE_MAPS_API_KEY } from '../env';
 
 const containerStyle = {
@@ -156,10 +156,11 @@ export function MapPicker({ onLocationSelect, onAddressSelect, initialLat, initi
         options={{
           disableDefaultUI: true,
           zoomControl: true,
+          gestureHandling: 'greedy',
           styles: mapStyles
         }}
       >
-        {position && <Marker position={position} animation={google.maps.Animation.DROP} />}
+        {position && <MarkerF position={position} animation={window.google ? window.google.maps.Animation.DROP : undefined} />}
       </GoogleMap>
 
       {/* Overlays */}

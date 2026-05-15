@@ -38,7 +38,10 @@ router.get('/', ah(async (req, res) => {
     where,
     orderBy,
     take: 100,
-    include: { provider: { select: { userId: true, businessName: true, city: true, ratingAvg: true, ratingCount: true, lat: true, lng: true } } }
+    include: { 
+      provider: { select: { userId: true, businessName: true, city: true, ratingAvg: true, ratingCount: true, lat: true, lng: true } },
+      donationRequests: { where: { status: 'OPEN' }, select: { id: true } }
+    }
   });
 
 

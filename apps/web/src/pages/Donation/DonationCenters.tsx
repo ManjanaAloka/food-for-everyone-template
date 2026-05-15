@@ -129,65 +129,89 @@ export function DonationCentersPage() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {requests.data?.requests?.map((r: any) => {
-                  const progress = r.targetQty > 0 ? (r.fulfilledQty / r.targetQty) * 100 : 0;
-                  const isComplete = r.fulfilledQty >= r.targetQty;
+                  const displayTarget = Math.max(1, r.targetQty);
+                  const progress = Math.min(100, (r.fulfilledQty / displayTarget) * 100);
+                  const isComplete = r.fulfilledQty >= displayTarget;
+
+                  const expiryDate = r.closesAt ? new Date(r.closesAt) : (r.listing?.expiresAt ? new Date(r.listing.expiresAt) : null);
+                  const isExpiringSoon = expiryDate && !isComplete && (expiryDate.getTime() - new Date().getTime()) < (24 * 60 * 60 * 1000) && (expiryDate.getTime() > new Date().getTime());
 
                   return (
                     <div
                       key={r.id}
-                      className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all"
+                      className="group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
                     >
-                      {/* Status Badge */}
+                      {/* Top Status Row */}
                       <div className="flex items-center justify-between mb-4">
-                        <span
-                          className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            r.status === 'ACTIVE'
-                              ? 'bg-green-100 text-green-700'
-                              : r.status === 'FULFILLED'
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-gray-100 text-gray-700'
-                          }`}
-                        >
-                          {r.status}
-                        </span>
-                        {isComplete && <span className="text-2xl">✅</span>}
+                        <div className="flex items-center gap-2">
+                           <span className={`px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-md border ${
+                             r.status === 'OPEN' 
+                               ? 'bg-green-50 text-green-600 border-green-100' 
+                               : 'bg-blue-50 text-blue-600 border-blue-100'
+                           }`}>
+                             {r.status}
+                           </span>
+                           {isExpiringSoon && (
+                              <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-md bg-red-50 text-red-600 border border-red-100 animate-pulse flex items-center gap-1">
+                                ⚠️ Expiring
+                              </span>
+                           )}
+                           {isComplete && <span className="text-sm">✅</span>}
+                        </div>
+                        {r.listing && (
+                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                            Linked: {r.listing.title}
+                          </div>
+                        )}
                       </div>
 
-                      {/* Title */}
-                      <h3 className="text-xl font-semibold text-gray-900 mb-3">{r.title}</h3>
-
-                      {/* Description */}
+                      {/* Title & Description */}
+                      <h3 className="text-xl font-black text-gray-900 mb-2 group-hover:text-green-600 transition-colors leading-tight">
+                        {r.title.replace('Fundraising for:', 'Request for:') || `Donation Need: ${r.listing?.title}`}
+                      </h3>
                       {r.description && (
-                        <p className="text-sm text-gray-600 mb-4">{r.description}</p>
+                        <p className="text-sm text-gray-500 mb-6 line-clamp-2 leading-relaxed italic">
+                          "{r.description}"
+                        </p>
                       )}
 
-                      {/* Progress Bar */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between text-sm mb-2">
-                          <span className="text-gray-600">Progress</span>
-                          <span className="font-semibold text-gray-900">
-                            {r.fulfilledQty} / {r.targetQty}
+                      {/* Premium Progress Bar */}
+                      <div className="space-y-3 mb-6">
+                        <div className="flex justify-between items-end">
+                          <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">
+                            {progress.toFixed(0)}% Contribution
+                          </span>
+                          <span className="text-sm font-black text-gray-800">
+                            {r.fulfilledQty} <span className="text-gray-400 font-medium">/ {r.targetQty} Items</span>
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${
-                              isComplete
-                                ? 'bg-gradient-to-r from-green-500 to-emerald-600'
-                                : 'bg-gradient-to-r from-orange-500 to-red-600'
+                        <div className="h-2.5 w-full bg-gray-50 rounded-full overflow-hidden border border-gray-100">
+                          <div 
+                            className={`h-full transition-all duration-1000 ease-out rounded-full ${
+                              isComplete ? 'bg-gradient-to-r from-green-400 to-emerald-600' : 'bg-gradient-to-r from-orange-400 to-red-500'
                             }`}
-                            style={{ width: `${Math.min(progress, 100)}%` }}
+                            style={{ width: `${progress}%` }}
                           />
                         </div>
                       </div>
 
-                      {/* Center Info */}
-                      {r.center && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span>🏥</span>
-                          <span>{r.center.name}</span>
-                        </div>
-                      )}
+                      {/* Footer Info */}
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                        {r.center && (
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center text-sm">
+                              {r.center.image ? <img src={r.center.image} className="w-full h-full object-cover rounded-lg" /> : '🏥'}
+                            </div>
+                            <span className="text-xs font-bold text-gray-600">{r.center.name}</span>
+                          </div>
+                        )}
+                        <Link 
+                          to={`/listings/${r.listingId}?mode=donate`}
+                          className="text-xs font-black text-green-600 hover:underline uppercase tracking-widest"
+                        >
+                          Help Now →
+                        </Link>
+                      </div>
                     </div>
                   );
                 })}

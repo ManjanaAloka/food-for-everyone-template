@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../state/auth';
+import { useCart } from '../state/cart';
 import { NotificationsDropdown } from './NotificationsDropdown';
 
 interface UserLayoutProps {
@@ -9,6 +10,7 @@ interface UserLayoutProps {
 
 export function UserLayout({ children }: UserLayoutProps) {
   const { user, logout } = useAuth();
+  const { items: cartItems } = useCart();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -21,27 +23,23 @@ export function UserLayout({ children }: UserLayoutProps) {
     // 2. Primary Actions
     { label: 'Browse Food', path: '/browse', icon: '🍽️', roles: ['CUSTOMER'] },
     { label: 'Add Listing', path: '/provider/listings/new', icon: '➕', roles: ['PROVIDER'] },
-    { label: 'All Centers', path: '/donation-centers', icon: '🏥', roles: ['DONATION_CENTER'] },
 
     // 3. Transactions & Impact
     { label: 'My Orders', path: '/orders', icon: '🛍️', roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
-    { label: 'Impact Report', path: '/reports/mine', icon: '🌱', roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
     { label: 'Reviews', path: '/provider/reviews', icon: '⭐', roles: ['PROVIDER'] },
     
     // 4. Analytics & Settings
-    { label: 'Analytics', path: '/customer/analytics', icon: '📈', roles: ['CUSTOMER'] },
+    { label: 'Analytics', path: '/customer/analytics', icon: '📈', roles: ['CUSTOMER', 'DONATION_CENTER'] },
     { label: 'Analytics', path: '/provider/analytics', icon: '📈', roles: ['PROVIDER'] },
-    { label: 'Center Settings', path: '/center/settings', icon: '⚙️', roles: ['DONATION_CENTER'] },
-    { label: 'Account Settings', path: '/customer/settings', icon: '⚙️', roles: ['CUSTOMER'] },
     { label: 'My Profile', path: '/profile', icon: '👤', roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
   ];
 
   const filteredMenu = menuItems.filter(item => item.roles.includes(user?.role as any));
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex min-h-screen bg-[#F8FAFC] print:block print:bg-white">
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen z-40">
+      <aside className="w-72 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen z-40 print:hidden">
         <div className="p-8">
           <Link to="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 bg-green-600 rounded-2xl flex items-center justify-center shadow-lg shadow-green-200 group-hover:rotate-12 transition-transform">
@@ -76,7 +74,7 @@ export function UserLayout({ children }: UserLayoutProps) {
 
         <div className="p-6 border-t border-slate-100 space-y-3">
           <Link
-            to="/browse"
+            to="/"
             className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl text-sm font-bold text-slate-500 hover:bg-slate-50 transition-all group"
           >
             <span className="text-xl group-hover:-translate-x-1 transition-transform">🌍</span>
@@ -94,7 +92,7 @@ export function UserLayout({ children }: UserLayoutProps) {
 
       {/* Main Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 px-8 flex items-center justify-between">
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 px-8 flex items-center justify-between print:hidden">
            <div className="flex items-center gap-4">
               <h2 className="text-xl font-black text-slate-800 capitalize">
                 {filteredMenu.find(i => i.path === location.pathname)?.label || 'Dashboard'}
@@ -102,9 +100,20 @@ export function UserLayout({ children }: UserLayoutProps) {
            </div>
 
            <div className="flex items-center gap-6">
+              <Link 
+                to="/cart"
+                className="relative w-10 h-10 bg-slate-50 text-slate-500 rounded-xl flex items-center justify-center hover:bg-green-50 hover:text-green-600 transition-all border border-slate-100"
+              >
+                <span className="text-xl">🛒</span>
+                {cartItems.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                    {cartItems.length}
+                  </span>
+                )}
+              </Link>
               <NotificationsDropdown />
               
-              <div className="h-10 w-[1px] bg-slate-200" />
+              <div className="h-8 w-[1px] bg-slate-200" />
 
               <div className="flex items-center gap-4">
                 <div className="text-right hidden sm:block">
@@ -118,8 +127,8 @@ export function UserLayout({ children }: UserLayoutProps) {
            </div>
         </header>
 
-        <main className="flex-1 p-8">
-           <div className="max-w-7xl mx-auto">
+        <main className="flex-1 p-8 print:p-0">
+           <div className="max-w-7xl mx-auto print:max-w-none print:w-full">
               {children}
            </div>
         </main>

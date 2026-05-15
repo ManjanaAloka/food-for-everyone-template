@@ -4,18 +4,22 @@ import { useAuth } from '../../state/auth';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import { useCart } from '../../state/cart';
 
 function ProgressBar({ raised, target, fulfilledQty, targetQty }: { raised: number; target: number; fulfilledQty?: number; targetQty?: number }) {
+  const displayTargetQty = Math.max(1, targetQty || 0);
+  const displayTargetAmount = Math.max(1, target || 0);
+  
   const pct = targetQty && targetQty > 0 
-    ? Math.min(100, (fulfilledQty! / targetQty) * 100) 
-    : (target > 0 ? Math.min(100, (raised / target) * 100) : 0);
+    ? Math.min(100, ((fulfilledQty || 0) / displayTargetQty) * 100) 
+    : (target > 0 ? Math.min(100, (raised / displayTargetAmount) * 100) : 0);
   
   const isComplete = pct >= 100;
   return (
     <div>
       <div className="flex justify-between text-xs mb-1">
         <span className="text-gray-500 font-bold">Collected: {fulfilledQty || 0} Units</span>
-        <span className="font-semibold text-gray-700">Goal: {targetQty || 0} Units</span>
+        <span className="font-semibold text-gray-700">Needed: {displayTargetQty} Units</span>
       </div>
       <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
         <div
@@ -31,16 +35,16 @@ function ProgressBar({ raised, target, fulfilledQty, targetQty }: { raised: numb
 
 function CreateRequestModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
+  const [selectedListing, setSelectedListing] = useState<any>(null);
   const [form, setForm] = useState({
     title: '',
     description: '',
     targetAmount: '',
-    listingId: '',
     closesAt: ''
   });
 
-  const { data: listingsData } = useQuery({
-    queryKey: ['active-listings-mini'],
+  const { data: listingsData, isLoading } = useQuery({
+    queryKey: ['active-listings-for-request'],
     queryFn: async () => (await api.get('/listings')).data
   });
 
@@ -49,11 +53,10 @@ function CreateRequestModal({ onClose }: { onClose: () => void }) {
       const res = await api.post('/donations', {
         title: form.title,
         description: form.description || undefined,
-        targetQty: Number(form.targetAmount), // Reusing field for Qty
-        listingId: form.listingId || undefined,
+        targetQty: Number(form.targetAmount),
+        listingId: selectedListing?.id,
         closesAt: form.closesAt || undefined
       });
-
       return res.data;
     },
     onSuccess: () => {
@@ -65,97 +68,167 @@ function CreateRequestModal({ onClose }: { onClose: () => void }) {
   });
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-5">
-          <h3 className="text-xl font-bold text-gray-900">📝 Create Donation Request</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-            <input
-              value={form.title}
-              onChange={e => setForm({ ...form, title: e.target.value })}
-              placeholder="e.g., Rice and vegetables for 50 children"
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto">
+      <div className={`bg-white rounded-3xl shadow-2xl transition-all duration-500 overflow-hidden ${selectedListing ? 'max-w-lg w-full' : 'max-w-5xl w-full'}`}>
+        <div className="p-8">
+          <div className="flex justify-between items-center mb-8">
+             <div>
+               <h3 className="text-2xl font-black text-slate-800">
+                 {selectedListing ? '📝 Complete Your Request' : '🍱 Select Food to Request'}
+               </h3>
+               <p className="text-sm text-slate-500 font-medium">
+                 {selectedListing ? `Requesting: ${selectedListing.title}` : 'Choose an available food item from local providers'}
+               </p>
+             </div>
+             <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">×</button>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Link to Food Listing (Optional)</label>
-            <select
-              value={form.listingId}
-              onChange={e => {
-                const lid = e.target.value;
-                const listing = listingsData?.listings?.find((l: any) => l.id === lid);
-                setForm({
-                  ...form,
-                  listingId: lid,
-                  title: listing ? `Request for: ${listing.title}` : form.title,
-                  targetAmount: '10' // Default to 10 units
-                });
+          {!selectedListing ? (
+            /* Step 1: Grid Selection */
+            <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
+                  {[1, 2, 3].map(i => <div key={i} className="bg-slate-100 h-64 rounded-2xl" />)}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {(() => {
+                      const filteredList = listingsData?.listings?.filter((l: any) => 
+                        l.status === 'ACTIVE' && 
+                        l.qtyAvailable > 0 && 
+                        new Date(l.expiresAt) > new Date()
+                      ) || [];
 
-              }}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
-            >
-              <option value="">No specific listing (General fundraising)</option>
-              {listingsData?.listings?.map((l: any) => (
-                <option key={l.id} value={l.id}>
-                  {l.title} (LKR {Number(l.discountPrice).toFixed(0)}/unit)
-                </option>
-              ))}
-            </select>
-          </div>
+                      if (filteredList.length === 0 && !isLoading) {
+                        return (
+                          <div className="col-span-3 py-12 text-center">
+                            <p className="text-slate-400 font-bold italic">No food available at the moment.</p>
+                          </div>
+                        );
+                      }
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
-              value={form.description}
-              onChange={e => setForm({ ...form, description: e.target.value })}
-              rows={3}
-              placeholder="Tell donors why this is needed..."
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-            />
-          </div>
+                      return filteredList.map((l: any) => {
+                        const itemImages: string[] = Array.isArray(l.images) ? l.images : (typeof l.images === 'string' && l.images.startsWith('[') ? JSON.parse(l.images) : [l.images]);
+                        const displayImg = itemImages[0] || 'https://via.placeholder.com/400x300?text=No+Image';
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Target Quantity *</label>
-              <input
-                type="number"
-                value={form.targetAmount}
-                onChange={e => setForm({ ...form, targetAmount: e.target.value })}
-                placeholder="e.g., 50"
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
+                        return (
+                          <div key={l.id} className="bg-slate-50 rounded-2xl p-4 border border-slate-100 hover:border-green-500 transition-all group flex flex-col h-full">
+                             <div className="relative aspect-video rounded-xl overflow-hidden mb-4">
+                                <img src={displayImg} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                <span className="absolute top-2 right-2 px-2 py-1 bg-white/90 backdrop-blur rounded-lg text-[10px] font-black text-green-600 shadow-sm uppercase">-{l.discount}%</span>
+                             </div>
+                             <h4 className="font-bold text-slate-800 mb-1">{l.title}</h4>
+                             <div className="text-[11px] text-slate-500 mb-3 flex items-center gap-1.5 font-bold uppercase tracking-wider">
+                               📦 {l.qtyAvailable} Available
+                             </div>
+                             <button
+                               onClick={() => {
+                                 setSelectedListing(l);
+                                 setForm(f => ({ ...f, title: `Request for: ${l.title}`, targetAmount: '10' }));
+                               }}
+                               className="mt-auto w-full py-2.5 bg-orange-50 text-orange-600 font-black text-xs rounded-xl border border-orange-100 hover:bg-orange-500 hover:text-white transition-all flex items-center justify-center gap-2"
+                             >
+                               📇 Request Donation
+                             </button>
+                          </div>
+                        );
+                      });
+                    })()}
+                </div>
+              )}
             </div>
+          ) : (
+            /* Step 2: Form Completion */
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 p-4 bg-green-50 rounded-2xl border border-green-100 mb-6">
+                 <img 
+                   src={(() => {
+                     const itemImages: string[] = Array.isArray(selectedListing.images) ? selectedListing.images : (typeof selectedListing.images === 'string' && selectedListing.images.startsWith('[') ? JSON.parse(selectedListing.images) : [selectedListing.images]);
+                     return itemImages[0] || 'https://via.placeholder.com/400x300?text=No+Image';
+                   })()} 
+                   className="w-16 h-16 rounded-xl object-cover" 
+                 />
+                 <div>
+                    <p className="text-[10px] font-black text-green-600 uppercase tracking-widest">Selected Item</p>
+                    <h4 className="font-bold text-slate-800">{selectedListing.title}</h4>
+                    <p className="text-xs text-slate-500">at {selectedListing.provider?.name}</p>
+                 </div>
+                 <button 
+                  onClick={() => setSelectedListing(null)}
+                  className="ml-auto text-[10px] font-black text-slate-400 hover:text-red-500 uppercase tracking-widest"
+                 >
+                   Change
+                 </button>
+              </div>
 
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Request Title *</label>
+                  <input
+                    value={form.title}
+                    onChange={e => setForm({ ...form, title: e.target.value })}
+                    placeholder="e.g., Rice and vegetables for 50 children"
+                    className="w-full border-2 border-slate-100 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-green-500 transition-all font-bold text-slate-800"
+                  />
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Close Date</label>
-              <input
-                type="date"
-                value={form.closesAt}
-                onChange={e => setForm({ ...form, closesAt: e.target.value })}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
+                <div>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Description</label>
+                  <textarea
+                    value={form.description}
+                    onChange={e => setForm({ ...form, description: e.target.value })}
+                    rows={3}
+                    placeholder="Tell donors why this is needed..."
+                    className="w-full border-2 border-slate-100 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-green-500 transition-all font-bold text-slate-800 resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Target Quantity *</label>
+                    <input
+                      type="number"
+                      value={form.targetAmount}
+                      onChange={e => setForm({ ...form, targetAmount: e.target.value })}
+                      placeholder="e.g., 50"
+                      max={selectedListing.qtyAvailable}
+                      className="w-full border-2 border-slate-100 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-green-500 transition-all font-bold text-slate-800"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1 font-bold">Max: {selectedListing.qtyAvailable}</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Close Date</label>
+                    <input
+                      type="date"
+                      value={form.closesAt}
+                      onChange={e => setForm({ ...form, closesAt: e.target.value })}
+                      min={new Date().toISOString().split('T')[0]}
+                      max={new Date(selectedListing.expiresAt).toISOString().split('T')[0]}
+                      className="w-full border-2 border-slate-100 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-green-500 transition-all font-bold text-slate-800"
+                    />
+                    <p className="text-[10px] text-red-500 mt-1 font-bold italic flex items-center gap-1">
+                      <span>⏰ Item Expiry:</span>
+                      <span>{new Date(selectedListing.expiresAt).toLocaleString()}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button onClick={onClose} className="flex-1 py-4 border-2 border-slate-100 rounded-2xl text-slate-500 font-bold hover:bg-slate-50 transition-all">
+                  Cancel
+                </button>
+                <button
+                  onClick={() => create()}
+                  disabled={!form.title || !form.targetAmount || isPending}
+                  className="flex-[2] py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white font-black rounded-2xl shadow-xl shadow-orange-200 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                >
+                  {isPending ? '⏳ Creating...' : '✅ Create Request'}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 py-3 border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-50">
-            Cancel
-          </button>
-          <button
-            onClick={() => create()}
-            disabled={!form.title || !form.targetAmount || isPending}
-            className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-xl hover:from-orange-600 hover:to-red-600 disabled:opacity-50 transition-all"
-          >
-            {isPending ? '⏳ Creating...' : '✅ Create Request'}
-          </button>
+          )}
         </div>
       </div>
     </div>
@@ -168,6 +241,7 @@ export function DonationCenterDashboardPage() {
   const [creatingStoryFor, setCreatingStoryFor] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'REQUESTS' | 'ACTIVITIES'>('REQUESTS');
   const qc = useQueryClient();
+  const { items: cartItems } = useCart();
 
   const { data: requestsData, isLoading: requestsLoading } = useQuery({
     queryKey: ['center-requests'],
@@ -244,15 +318,28 @@ export function DonationCenterDashboardPage() {
       )}
 
       <div className="max-w-6xl mx-auto px-4">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-10">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">🏥 Donation Center Dashboard</h1>
-            <p className="text-gray-500">Manage your requests and celebrate your community impact.</p>
+            <h1 className="text-4xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+              <span>🏥</span> Donation Center Dashboard
+            </h1>
+            <p className="text-slate-500 font-bold mt-1 italic uppercase tracking-widest text-[11px]">Manage requests and track impact</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-4">
+            <Link 
+              to="/cart"
+              className="relative w-12 h-12 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center text-2xl hover:border-green-500 hover:scale-110 transition-all shadow-sm group"
+            >
+              <span>🛒</span>
+              {cartItems.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-green-600 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-4 border-white shadow-lg group-hover:scale-110 transition-transform">
+                  {cartItems.length}
+                </span>
+              )}
+            </Link>
             <button
               onClick={() => setShowModal(true)}
-              className="px-6 py-3 bg-orange-600 text-white font-bold rounded-xl shadow-lg hover:bg-orange-700 transition-all flex items-center gap-2"
+              className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white font-black rounded-2xl shadow-xl shadow-orange-200 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
             >
               <span>➕</span>
               <span>New Request</span>
@@ -583,7 +670,29 @@ function RequestDetailModal({ request, onClose, onPostStory, incomingOrders, onC
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 text-center">
               <div className="text-2xl mb-2">⏳</div>
               <h3 className="text-base font-bold text-blue-800">Still Gathering Support</h3>
-              <p className="text-sm text-blue-600 mt-1">Once the goal is reached, you'll be able to track the food and share a success story.</p>
+              <p className="text-sm text-blue-600 mt-1 mb-6">Once the goal is reached, you'll be able to track the food and share a success story.</p>
+              
+              {request.fulfilledQty > 0 && (
+                <div className="pt-4 border-t border-blue-100">
+                  <p className="text-xs text-blue-500 mb-3 font-medium italic">You have {request.fulfilledQty} items funded so far. If you need them now, you can close the request and claim them.</p>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Are you sure you want to close this request and claim ${request.fulfilledQty} items? This cannot be undone.`)) {
+                        api.post(`/donations/${request.id}/claim`)
+                          .then(() => {
+                            toast.success('Request closed and food claimed!');
+                            onClose();
+                            window.location.reload(); // Quick refresh to update stats
+                          })
+                          .catch(err => toast.error(err.response?.data?.error || 'Failed to claim'));
+                      }
+                    }}
+                    className="w-full py-3 bg-white border-2 border-blue-400 text-blue-600 font-bold rounded-xl hover:bg-blue-100 transition-all text-sm"
+                  >
+                    🔐 Close & Claim {request.fulfilledQty} Items
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

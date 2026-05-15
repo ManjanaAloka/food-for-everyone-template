@@ -146,10 +146,8 @@ router.post('/:id/checkout', requireAuth, ah(async (req: any, res) => {
 
     console.log('Finding buyer:', req.user!.sub);
     const buyer = await prisma.user.findUnique({ where: { id: req.user!.sub } });
-    console.log('Buyer found:', !!buyer);
-
+    
     // Create pending Donation record
-    console.log('Creating donation record...');
     const donation = await prisma.donation.create({
       data: {
         customerId: req.user!.sub,
@@ -158,10 +156,8 @@ router.post('/:id/checkout', requireAuth, ah(async (req: any, res) => {
         status: 'INITIATED'
       }
     });
-    console.log('Donation created:', donation.id);
 
     const provider = getPaymentProvider();
-    console.log('Provider:', provider.name);
     
     // Prepare a pseudo-order for the provider
     const pseudoOrder = {
@@ -174,21 +170,74 @@ router.post('/:id/checkout', requireAuth, ah(async (req: any, res) => {
       }
     };
 
-    console.log('Creating checkout session...');
     const session = await provider.createCheckoutSession(pseudoOrder);
-    console.log('Session created:', !!session);
     
-    // Update donation with session ID if applicable (e.g. for Stripe)
     if (session.url && !session.fields) {
       await prisma.donation.update({ where: { id: donation.id }, data: { stripeSessionId: session.url } });
     }
 
     res.json(session);
   } catch (err: any) {
-    console.error('--- DONATION CHECKOUT ERROR ---');
-    console.error(err);
     res.status(500).json({ error: err.message || 'Internal Server Error' });
   }
+}));
+
+// Close and claim partial donations
+router.post('/:id/claim', requireAuth, ah(async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user!.sub;
+
+  const request = await prisma.donationRequest.findFirst({
+    where: { id, centerId: userId, status: 'OPEN' },
+    include: { listing: true }
+  });
+
+  if (!request) return res.status(404).json({ error: 'Active donation request not found' });
+  if (Number(request.raisedAmount) <= 0) return res.status(400).json({ error: 'No donations have been made to this request yet' });
+
+  const price = Number(request.listing?.discountPrice || 0);
+  if (price <= 0) return res.status(400).json({ error: 'Invalid listing price' });
+
+  const qtyToClaim = Math.floor(Number(request.raisedAmount) / price);
+  if (qtyToClaim <= 0) return res.status(400).json({ error: 'Funds are insufficient to claim even one unit' });
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Create Order for the center (Marked as PAID)
+    await tx.order.create({
+      data: {
+        buyerId: userId,
+        providerId: request.listing!.providerId,
+        type: 'DONATION',
+        fulfillmentMode: 'PICKUP',
+        paymentMethod: 'ONLINE',
+        status: 'PAID',
+        donationCenterId: userId,
+        donationRequestId: request.id,
+        subtotal: price * qtyToClaim,
+        total: price * qtyToClaim,
+        items: {
+          create: {
+            listingId: request.listing!.id,
+            providerId: request.listing!.providerId,
+            qty: qtyToClaim,
+            unitPrice: price,
+            snapshotExpiresAt: request.listing!.expiresAt
+          }
+        }
+      }
+    });
+
+    // 2. Mark request as FULFILLED
+    await tx.donationRequest.update({
+      where: { id },
+      data: { status: 'FULFILLED', fulfilledQty: qtyToClaim }
+    });
+
+    // Note: Stock was already decremented incrementally during individual donation payments.
+    console.log(`Donation request ${id} manually claimed by center.`);
+  });
+
+  res.json({ success: true, message: `Successfully claimed ${qtyToClaim} units.` });
 }));
 
 // ─── Stripe webhook for donation payments ─────────────────────────────────────

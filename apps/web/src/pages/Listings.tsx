@@ -67,7 +67,7 @@ export function ListingsPage() {
   }, [refetch]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-green-50 pt-20 pb-12">
+    <div className={`min-h-screen bg-gradient-to-br from-gray-50 via-white to-green-50 ${user ? 'pt-4' : 'pt-20'} pb-12`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -316,12 +316,14 @@ export function ListingsPage() {
                             >
                               🛍️ Add to Cart
                             </button>
-                            <Link
-                              to={`/listings/${l.id}?mode=donate`}
-                              className="block text-center w-full px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors border border-green-200 text-sm"
-                            >
-                              🤝 Donate this item
-                            </Link>
+                             {l.donationRequests?.length > 0 && l.qtyAvailable > 0 && (
+                              <Link
+                                to={`/listings/${l.id}?mode=donate`}
+                                className="block text-center w-full px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors border border-green-200 text-sm"
+                              >
+                                🤝 Donate this item
+                              </Link>
+                            )}
                           </>
                         )}
                       </div>

@@ -11,30 +11,30 @@ type User = {
 } | null;
 
 type CtxType = {
-  user: User; accessToken: string | null;
+  user: User; 
+  accessToken: string | null;
   login: (email: string, password: string) => Promise<{ user: User }>;
   register: (data: any) => Promise<void>;
   logout: (password?: string) => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
 };
+
 const Ctx = createContext<CtxType>({} as any);
 
 export function AuthProvider({ children }: any) {
-  // Initialize from localStorage to persist on refresh
   const [user, setUser] = useState<User>(() => {
     const stored = localStorage.getItem('user');
     return stored ? JSON.parse(stored) : null;
   });
+  
   const [accessToken, setAT] = useState<string | null>(() => {
     const token = localStorage.getItem('accessToken');
-    // Immediately set token in API headers during initialization
     if (token) {
       setAccessToken(token);
     }
     return token;
   });
 
-  // Save to localStorage whenever user or token changes
   useEffect(() => {
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
@@ -57,13 +57,11 @@ export function AuthProvider({ children }: any) {
     setAT(data.accessToken);
     setUser(data.user);
     setAccessToken(data.accessToken);
-    // Store email for admin logout verification
     localStorage.setItem('userEmail', email);
     return { user: data.user };
   }
 
   async function register(payload: any) {
-    console.log('Register payload:', payload);
     await api.post('/auth/register', payload);
   }
 
@@ -71,7 +69,7 @@ export function AuthProvider({ children }: any) {
     try {
       await api.post('/auth/logout', {});
     } catch (error) {
-      console.error('Backend logout failed, but clearing local session anyway:', error);
+      console.error('Logout cleanup:', error);
     } finally {
       setAT(null);
       setUser(null);
@@ -89,12 +87,18 @@ export function AuthProvider({ children }: any) {
   useEffect(() => {
     const id = setInterval(async () => {
       if (!accessToken) return;
-      try { const { data } = await api.post('/auth/refresh', {}); setAT(data.accessToken); setAccessToken(data.accessToken); } catch {}
+      try { 
+        const { data } = await api.post('/auth/refresh', {}); 
+        setAT(data.accessToken); 
+        setAccessToken(data.accessToken); 
+      } catch {}
     }, 10 * 60 * 1000);
     return () => clearInterval(id);
   }, [accessToken]);
 
   const value = useMemo(() => ({ user, accessToken, login, register, logout, updateUser }), [user, accessToken]);
+  
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
+
 export const useAuth = () => useContext(Ctx);

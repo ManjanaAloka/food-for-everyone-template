@@ -162,12 +162,12 @@ export function RegisterPage() {
                     <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest border-b pb-2">Basic Information</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Full Name / Contact Person</label>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Full Name / Contact Person <span className="text-red-500 ml-1">*</span></label>
                         <input {...formRegister('name', { required: 'Name is required' })} placeholder="Full Name" className={`register-input ${errors.name ? 'border-red-500 bg-red-50' : ''}`} />
                         <ErrorSpan message={errors.name?.message} />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Email Address</label>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Email Address <span className="text-red-500 ml-1">*</span></label>
                         <input {...formRegister('email', { 
                           required: 'Email is required',
                           pattern: { value: /^\S+@\S+$/i, message: 'Invalid email' }
@@ -175,7 +175,7 @@ export function RegisterPage() {
                         <ErrorSpan message={errors.email?.message} />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Phone Number</label>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Phone Number <span className="text-red-500 ml-1">*</span></label>
                         <input {...formRegister('phone', { 
                            required: 'Phone is required',
                            pattern: { value: /^\+?94\d{9}$/, message: 'Use format +94771234567' }
@@ -183,7 +183,7 @@ export function RegisterPage() {
                         <ErrorSpan message={errors.phone?.message} />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Password</label>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Password <span className="text-red-500 ml-1">*</span></label>
                         <input {...formRegister('password', { 
                           required: 'Password is required',
                           minLength: { value: 8, message: 'Min 8 characters' }
@@ -199,12 +199,12 @@ export function RegisterPage() {
                       <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest border-b pb-2">Location Details</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2">
-                          <label className="block text-xs font-bold text-gray-700 mb-1">Residential Address</label>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Residential Address <span className="text-red-500 ml-1">*</span></label>
                           <input {...formRegister('address', { required: 'Address is required' })} placeholder="123 Street Name" className={`register-input ${errors.address ? 'border-red-500 bg-red-50' : ''}`} />
                           <ErrorSpan message={errors.address?.message} />
                         </div>
                         <div className="md:col-span-2">
-                          <label className="block text-xs font-bold text-gray-700 mb-2">Location on Map</label>
+                          <label className="block text-xs font-bold text-gray-700 mb-2">Location on Map <span className="text-red-500 ml-1">*</span></label>
                           <MapPicker 
                             address={watchedAddress}
                             onLocationSelect={onLocationSelect} 
@@ -222,12 +222,12 @@ export function RegisterPage() {
                       <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest border-b pb-2">Business Details</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold text-gray-700 mb-1">Business Name</label>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Business Name <span className="text-red-500 ml-1">*</span></label>
                           <input {...formRegister('businessName', { required: 'Business name is required' })} placeholder="Company Name" className={`register-input ${errors.businessName ? 'border-red-500 bg-red-50' : ''}`} />
                           <ErrorSpan message={errors.businessName?.message} />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-gray-700 mb-1">Business Reg No (BR)</label>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Business Reg No (BR) <span className="text-red-500 ml-1">*</span></label>
                           <input {...formRegister('brNo', { required: 'BR No is required' })} placeholder="BR-XXXXXXX" className={`register-input ${errors.brNo ? 'border-red-500 bg-red-50' : ''}`} />
                           <ErrorSpan message={errors.brNo?.message} />
                         </div>
@@ -244,12 +244,12 @@ export function RegisterPage() {
                           <input {...formRegister('openHours')} placeholder="8:00 AM - 10:00 PM" className="register-input" />
                         </div>
                         <div className="md:col-span-2">
-                          <label className="block text-xs font-bold text-gray-700 mb-1">Business Address</label>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Business Address <span className="text-red-500 ml-1">*</span></label>
                           <input {...formRegister('address', { required: 'Address is required' })} placeholder="Business Address" className={`register-input ${errors.address ? 'border-red-500 bg-red-50' : ''}`} />
                           <ErrorSpan message={errors.address?.message} />
                         </div>
                         <div className="md:col-span-2">
-                          <label className="block text-xs font-bold text-gray-700 mb-2">Business Location</label>
+                          <label className="block text-xs font-bold text-gray-700 mb-2">Business Location <span className="text-red-500 ml-1">*</span></label>
                           <MapPicker 
                             address={watchedAddress}
                             onLocationSelect={onLocationSelect} 
@@ -267,7 +267,7 @@ export function RegisterPage() {
                       <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest border-b pb-2">Center Details</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold text-gray-700 mb-1">D.C. Name</label>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">D.C. Name <span className="text-red-500 ml-1">*</span></label>
                           <input {...formRegister('centerName', { required: 'Center name is required' })} placeholder="Organization Name" className={`register-input ${errors.centerName ? 'border-red-500 bg-red-50' : ''}`} />
                           <ErrorSpan message={errors.centerName?.message} />
                         </div>
@@ -280,7 +280,7 @@ export function RegisterPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-gray-700 mb-1">Registration Number</label>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Registration Number <span className="text-red-500 ml-1">*</span></label>
                           <input {...formRegister('brNo', { required: 'Reg No is required' })} placeholder="NGO-XXXXXX" className={`register-input ${errors.brNo ? 'border-red-500 bg-red-50' : ''}`} />
                           <ErrorSpan message={errors.brNo?.message} />
                         </div>
@@ -289,12 +289,12 @@ export function RegisterPage() {
                           <input {...formRegister('beneficiariesCount', { valueAsNumber: true })} type="number" placeholder="Number of people" className="register-input" />
                         </div>
                         <div className="md:col-span-2">
-                          <label className="block text-xs font-bold text-gray-700 mb-1">Location Address</label>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Location Address <span className="text-red-500 ml-1">*</span></label>
                           <input {...formRegister('address', { required: 'Address is required' })} placeholder="Center Address" className={`register-input ${errors.address ? 'border-red-500 bg-red-50' : ''}`} />
                           <ErrorSpan message={errors.address?.message} />
                         </div>
                         <div className="md:col-span-2">
-                          <label className="block text-xs font-bold text-gray-700 mb-2">Center Location</label>
+                          <label className="block text-xs font-bold text-gray-700 mb-2">Center Location <span className="text-red-500 ml-1">*</span></label>
                           <MapPicker 
                             address={watchedAddress}
                             onLocationSelect={onLocationSelect} 

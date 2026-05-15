@@ -14,9 +14,9 @@ export function ProviderReviewsPage() {
   });
   
   const filteredReviews = reviewsQ.data?.reviews?.filter((r: any) => {
-    const statusMatch = r.status === status;
+    // Show everything except rejected ones, or show all if you want
     const ratingMatch = ratingFilter === 'ALL' || r.rating.toString() === ratingFilter;
-    return statusMatch && ratingMatch;
+    return ratingMatch;
   }) || [];
 
   const updateStatus = useMutation({
@@ -47,108 +47,68 @@ export function ProviderReviewsPage() {
 
       <div className="bg-white rounded-[40px] shadow-sm border border-gray-100 p-8 md:p-12">
         <div className="flex flex-col lg:flex-row gap-6 mb-12 items-start lg:items-center">
-          <div className="flex gap-2 p-1 bg-gray-50 rounded-2xl border border-gray-100 overflow-x-auto max-w-full">
-            {(['PENDING', 'APPROVED', 'REJECTED'] as const).map(s => (
-              <button
-                key={s}
-                onClick={() => setStatus(s)}
-                className={`px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${status === s ? 'bg-white text-green-600 shadow-lg shadow-green-100/50 border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-
           <div className="flex flex-wrap gap-2 p-1 bg-gray-50 rounded-2xl border border-gray-100">
              <button 
                 onClick={() => setRatingFilter('ALL')}
-                className={`px-4 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${ratingFilter === 'ALL' ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${ratingFilter === 'ALL' ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
              >
-               All
+               All Ratings
              </button>
              {['5', '4', '3', '2', '1'].map(r => (
                <button
                  key={r}
                  onClick={() => setRatingFilter(r as any)}
-                 className={`px-4 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${ratingFilter === r ? 'bg-white text-orange-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
+                 className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${ratingFilter === r ? 'bg-white text-orange-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
                >
                  {r} ⭐
                </button>
              ))}
           </div>
+          <div className="lg:ml-auto text-xs font-bold text-slate-400 italic">
+            * All reviews are now automatically approved to public view.
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 gap-8">
           {filteredReviews.length ? filteredReviews.map((r: any) => (
-            <div key={r.id} className="group border border-gray-100 rounded-[32px] p-8 hover:border-green-200 hover:bg-green-50/5 transition-all bg-white shadow-sm hover:shadow-2xl hover:shadow-green-100/20 flex flex-col">
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl flex items-center justify-center text-xl font-black shadow-lg shadow-indigo-100">
-                    {r.reviewer.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 mb-1">{r.reviewer.name}</h4>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Customer ID: {r.reviewerId.slice(-6)}</p>
-                  </div>
+            <div key={r.id} className="group border border-gray-100 rounded-[32px] p-6 md:p-8 hover:border-green-200 hover:bg-green-50/5 transition-all bg-white shadow-sm hover:shadow-2xl hover:shadow-green-100/20 flex flex-col md:flex-row gap-8 items-start md:items-center">
+              <div className="flex items-center gap-4 min-w-[240px]">
+                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl flex items-center justify-center text-2xl font-black shadow-lg shadow-indigo-100 shrink-0">
+                  {r.reviewer.name.charAt(0)}
                 </div>
-                <div className="bg-orange-50 text-orange-600 px-4 py-2 rounded-2xl font-black text-lg flex items-center gap-1 shadow-inner">
-                  {r.rating} <span className="text-sm">⭐</span>
+                <div>
+                  <h4 className="font-bold text-gray-900 text-lg mb-1">{r.reviewer.name}</h4>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Order ID: {r.orderId.slice(-6).toUpperCase()}</p>
+                </div>
+                <div className="md:hidden ml-auto bg-orange-50 text-orange-600 px-3 py-1.5 rounded-full font-black text-sm">
+                  {r.rating} ⭐
                 </div>
               </div>
 
-              <div className="flex-1">
-                <div className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-tighter">Ordered Items:</div>
-                <div className="flex flex-wrap gap-1 mb-6">
-                  {r.order?.items?.map((item: any, i: number) => (
-                    <span key={i} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-[10px] font-bold border border-gray-200">
-                      {item.listing.title}
-                    </span>
-                  ))}
+              <div className="flex-1 w-full">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ordered:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {r.order?.items?.map((item: any, i: number) => (
+                      <span key={i} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[9px] font-black border border-slate-200">
+                        {item.listing.title}
+                      </span>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="text-gray-600 leading-relaxed bg-gray-50 p-6 rounded-2xl border border-gray-100 italic text-sm mb-8 relative">
-                  <span className="absolute -top-3 -left-1 text-4xl text-gray-200 font-serif">"</span>
-                  {r.comment || 'No comment provided'}
-                  <span className="absolute -bottom-6 -right-1 text-4xl text-gray-200 font-serif">"</span>
+                <div className="text-gray-600 leading-relaxed bg-slate-50 p-5 rounded-2xl border border-slate-100 italic text-sm relative">
+                  "{r.comment || 'No comment provided'}"
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-auto">
-                {status === 'PENDING' && (
-                  <>
-                    <button
-                      onClick={() => updateStatus.mutate({ id: r.id, newStatus: 'APPROVED' })}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-green-100 transition-all transform hover:-translate-y-1"
-                    >
-                      ✓ Approve to Public
-                    </button>
-                    <button
-                      onClick={() => updateStatus.mutate({ id: r.id, newStatus: 'REJECTED' })}
-                      className="flex-1 bg-white border-2 border-red-50 text-red-400 hover:text-red-600 hover:border-red-100 hover:bg-red-50 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
-                    >
-                      ✕ Hide Review
-                    </button>
-                  </>
-                )}
-                {status === 'APPROVED' && (
-                  <div className="w-full flex items-center justify-between text-xs font-bold text-green-600 bg-green-50 px-6 py-4 rounded-2xl border border-green-100">
-                    <span>✨ Currently visible on your profile</span>
-                    <button 
-                      onClick={() => updateStatus.mutate({ id: r.id, newStatus: 'REJECTED' })}
-                      className="text-red-400 hover:text-red-600 underline"
-                    >
-                      Hide
-                    </button>
-                  </div>
-                )}
-                {status === 'REJECTED' && (
-                  <button 
-                    onClick={() => updateStatus.mutate({ id: r.id, newStatus: 'APPROVED' })}
-                    className="w-full text-xs font-bold text-gray-400 bg-gray-50 px-6 py-4 rounded-2xl border border-gray-100 hover:text-green-600 transition-all"
-                  >
-                    🔄 This review is hidden. Click to Restore.
-                  </button>
-                )}
+              <div className="flex flex-col gap-3 min-w-[180px] w-full md:w-auto">
+                <div className="flex items-center justify-center gap-2 bg-orange-50 text-orange-600 px-4 py-4 rounded-2xl font-black text-xl shadow-inner border border-orange-100/50">
+                  {r.rating} <span className="text-sm">Stars ⭐</span>
+                </div>
+                <div className="text-center">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Feedback Verified</span>
+                </div>
               </div>
             </div>
           )) : (

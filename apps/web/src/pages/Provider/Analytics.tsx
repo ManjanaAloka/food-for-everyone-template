@@ -50,7 +50,8 @@ export function ProviderAnalyticsPage() {
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: ['places']
   });
 
   const analyticsQ = useQuery({

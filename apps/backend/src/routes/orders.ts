@@ -144,7 +144,7 @@ router.post('/', requireAuth, ah(async (req: any, res) => {
     const totalSoldAggregate = await tx.orderItem.aggregate({
       where: {
         providerId,
-        order: { status: { in: ['PAID', 'READY_FOR_PICKUP', 'DELIVERED', 'COMPLETED'] } }
+        order: { status: { in: ['PAID', 'READY_FOR_PICKUP', 'READY_FOR_DELIVERY', 'OUT_FOR_DELIVERY', 'DELIVERED'] } }
       },
       _sum: { qty: true }
     });

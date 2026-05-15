@@ -24,7 +24,7 @@ router.post('/', requireAuth, ah(async (req: any, res) => {
   }
 
 
-  const review = await prisma.review.create({ data: { orderId: order.id, reviewerId: req.user!.sub, providerId: order.providerId, rating: body.rating, comment: body.comment } });
+  const review = await prisma.review.create({ data: { orderId: order.id, reviewerId: req.user!.sub, providerId: order.providerId, rating: body.rating, comment: body.comment, status: 'APPROVED' } });
   res.json({ review });
 }));
 
@@ -42,6 +42,26 @@ router.patch('/:id', requireAuth, ah(async (req: any, res) => {
 router.get('/provider/:providerId', ah(async (req, res) => {
   const { providerId } = req.params;
   const reviews = await prisma.review.findMany({ where: { providerId, status: 'APPROVED' }, orderBy: { createdAt: 'desc' } });
+  res.json({ reviews });
+}));
+
+router.get('/all', requireAuth, ah(async (req: any, res) => {
+  if (!['ADMIN', 'SYSTEM_ADMIN'].includes(req.user!.role)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  const reviews = await prisma.review.findMany({ 
+    include: { 
+      reviewer: { select: { name: true, email: true } },
+      order: { 
+        select: { 
+          id: true, 
+          providerId: true,
+          items: { include: { listing: { select: { title: true } } } } 
+        } 
+      } 
+    },
+    orderBy: { createdAt: 'desc' }
+  });
   res.json({ reviews });
 }));
 
