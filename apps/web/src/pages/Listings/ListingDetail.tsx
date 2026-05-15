@@ -361,12 +361,15 @@ export function ListingDetailPage() {
                         💝 Donate Now
                       </button>
                     ) : (
-                      <Link
-                        to="/checkout"
-                        className="block w-full py-3 border-2 border-green-500 text-green-600 font-semibold rounded-xl text-center hover:bg-green-50 transition-all"
-                      >
-                        ⚡ Buy Now
-                      </Link>
+                    <button
+                      onClick={() => {
+                        handleAddToCart();
+                        nav('/checkout');
+                      }}
+                      className="block w-full py-3 border-2 border-green-500 text-green-600 font-semibold rounded-xl text-center hover:bg-green-50 transition-all"
+                    >
+                      ⚡ Buy Now
+                    </button>
                     )}
                   </>
                 )}

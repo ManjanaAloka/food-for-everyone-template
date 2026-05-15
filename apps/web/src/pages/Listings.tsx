@@ -307,15 +307,26 @@ export function ListingsPage() {
                           </Link>
                         ) : (
                           <>
-                            <button 
-                              className="w-full px-4 py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white text-sm sm:text-base font-semibold rounded-lg hover:shadow-lg transform hover:scale-105 transition-all"
-                              onClick={() => {
-                                add({ listingId: l.id, title: l.title, providerId: l.providerId, price: Number(l.discountPrice), expiresAt: l.expiresAt, qtyAvailable: l.qtyAvailable }, 1);
-                                nav('/checkout');
-                              }}
-                            >
-                              🛍️ Add to Cart
-                            </button>
+                            <div className="flex flex-col gap-2">
+                              <button 
+                                className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white text-sm font-bold rounded-xl hover:shadow-lg transform active:scale-95 transition-all shadow-md shadow-green-100"
+                                onClick={() => {
+                                  add({ listingId: l.id, title: l.title, providerId: l.providerId, price: Number(l.discountPrice), expiresAt: l.expiresAt, qtyAvailable: l.qtyAvailable }, 1);
+                                  nav('/checkout');
+                                }}
+                              >
+                                ⚡ Buy Now
+                              </button>
+                              <button 
+                                className="w-full px-4 py-3 bg-white border-2 border-green-500 text-green-600 text-sm font-bold rounded-xl hover:bg-green-50 transition-all flex items-center justify-center gap-2"
+                                onClick={() => {
+                                  add({ listingId: l.id, title: l.title, providerId: l.providerId, price: Number(l.discountPrice), expiresAt: l.expiresAt, qtyAvailable: l.qtyAvailable }, 1);
+                                  // No navigation here
+                                }}
+                              >
+                                🛒 Add to Cart
+                              </button>
+                            </div>
                              {l.donationRequests?.length > 0 && l.qtyAvailable > 0 && (
                               <Link
                                 to={`/listings/${l.id}?mode=donate`}
