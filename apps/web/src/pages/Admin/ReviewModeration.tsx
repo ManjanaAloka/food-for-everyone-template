@@ -53,13 +53,19 @@ export function ReviewModerationPage() {
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const endpoint = moderationTab === 'SITE' ? `/site-reviews/${id}` : `/reviews/${id}/status`; // For provider reviews, we use status update to REJECTED or a delete if exists. The backend patch handles status.
-      if (moderationTab === 'SITE') return api.delete(endpoint);
-      return api.patch(endpoint, { status: 'REJECTED' });
+    mutationFn: async (review: any) => {
+      const isRejected = review.status === 'REJECTED';
+      const newStatus = isRejected ? 'APPROVED' : 'REJECTED';
+      
+      if (moderationTab === 'SITE') {
+        // For site reviews, we might want to delete or toggle status. 
+        // Based on previous code, site reviews have a status patch too.
+        return api.patch(`/site-reviews/${review.id}/status`, { status: newStatus });
+      }
+      return api.patch(`/reviews/${review.id}/status`, { status: newStatus });
     },
     onSuccess: () => {
-      toast.success('Review updated/deleted');
+      toast.success('Review updated');
       qc.invalidateQueries({ queryKey: [moderationTab === 'SITE' ? 'adminSiteReviews' : 'adminProviderReviews'] });
     }
   });
@@ -200,7 +206,7 @@ export function ReviewModerationPage() {
                   )}
                   {status !== 'PENDING' && (
                     <button
-                      onClick={() => { if(confirm(`Hide this ${moderationTab === 'SITE' ? 'site' : 'provider'} review?`)) remove.mutate(r.id) }}
+                      onClick={() => { if(confirm(`${r.status === 'REJECTED' ? 'Restore' : 'Hide'} this ${moderationTab === 'SITE' ? 'site' : 'provider'} review?`)) remove.mutate(r) }}
                       className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all text-[10px] uppercase tracking-wider flex items-center justify-center gap-2 ${r.status === 'REJECTED' ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
                     >
                       {r.status === 'REJECTED' ? '🔄 Restore Review' : '🗑️ Hide Review'}
