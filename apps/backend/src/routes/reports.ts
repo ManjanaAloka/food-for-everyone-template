@@ -237,12 +237,17 @@ router.get('/provider', requireAuth, ah(async (req: any, res) => {
     }))
     .filter(o => o.count > 0);
 
+  const totalItemsSold = Array.from(itemSalesMap.values()).reduce((sum, item) => sum + item.qty, 0);
+  const totalCommission = orders.reduce((sum, o) => sum + (Number(o.commissionAmount) || 0), 0);
+
   res.json({
     ordersCount: orders.length,
     foodSavedKg: Number(savedKg.toFixed(2)),
     co2eAvoidedKg: Number((savedKg * CO2E_PER_KG).toFixed(2)),
     donationCount,
     totalRevenue: Number(totalRevenue.toFixed(2)),
+    totalItemsSold,
+    totalCommission: Number(totalCommission.toFixed(2)),
     topSellingItems,
     salesByDay,
     salesByDayOfWeek,

@@ -72,8 +72,13 @@ export function ProviderAnalyticsPage() {
     return { lat: 6.9271, lng: 79.8612 }; // Colombo default
   }, [data?.orderLocations]);
 
+  const soldCount = data?.totalItemsSold || 0;
+  const limit = 50;
+  const progress = Math.min((soldCount / limit) * 100, 100);
+  const isOverLimit = soldCount >= limit;
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-10">
        {/* Header with Toggle */}
        <div className="bg-white rounded-[40px] shadow-sm border border-gray-100 p-8 flex flex-col xl:flex-row items-center justify-between gap-8">
           <div>
@@ -137,6 +142,40 @@ export function ProviderAnalyticsPage() {
           </div>
        ) : (
          <>
+           {/* Tier Status & Commission Card */}
+           <div className={`p-8 rounded-[40px] border transition-all ${isOverLimit ? 'bg-orange-50 border-orange-100' : 'bg-emerald-50 border-emerald-100'}`}>
+              <div className="flex flex-col lg:flex-row justify-between items-center gap-8">
+                 <div className="space-y-2 text-center lg:text-left">
+                    <h3 className={`text-xl font-black ${isOverLimit ? 'text-orange-900' : 'text-emerald-900'}`}>
+                       {isOverLimit ? '🚀 Professional Tier' : '🌟 Free Tier'}
+                    </h3>
+                    <p className="text-sm font-medium text-gray-600 max-w-md">
+                       {isOverLimit 
+                         ? 'You have exceeded 50 sales! A 2% commission now applies to support the platform.' 
+                         : `Sell ${limit - soldCount} more items for free before the 2% platform commission starts.`}
+                    </p>
+                 </div>
+                 
+                 <div className="flex-1 w-full max-w-lg space-y-3">
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-400">
+                       <span>{soldCount} items sold</span>
+                       <span>Tier Limit: {limit}</span>
+                    </div>
+                    <div className="h-4 bg-white rounded-full overflow-hidden border border-gray-100 p-1">
+                       <div 
+                         className={`h-full rounded-full transition-all duration-1000 ${isOverLimit ? 'bg-orange-500' : 'bg-emerald-500'}`}
+                         style={{ width: `${progress}%` }}
+                       ></div>
+                    </div>
+                 </div>
+
+                 <div className="bg-white px-8 py-6 rounded-[32px] shadow-sm border border-gray-100 text-center min-w-[200px]">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Commission Paid</p>
+                    <p className="text-2xl font-black text-gray-900">LKR {data?.totalCommission?.toLocaleString()}</p>
+                 </div>
+              </div>
+           </div>
+
            {/* Summary Stats */}
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
@@ -248,12 +287,6 @@ export function ProviderAnalyticsPage() {
                            <p className="text-gray-400 font-bold">Loading Map...</p>
                         </div>
                       )}
-                      <div className="absolute bottom-8 left-8 bg-white/90 backdrop-blur-md px-6 py-4 rounded-3xl shadow-2xl border border-white/50">
-                         <div className="flex items-center gap-3">
-                            <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                            <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Active Customer Zones</span>
-                         </div>
-                      </div>
                    </div>
                 </div>
 
@@ -282,51 +315,6 @@ export function ProviderAnalyticsPage() {
                           <Area type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={4} fillOpacity={1} fill="url(#colorRevenue)" />
                         </AreaChart>
                       </ResponsiveContainer>
-                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                   {/* Item Popularity Pie */}
-                   <div className="bg-white p-10 rounded-[48px] border border-gray-100 shadow-sm">
-                      <h3 className="text-xl font-black text-gray-900 mb-8">{selectedListingId ? 'Sales vs Other Top Items' : 'Inventory Popularity'}</h3>
-                      <div className="h-[350px] w-full">
-                         <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                               <Pie
-                                  data={data?.topSellingItems}
-                                  cx="50%"
-                                  cy="50%"
-                                  innerRadius={80}
-                                  outerRadius={120}
-                                  paddingAngle={5}
-                                  dataKey="qty"
-                                  nameKey="title"
-                               >
-                                  {data?.topSellingItems?.map((_: any, index: number) => (
-                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                  ))}
-                               </Pie>
-                               <Tooltip />
-                               <Legend verticalAlign="bottom" height={36}/>
-                            </PieChart>
-                         </ResponsiveContainer>
-                      </div>
-                   </div>
-
-                   {/* Weekday Performance Bar */}
-                   <div className="bg-white p-10 rounded-[48px] border border-gray-100 shadow-sm">
-                      <h3 className="text-xl font-black text-gray-900 mb-8">Sales by Day of Week</h3>
-                      <div className="h-[350px] w-full">
-                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={data?.salesByDayOfWeek}>
-                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 900, fill: '#9CA3AF'}} dy={10} />
-                               <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 900, fill: '#9CA3AF'}} />
-                               <Tooltip cursor={{fill: '#F9FAFB'}} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
-                               <Bar dataKey="count" fill="#3B82F6" radius={[10, 10, 0, 0]} barSize={40} />
-                            </BarChart>
-                         </ResponsiveContainer>
-                      </div>
                    </div>
                 </div>
              </div>

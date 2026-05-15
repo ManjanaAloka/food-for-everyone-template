@@ -194,7 +194,11 @@ export function DonationCenterDashboardPage() {
     }
   });
 
-  const requests = requestsData?.requests || [];
+  const requests = (requestsData?.requests || []).sort((a: any, b: any) => {
+    if (a.status === 'OPEN' && b.status !== 'OPEN') return -1;
+    if (a.status !== 'OPEN' && b.status === 'OPEN') return 1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
   const incomingOrders = incomingData?.orders || [];
   const activities = activitiesData?.activities || [];
   const [editingActivity, setEditingActivity] = useState<any>(null);
@@ -288,6 +292,7 @@ export function DonationCenterDashboardPage() {
 
         {activeTab === 'ACTIVITIES' ? (
           <div className="space-y-6">
+            {/* ... (Activities content stays same) */}
             {activities.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300">
                 <div className="text-5xl mb-4">📸</div>
@@ -298,54 +303,23 @@ export function DonationCenterDashboardPage() {
               <div className="grid md:grid-cols-2 gap-6">
                 {activities.map((a: any) => (
                   <div key={a.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all">
-                    {/* Card Header */}
                     <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{new Date(a.createdAt).toLocaleDateString()}</span>
                       </div>
                       <div className="flex gap-1">
-                        <button 
-                          onClick={() => shareToFB(a)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Share to Facebook"
-                        >
-                          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                            <path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z" />
-                          </svg>
+                        <button onClick={() => shareToFB(a)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Share to Facebook">
+                          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z" /></svg>
                         </button>
-                        <button 
-                          onClick={() => setEditingActivity(a)}
-                          className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                          title="Edit story"
-                        >
-                          ✏️
-                        </button>
-                        <button 
-                          onClick={() => {
-                            if (confirm('Delete this story?')) {
-                              api.delete(`/activities/${a.id}`).then(() => qc.invalidateQueries({ queryKey: ['center-activities'] }));
-                            }
-                          }}
-                          className="p-1.5 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete story"
-                        >
-                          🗑️
-                        </button>
+                        <button onClick={() => setEditingActivity(a)} className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors" title="Edit story">✏️</button>
+                        <button onClick={() => { if (confirm('Delete this story?')) api.delete(`/activities/${a.id}`).then(() => qc.invalidateQueries({ queryKey: ['center-activities'] })); }} className="p-1.5 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete story">🗑️</button>
                       </div>
                     </div>
-
-                    {/* Content Area */}
                     <div className="p-4">
-                      {a.request && (
-                        <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 text-orange-600 rounded-full text-[10px] font-bold border border-orange-100 uppercase tracking-tight">
-                          <span>🤝</span> {a.request.title.replace('Fundraising for:', '')}
-                        </div>
-                      )}
+                      {a.request && <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 text-orange-600 rounded-full text-[10px] font-bold border border-orange-100 uppercase tracking-tight"><span>🤝</span> {a.request.title.replace('Fundraising for:', '')}</div>}
                       <h3 className="text-base font-bold text-gray-900 mb-1">{a.title}</h3>
                       <p className="text-xs text-gray-600 line-clamp-2">{a.content}</p>
                     </div>
-
-                    {/* Image Grid */}
                     <div className="mt-auto border-t border-gray-100">
                       <ImageGrid images={a.images || []} />
                     </div>
@@ -355,56 +329,40 @@ export function DonationCenterDashboardPage() {
             )}
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-6">
-            {requests.length === 0 ? (
-              <div className="col-span-2 text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300">
-                <div className="text-5xl mb-4">📝</div>
-                <h3 className="text-xl font-bold text-gray-900">No requests yet</h3>
-                <p className="text-gray-500">Create a food request to start receiving help from the community.</p>
+          <div className="space-y-12">
+            {/* Active Requests Section */}
+            <section>
+              <div className="flex items-center gap-3 mb-6">
+                 <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center text-sm">🔥</span>
+                 <h3 className="text-lg font-black text-gray-900 uppercase tracking-wider">Active Requests</h3>
               </div>
-            ) : (
-              requests.map((r: any) => (
-                <div 
-                  key={r.id} 
-                  onClick={() => setSelectedRequest(r)}
-                  className="group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-1"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900 group-hover:text-orange-600 transition-colors">{r.title.replace('Fundraising for:', 'Request for:')}</h3>
-                      <p className="text-sm text-gray-500 line-clamp-1">{r.description}</p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${r.status === 'OPEN' ? 'bg-orange-100 text-orange-700 shadow-sm shadow-orange-100' : 'bg-green-100 text-green-700 shadow-sm shadow-green-100'}`}>
-                      {r.status}
-                    </span>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                {requests.filter((r: any) => r.status === 'OPEN').length === 0 ? (
+                  <div className="col-span-2 text-center py-12 bg-white rounded-3xl border border-dashed border-gray-200">
+                    <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">No active requests at the moment</p>
                   </div>
-                  <ProgressBar 
-                    raised={Number(r.raisedAmount)} 
-                    target={Number(r.targetAmount)} 
-                    fulfilledQty={r.fulfilledQty}
-                    targetQty={r.targetQty}
-                  />
+                ) : (
+                  requests.filter((r: any) => r.status === 'OPEN').map((r: any) => (
+                    <RequestCard key={r.id} r={r} onClick={() => setSelectedRequest(r)} />
+                  ))
+                )}
+              </div>
+            </section>
 
-                  <div className="mt-6 flex items-center justify-between">
-                    <div className="flex -space-x-2">
-                      {r.donations?.slice(0, 5).map((d: any, i: number) => (
-                        <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-orange-100 flex items-center justify-center text-[10px] font-bold text-orange-700">
-                          {d.customer.name[0]}
-                        </div>
-                      ))}
-                      {r.donations?.length > 5 && (
-                        <div className="w-8 h-8 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500">
-                          +{r.donations.length - 5}
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-xs font-bold text-orange-600 group-hover:underline flex items-center gap-1">
-                      View Details <span>→</span>
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
+            {/* Completed Requests Section */}
+            <section>
+              <div className="flex items-center gap-3 mb-6">
+                 <span className="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-sm">✅</span>
+                 <h3 className="text-lg font-black text-gray-500 uppercase tracking-wider">Completed Requests</h3>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6 opacity-80 hover:opacity-100 transition-opacity">
+                {requests.filter((r: any) => r.status === 'FULFILLED').map((r: any) => (
+                  <RequestCard key={r.id} r={r} onClick={() => setSelectedRequest(r)} isCompleted />
+                ))}
+              </div>
+            </section>
           </div>
         )}
 
@@ -427,6 +385,49 @@ export function DonationCenterDashboardPage() {
         defaultTitle={creatingStoryFor ? `Success Story: ${creatingStoryFor.title.replace('Fundraising for:', '')}` : ''}
         requestId={creatingStoryFor?.id || editingActivity?.requestId}
       />
+    </div>
+  );
+}
+
+function RequestCard({ r, onClick, isCompleted }: { r: any; onClick: () => void; isCompleted?: boolean }) {
+  return (
+    <div 
+      onClick={onClick}
+      className={`group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-1 ${isCompleted ? 'grayscale-[0.5]' : ''}`}
+    >
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900 group-hover:text-orange-600 transition-colors">{r.title.replace('Fundraising for:', 'Request for:')}</h3>
+          <p className="text-sm text-gray-500 line-clamp-1">{r.description}</p>
+        </div>
+        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${r.status === 'OPEN' ? 'bg-orange-100 text-orange-700 shadow-sm shadow-orange-100' : 'bg-green-100 text-green-700 shadow-sm shadow-green-100'}`}>
+          {r.status}
+        </span>
+      </div>
+      <ProgressBar 
+        raised={Number(r.raisedAmount)} 
+        target={Number(r.targetAmount)} 
+        fulfilledQty={r.fulfilledQty}
+        targetQty={r.targetQty}
+      />
+
+      <div className="mt-6 flex items-center justify-between">
+        <div className="flex -space-x-2">
+          {r.donations?.slice(0, 5).map((d: any, i: number) => (
+            <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-orange-100 flex items-center justify-center text-[10px] font-bold text-orange-700">
+              {d.customer.name[0]}
+            </div>
+          ))}
+          {r.donations?.length > 5 && (
+            <div className="w-8 h-8 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500">
+              +{r.donations.length - 5}
+            </div>
+          )}
+        </div>
+        <span className="text-xs font-bold text-orange-600 group-hover:underline flex items-center gap-1">
+          View Details <span>→</span>
+        </span>
+      </div>
     </div>
   );
 }

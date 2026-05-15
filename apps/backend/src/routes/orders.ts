@@ -122,6 +122,17 @@ router.post('/', requireAuth, ah(async (req: any, res) => {
   const total = subtotal + deliveryFee;
 
   const order = await prisma.$transaction(async (tx) => {
+    const totalSoldAggregate = await tx.orderItem.aggregate({
+      where: {
+        providerId,
+        order: { status: { in: ['PAID', 'READY_FOR_PICKUP', 'DELIVERED', 'COMPLETED'] } }
+      },
+      _sum: { qty: true }
+    });
+    const totalQtySold = totalSoldAggregate._sum.qty || 0;
+    const isOverLimit = totalQtySold >= 50;
+    const commissionAmount = isOverLimit ? (total * 0.02) : 0;
+
     const o = await tx.order.create({
       data: {
         buyerId: req.user!.sub,
@@ -137,7 +148,9 @@ router.post('/', requireAuth, ah(async (req: any, res) => {
         city: body.city,
         deliveryFee: deliveryFee.toFixed(2),
         subtotal: subtotal.toFixed(2),
-        total: total.toFixed(2)
+        total: total.toFixed(2),
+        commissionAmount: commissionAmount.toFixed(2),
+        isCommissionApplied: isOverLimit
       }
     });
     for (const item of body.items) {

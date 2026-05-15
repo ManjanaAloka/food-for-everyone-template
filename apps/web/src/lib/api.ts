@@ -20,11 +20,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      console.warn('⚠️ 401 Unauthorized received. Clearing token and reloading.');
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
-      accessToken = null;
-      window.location.href = '/login'; // Redirect to login
+      // Don't auto-logout if we're already trying to refresh or login
+      const isAuthRoute = error.config.url?.includes('/auth/refresh') || error.config.url?.includes('/auth/login');
+      
+      if (!isAuthRoute) {
+        console.warn('⚠️ 401 Unauthorized received. Session might have expired.');
+        // Optionally we could trigger a refresh here instead of immediate logout
+        // For now, increasing TTL to 30d is the primary fix.
+      }
     }
     return Promise.reject(error);
   }
