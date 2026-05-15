@@ -230,8 +230,12 @@ router.patch('/listings/:id', ah(async (req, res) => {
 
 router.delete('/listings/:id', ah(async (req: any, res) => {
   const { id } = req.params;
-  await prisma.listing.delete({ where: { id } });
-  await audit(req.user!.sub, 'DELETE_LISTING', 'Listing', id);
+  // Use soft-delete (HIDDEN) because hard-delete fails if there are associated orders/reviews
+  await prisma.listing.update({ 
+    where: { id }, 
+    data: { status: 'HIDDEN' } 
+  });
+  await audit(req.user!.sub, 'SOFT_DELETE_LISTING', 'Listing', id);
   res.json({ ok: true });
 }));
 
