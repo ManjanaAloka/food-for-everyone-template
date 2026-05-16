@@ -20,6 +20,16 @@ export function CheckoutPage() {
 
   const centersQ = useQuery({ queryKey: ['centers'], queryFn: async () => (await api.get('/donation-centers')).data, enabled: true });
   const profileQ = useQuery({ queryKey: ['customerMe'], queryFn: async () => (await api.get('/customers/me')).data, enabled: true });
+  const donationsQ = useQuery({ queryKey: ['activeDonations'], queryFn: async () => (await api.get('/donations')).data, enabled: true });
+
+  const validCenterIds = new Set(
+    donationsQ.data?.requests
+      ?.filter((req: any) => items.some(item => item.listingId === req.listingId))
+      .map((req: any) => req.centerId) || []
+  );
+  
+  const availableCenters = centersQ.data?.centers?.filter((c: any) => validCenterIds.has(c.userId)) || [];
+
   const [editingAddress, setEditingAddress] = useState(false);
 
   const { register, handleSubmit, watch, reset, setValue } = useForm<Form>({ defaultValues: { type: 'PERSONAL', fulfillmentMode: 'PICKUP', paymentMethod: 'ONLINE' } });
@@ -227,7 +237,10 @@ export function CheckoutPage() {
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Donation Center</label>
                     <select {...register('donationCenterId', { required: true })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
                       <option value="">Select a center</option>
-                      {centersQ.data?.centers?.map((c: any) => <option key={c.userId} value={c.userId}>{c.name}</option>)}
+                      {availableCenters.length > 0 
+                        ? availableCenters.map((c: any) => <option key={c.userId} value={c.userId}>{c.name}</option>)
+                        : <option value="" disabled>No active requests for these items</option>
+                      }
                     </select>
                     <p className="text-sm text-gray-500 mt-2">💡 Donations require Online payment.</p>
                   </div>
@@ -281,23 +294,29 @@ export function CheckoutPage() {
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <label className="block text-sm font-semibold text-gray-700">Address (for delivery) *</label>
-                        {paymentMethod === 'COD' && (
+                        {paymentMethod === 'COD' && type !== 'DONATION' && (
                           <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-md font-bold uppercase">Locked to Profile</span>
+                        )}
+                        {type === 'DONATION' && (
+                          <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-1 rounded-md font-bold uppercase">Locked to Center</span>
                         )}
                       </div>
                       <input 
                         {...register('addressLine', { required: true })} 
                         placeholder="Street address" 
-                        readOnly={paymentMethod === 'COD'}
-                        className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${paymentMethod === 'COD' ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''}`} 
+                        readOnly={paymentMethod === 'COD' || type === 'DONATION'}
+                        className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${(paymentMethod === 'COD' || type === 'DONATION') ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''}`} 
                       />
-                      {paymentMethod === 'COD' && (
+                      {paymentMethod === 'COD' && type !== 'DONATION' && (
                         <p className="text-[10px] text-gray-500 mt-1 italic">For security, COD is only available for your registered profile address.</p>
+                      )}
+                      {type === 'DONATION' && (
+                        <p className="text-[10px] text-orange-600 mt-1 italic font-bold">Delivery is strictly sent to the selected Donation Center.</p>
                       )}
                     </div>
                     
                     {/* Map Picker */}
-                    {paymentMethod !== 'COD' && (
+                    {paymentMethod !== 'COD' && type !== 'DONATION' && (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-semibold text-gray-700">Delivery Location</span>

@@ -91,7 +91,15 @@ export function MyOrdersPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="space-y-4">
             {currentItems.map((o: any) => {
-              if (o.isDonationOnly) {
+              if (o.isDonationOnly || o.type === 'DONATION') {
+                const isCartDonation = o.type === 'DONATION';
+                const title = isCartDonation 
+                  ? o.items.map((it: any) => it.listing?.title).join(', ')
+                  : o.donationRequest?.title;
+                const itemsCount = isCartDonation
+                  ? o.items.reduce((acc: number, it: any) => acc + (it.qty || 0), 0)
+                  : (o.amount / (o.donationRequest?.listing?.discountPrice || 150)).toFixed(0);
+
                 return (
                   <div
                     key={o.id}
@@ -103,7 +111,7 @@ export function MyOrdersPage() {
                       </div>
                       <div>
                         <div className="font-bold text-gray-900 line-clamp-1">
-                          Donated to: {o.donationRequest.title}
+                          Donated: {title}
                         </div>
                         <div className="text-xs text-orange-600 font-bold mb-1">Impact Donation</div>
                         <div className="flex items-center gap-2">
@@ -111,7 +119,7 @@ export function MyOrdersPage() {
                             {o.status}
                           </span>
                           <span className="text-sm text-orange-700 font-black">
-                            {(o.amount / (o.donationRequest.listing?.discountPrice || 150)).toFixed(0)} Items Donated
+                            {itemsCount} Items Donated
                           </span>
                           <span className="text-[10px] text-gray-400 font-medium">
                             {new Date(o.createdAt).toLocaleString()}
@@ -121,7 +129,20 @@ export function MyOrdersPage() {
                     </div>
                     <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-orange-100">
                       <button
-                        onClick={() => setSelectedDonation(o)}
+                        onClick={() => {
+                          if (isCartDonation) {
+                            setSelectedDonation({
+                              ...o,
+                              amount: o.total,
+                              donationRequest: {
+                                title: title,
+                                listing: { discountPrice: o.items[0]?.price || 150 }
+                              }
+                            });
+                          } else {
+                            setSelectedDonation(o);
+                          }
+                        }}
                         className="text-orange-600 font-bold text-sm flex items-center gap-1 hover:underline"
                       >
                         View Impact <span className="text-lg">→</span>
@@ -166,18 +187,12 @@ export function MyOrdersPage() {
                         }`}>
                           {o.status}
                         </span>
-                        {o.type === 'DONATION' ? (
-                          <span className="text-sm text-orange-700 font-black flex items-center gap-1">
-                            📦 {o.items.reduce((acc: number, it: any) => acc + (it.qty || 0), 0)} Items
-                          </span>
-                        ) : (
                           <div className="flex items-center gap-3">
                              <span className="text-sm text-green-700 font-black flex items-center gap-1">
                                📦 {o.items.reduce((acc: number, it: any) => acc + (it.qty || 0), 0)} Items
                              </span>
                              <span className="text-sm text-gray-500 font-medium">LKR {Number(o.total).toFixed(2)}</span>
                           </div>
-                        )}
                       </div>
                     </div>
                   </div>
