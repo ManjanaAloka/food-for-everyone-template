@@ -4,6 +4,7 @@ import { api } from '../../lib/api';
 import { useState, useRef } from 'react';
 import { useAuth } from '../../state/auth';
 import html2canvas from 'html2canvas';
+import { IoBagHandleOutline, IoHeartOutline } from 'react-icons/io5';
 
 
 export function MyOrdersPage() {
@@ -13,7 +14,9 @@ export function MyOrdersPage() {
   const [selectedDonation, setSelectedDonation] = useState<any>(null);
   const [downloading, setDownloading] = useState(false);
   const storyRef = useRef<HTMLDivElement>(null);
-  const itemsPerPage = 5;
+  const itemsPerPage = 8;
+  const [activeTab, setActiveTab] = useState<'PERSONAL' | 'DONATION'>('PERSONAL');
+  const isDonationAccount = user?.role === 'DONATION_CENTER';
 
   const downloadStory = async () => {
     if (!storyRef.current) return;
@@ -51,6 +54,7 @@ export function MyOrdersPage() {
     ...d,
     isDonationOnly: true,
     total: d.amount,
+    provider: d.donationRequest?.listing?.provider,
     items: [{ listing: { title: d.donationRequest.title, images: [] } }]
   }));
 
@@ -58,9 +62,15 @@ export function MyOrdersPage() {
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  const totalPages = Math.ceil(allTransactions.length / itemsPerPage);
+  const filteredTransactions = allTransactions.filter(t => {
+    if (isDonationAccount) return true; // Show all for center
+    if (activeTab === 'PERSONAL') return t.type === 'PERSONAL';
+    return t.type === 'DONATION' || t.isDonationOnly;
+  });
+
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentItems = allTransactions.slice(startIndex, startIndex + itemsPerPage);
+  const currentItems = filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
 
   if (!allTransactions.length) {
     return (
@@ -81,14 +91,52 @@ export function MyOrdersPage() {
     <div className="min-h-screen bg-gray-50 pt-20 pb-12">
       <div className="max-w-4xl mx-auto px-6">
         <div className="mb-8">
-          <div className="inline-block bg-green-100 rounded-full px-6 py-2 mb-4">
-            <span className="text-green-700 font-semibold text-sm">📦 My Orders</span>
+          <div className={`inline-flex items-center gap-2 rounded-full px-5 py-2 mb-4 ${
+            isDonationAccount || activeTab === 'DONATION' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-green-50 text-green-600 border border-green-100'
+          }`}>
+            <span className="text-lg">
+              {isDonationAccount || activeTab === 'DONATION' ? <IoHeartOutline /> : <IoBagHandleOutline />}
+            </span>
+            <span className="font-black text-[10px] uppercase tracking-widest">
+              {isDonationAccount || activeTab === 'DONATION' ? 'My Impact Donations' : 'My Personal Orders'}
+            </span>
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Order History</h1>
-          <p className="text-xl text-gray-600">View your recent orders and track their status</p>
+          <h1 className="text-4xl font-black text-slate-800 mb-3 tracking-tight">
+            {isDonationAccount || activeTab === 'DONATION' ? 'Donation History' : 'Order History'}
+          </h1>
+          <p className="text-lg text-slate-500 font-medium">
+            {isDonationAccount || activeTab === 'DONATION'
+              ? 'Review your contributions and the lives you have touched' 
+              : 'Keep track of your recent food orders and their delivery status'}
+          </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        {!isDonationAccount && (
+          <div className="flex gap-2 mb-6 bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100">
+            <button
+              onClick={() => { setActiveTab('PERSONAL'); setCurrentPage(1); }}
+              className={`flex-1 py-4 px-6 rounded-xl text-sm font-black transition-all duration-300 flex items-center justify-center gap-2 ${
+                activeTab === 'PERSONAL' 
+                  ? 'bg-green-600 text-white shadow-xl shadow-green-100' 
+                  : 'text-slate-400 hover:bg-slate-50'
+              }`}
+            >
+              <IoBagHandleOutline className="text-xl" /> Order History
+            </button>
+            <button
+              onClick={() => { setActiveTab('DONATION'); setCurrentPage(1); }}
+              className={`flex-1 py-4 px-6 rounded-xl text-sm font-black transition-all duration-300 flex items-center justify-center gap-2 ${
+                activeTab === 'DONATION' 
+                  ? 'bg-orange-500 text-white shadow-xl shadow-orange-100' 
+                  : 'text-slate-400 hover:bg-slate-50'
+              }`}
+            >
+              <IoHeartOutline className="text-xl" /> Donation History
+            </button>
+          </div>
+        )}
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           <div className="space-y-4">
             {currentItems.map((o: any) => {
               if (o.isDonationOnly || o.type === 'DONATION') {
@@ -127,26 +175,45 @@ export function MyOrdersPage() {
                         </div>
                       </div>
                     </div>
+
+                    {o.provider?.businessName && (
+                      <div className="hidden md:flex flex-1 items-center justify-center">
+                        <div className="px-3 py-1 bg-orange-100/50 rounded-lg border border-orange-100 flex items-center gap-2">
+                          <span className="text-orange-600 text-sm">🏪</span>
+                          <span className="text-[11px] text-orange-700 font-black uppercase tracking-wider">{o.provider.businessName}</span>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-orange-100">
-                      <button
-                        onClick={() => {
-                          if (isCartDonation) {
-                            setSelectedDonation({
-                              ...o,
-                              amount: o.total,
-                              donationRequest: {
-                                title: title,
-                                listing: { discountPrice: o.items[0]?.price || 150 }
-                              }
-                            });
-                          } else {
-                            setSelectedDonation(o);
-                          }
-                        }}
-                        className="text-orange-600 font-bold text-sm flex items-center gap-1 hover:underline"
-                      >
-                        View Impact <span className="text-lg">→</span>
-                      </button>
+                      {isDonationAccount ? (
+                        <button
+                          onClick={() => nav(`/orders/${o.id}`)}
+                          className="text-orange-600 font-bold text-sm flex items-center gap-1 hover:underline"
+                        >
+                          View Receipt <span className="text-lg">→</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (isCartDonation) {
+                              setSelectedDonation({
+                                ...o,
+                                amount: o.total,
+                                donationRequest: {
+                                  title: title,
+                                  listing: { discountPrice: o.items[0]?.price || 150 }
+                                }
+                              });
+                            } else {
+                              setSelectedDonation(o);
+                            }
+                          }}
+                          className="text-orange-600 font-bold text-sm flex items-center gap-1 hover:underline"
+                        >
+                          View Impact <span className="text-lg">→</span>
+                        </button>
+                      )}
                       <div className="text-[10px] text-orange-400 font-medium italic">
                         Thank You! ❤️
                       </div>
@@ -196,6 +263,16 @@ export function MyOrdersPage() {
                       </div>
                     </div>
                   </div>
+
+                  {o.provider?.businessName && (
+                    <div className="hidden md:flex flex-1 items-center justify-center">
+                      <div className="px-3 py-1 bg-slate-50 rounded-lg border border-slate-100 flex items-center gap-2">
+                        <span className="text-slate-400 text-sm">🏪</span>
+                        <span className="text-[11px] text-slate-600 font-black uppercase tracking-wider">{o.provider.businessName}</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100">
                     <div className="text-green-600 font-bold text-sm flex items-center gap-1">
                       Details <span className="text-lg">→</span>

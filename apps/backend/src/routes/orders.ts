@@ -68,7 +68,17 @@ router.get('/:id', requireAuth, ah(async (req: any, res) => {
     include: { 
       items: {
         include: {
-          listing: true
+          listing: {
+            include: {
+              provider: {
+                include: {
+                  user: {
+                    select: { phone: true }
+                  }
+                }
+              }
+            }
+          }
         }
       }, 
       payment: true,
@@ -114,7 +124,8 @@ router.get('/', requireAuth, ah(async (req: any, res) => {
         include: {
           listing: true
         }
-      }
+      },
+      provider: true
     },
     orderBy: { createdAt: 'desc' }
   });

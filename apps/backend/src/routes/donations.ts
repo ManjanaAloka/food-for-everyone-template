@@ -38,7 +38,9 @@ router.get('/my/history', requireAuth, ah(async (req: any, res) => {
     include: { 
       donationRequest: { 
         include: { 
-          listing: { select: { discountPrice: true } } 
+          listing: { 
+            include: { provider: true }
+          } 
         } 
       } 
     },

@@ -6,7 +6,7 @@ import { NotificationsDropdown } from './NotificationsDropdown';
 import { 
   IoGridOutline, IoTrendingUpOutline, IoBusinessOutline, IoRestaurantOutline, 
   IoAddCircleOutline, IoBagHandleOutline, IoStarOutline, IoPersonOutline, 
-  IoEarthOutline, IoLogOutOutline, IoCartOutline, IoStorefrontOutline, IoHeartOutline 
+  IoEarthOutline, IoLogOutOutline, IoCartOutline, IoStorefrontOutline, IoHeartOutline, IoTimeOutline
 } from 'react-icons/io5';
 
 interface UserLayoutProps {
@@ -30,7 +30,12 @@ export function UserLayout({ children }: UserLayoutProps) {
     { label: 'Add Listing', path: '/provider/listings/new', icon: <IoAddCircleOutline />, roles: ['PROVIDER'] },
 
     // 3. Transactions & Impact
-    { label: 'My Orders', path: '/orders', icon: <IoBagHandleOutline />, roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] },
+    { 
+      label: user?.role === 'DONATION_CENTER' ? 'My Donations' : (user?.role === 'CUSTOMER' ? 'History' : 'My Orders'), 
+      path: '/orders', 
+      icon: user?.role === 'DONATION_CENTER' ? <IoHeartOutline /> : (user?.role === 'CUSTOMER' ? <IoTimeOutline /> : <IoBagHandleOutline />), 
+      roles: ['CUSTOMER', 'PROVIDER', 'DONATION_CENTER'] 
+    },
     { label: 'Reviews', path: '/provider/reviews', icon: <IoStarOutline />, roles: ['PROVIDER'] },
     
     // 4. Analytics & Settings

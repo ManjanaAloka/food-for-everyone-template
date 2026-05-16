@@ -109,7 +109,7 @@ export function OrderDetailPage() {
         </div>
       </div>
       {/* Customer / Donation Center Details Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 print:hidden">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 print:hidden">
         {/* Fulfillment Details */}
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col h-full">
           <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -168,22 +168,43 @@ export function OrderDetailPage() {
         {/* Recipient Details */}
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
           <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-            👤 Recipient Details
+            {user?.role === 'DONATION_CENTER' ? '💝 Donor Details' : '👤 Recipient Details'}
           </h3>
-          {o.type === 'DONATION' && o.donationCenter ? (
+          {o.type === 'DONATION' && (user?.role === 'DONATION_CENTER' || o.donationCenter) ? (
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Center:</span>
-                <span className="font-bold text-emerald-700">{o.donationCenter.name}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Contact:</span>
-                <span className="font-bold text-gray-900">{o.donationCenter.user.name}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Phone:</span>
-                <a href={`tel:${o.donationCenter.user.phone}`} className="font-bold text-blue-600 hover:underline">{o.donationCenter.user.phone}</a>
-              </div>
+              {user?.role === 'DONATION_CENTER' ? (
+                // If I am the donation center, show me the donor (buyer) info
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Donor Name:</span>
+                    <span className="font-bold text-gray-900">{o.buyer?.name}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Donor Phone:</span>
+                    <a href={`tel:${o.buyer?.phone}`} className="font-bold text-blue-600 hover:underline">{o.buyer?.phone}</a>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Donor Email:</span>
+                    <span className="font-bold text-gray-900">{o.buyer?.email}</span>
+                  </div>
+                </>
+              ) : (
+                // If I am the customer/donor, show me the center info
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Center:</span>
+                    <span className="font-bold text-emerald-700">{o.donationCenter?.name}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Contact:</span>
+                    <span className="font-bold text-gray-900">{o.donationCenter?.user.name}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Phone:</span>
+                    <a href={`tel:${o.donationCenter?.user.phone}`} className="font-bold text-blue-600 hover:underline">{o.donationCenter?.user.phone}</a>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -202,6 +223,45 @@ export function OrderDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Provider Details - Visible for Customers and Donation Centers */}
+        {user?.role !== 'PROVIDER' && (
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-all duration-300">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-50 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-110" />
+            
+            <h3 className="text-sm font-black text-orange-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <span className="p-2 bg-orange-100 rounded-lg text-lg">🏪</span> 
+              Provider Details
+            </h3>
+            
+            <div className="space-y-4 relative z-10">
+              {(() => {
+                const providers = Array.from(new Set(o.items.map((it: any) => it.listing?.provider?.id)))
+                  .map(id => o.items.find((it: any) => it.listing?.provider?.id === id)?.listing?.provider)
+                  .filter(Boolean);
+                
+                return (
+                  <div className="space-y-3">
+                    {providers.map((p: any) => (
+                      <div key={p.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Source Provider</p>
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-slate-800">{p.businessName}</span>
+                          <a 
+                            href={`tel:${p.user?.phone || p.phone}`} 
+                            className="text-xs bg-white px-3 py-1 rounded-full border border-slate-200 text-blue-600 font-bold hover:bg-blue-50 transition-colors"
+                          >
+                            📞 {p.user?.phone || p.phone || 'N/A'}
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-3 mb-6 print:hidden">
@@ -217,8 +277,11 @@ export function OrderDetailPage() {
                 <img src={mainImage} alt={l?.title} className="w-full h-full object-cover" />
               </div>
               <div className="flex-1">
-                <div className="font-bold text-gray-900">{l?.title || it.listingId}</div>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex justify-between items-start">
+                  <div className="font-bold text-gray-900">{l?.title || it.listingId}</div>
+
+                </div>
+                <div className="flex items-center gap-3 mt-1">
                   <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600 font-bold">Qty: {it.qty}</span>
                   <span className="text-xs text-green-700 font-bold">LKR {Number(it.unitPrice).toFixed(2)} / unit</span>
                 </div>
@@ -516,11 +579,23 @@ export function OrderDetailPage() {
         {/* Info Grid */}
         <div className="grid grid-cols-2 gap-12 mb-10">
           <div>
-            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Recipient Details</h3>
+            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+              {user?.role === 'DONATION_CENTER' ? 'Donor Details' : 'Recipient Details'}
+            </h3>
             <div className="space-y-1 text-sm">
-              <p className="text-lg font-bold text-gray-900">{o.buyer?.name || o.donationCenter?.name}</p>
-              <p className="text-gray-600">{o.buyer?.email || o.donationCenter?.user?.email}</p>
-              <p className="text-gray-600">{o.buyer?.phone || o.donationCenter?.user?.phone}</p>
+              {user?.role === 'DONATION_CENTER' ? (
+                <>
+                  <p className="text-lg font-bold text-gray-900">{o.buyer?.name}</p>
+                  <p className="text-gray-600">{o.buyer?.email}</p>
+                  <p className="text-gray-600">{o.buyer?.phone}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg font-bold text-gray-900">{o.buyer?.name || o.donationCenter?.name}</p>
+                  <p className="text-gray-600">{o.buyer?.email || o.donationCenter?.user?.email}</p>
+                  <p className="text-gray-600">{o.buyer?.phone || o.donationCenter?.user?.phone}</p>
+                </>
+              )}
               {o.addressLine && (
                 <p className="mt-2 text-gray-900 font-medium italic border-l-2 border-green-200 pl-3">
                   {o.addressLine}, {o.city}
@@ -567,7 +642,12 @@ export function OrderDetailPage() {
                 <tr key={it.id}>
                   <td className="py-5">
                     <p className="font-bold text-gray-900 text-lg">{it.listing?.title}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Product ID: {it.listingId}</p>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">ID: {it.listingId}</p>
+                      {it.listing?.provider?.businessName && (
+                        <p className="text-[10px] text-orange-600 font-black uppercase tracking-wider">{it.listing.provider.businessName} {it.listing.provider.user?.phone || it.listing.provider.phone ? `(${it.listing.provider.user?.phone || it.listing.provider.phone})` : ''}</p>
+                      )}
+                    </div>
                   </td>
                   <td className="py-5 text-center font-bold text-gray-900 text-lg">{it.qty}</td>
                   <td className="py-5 text-right text-gray-500 font-medium">LKR {Number(it.unitPrice).toFixed(2)}</td>

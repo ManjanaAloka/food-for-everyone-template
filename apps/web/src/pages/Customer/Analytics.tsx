@@ -19,8 +19,8 @@ export function CustomerAnalyticsPage() {
   const [toDate, setToDate] = useState('');
 
   const { data: analytics, isLoading } = useQuery({ 
-    queryKey: ['customerAnalytics', fromDate, toDate], 
-    queryFn: async () => (await api.get('/reports/customer', { params: { from: fromDate, to: toDate } })).data
+    queryKey: [user?.role === 'DONATION_CENTER' ? 'centerAnalytics' : 'customerAnalytics', fromDate, toDate], 
+    queryFn: async () => (await api.get(user?.role === 'DONATION_CENTER' ? '/reports/donation-center' : '/reports/customer', { params: { from: fromDate, to: toDate } })).data
   });
 
   const { isLoaded } = useJsApiLoader({
@@ -35,7 +35,12 @@ export function CustomerAnalyticsPage() {
     </div>
   );
 
+  if (user?.role === 'DONATION_CENTER') {
+    return <DonationCenterAnalytics data={analytics} fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate} user={user} />;
+  }
+
   const foodSaved = analytics?.foodSavedKg || 0;
+  // ... rest of the existing customer view ...
   let impactTier = "Seedling Starter";
   if (foodSaved > 100) impactTier = "Platinum Elite";
   else if (foodSaved > 50) impactTier = "Gold Champion";
@@ -355,6 +360,168 @@ export function CustomerAnalyticsPage() {
           <div className="mt-8 flex gap-8 grayscale opacity-50">
              <div className="h-8 w-px bg-slate-200" />
              <p className="text-[9px] font-black text-slate-400">FS-AUDIT-CERTIFIED</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DonationCenterAnalytics({ data, fromDate, setFromDate, toDate, setToDate, user }: any) {
+  const summary = data?.summary || {};
+  const donorStats = data?.donorStats || {};
+  const financials = data?.financials || {};
+  const operational = data?.operational || {};
+  const impact = data?.impact || {};
+
+  return (
+    <div className="space-y-8 pb-20 animate-fadeIn">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
+        <div>
+          <h1 className="text-4xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+            <span className="text-5xl text-orange-500"><IoTrendingUpOutline /></span> Center Analytics
+          </h1>
+          <p className="text-slate-500 font-bold mt-1 italic uppercase tracking-widest text-[11px]">Comprehensive Impact & Growth Audit</p>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-3 bg-white p-2.5 rounded-[24px] border-2 border-slate-100 shadow-sm">
+          <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl">
+             <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest focus:ring-0 outline-none" />
+             <span className="text-slate-300 font-black">→</span>
+             <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest focus:ring-0 outline-none" />
+          </div>
+          <button onClick={() => window.print()} className="px-8 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:scale-105 transition-all shadow-xl flex items-center gap-3">
+            <IoDocumentTextOutline size={22} /> Generate Report
+          </button>
+        </div>
+      </div>
+
+      {/* 01. Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Total Funds Raised', value: `LKR ${summary.totalFunds?.toLocaleString()}`, icon: <IoCashOutline />, color: 'text-orange-600', bg: 'bg-orange-50' },
+          { label: 'Active Donors', value: summary.donorCount, icon: <HiHand />, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Beneficiaries Served', value: summary.beneficiariesServed, icon: <IoRestaurantOutline />, color: 'text-green-600', bg: 'bg-green-50' },
+          { label: 'Impact Score', value: `${summary.impactScore}/100`, icon: <IoHeartOutline />, color: 'text-red-600', bg: 'bg-red-50' },
+        ].map((s, idx) => (
+          <div key={idx} className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm hover:shadow-xl transition-all relative overflow-hidden group">
+            <div className={`w-14 h-14 ${s.bg} ${s.color} rounded-2xl flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform`}>
+              {s.icon}
+            </div>
+            <p className={`text-4xl font-black ${s.color} tracking-tighter`}>{s.value}</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* 1. Donor Analytics */}
+        <div className="bg-white p-10 rounded-[48px] border border-gray-100 shadow-sm">
+          <h2 className="text-2xl font-black text-slate-800 mb-8 uppercase flex items-center gap-3">
+            <span className="p-2 bg-blue-50 text-blue-600 rounded-lg"><HiHand /></span> 01. Donor Analytics
+          </h2>
+          <div className="grid grid-cols-2 gap-4 mb-8 text-center">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+               <p className="text-3xl font-black text-blue-600">{donorStats.retentionRate}%</p>
+               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Retention Rate</p>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+               <p className="text-3xl font-black text-indigo-600">{donorStats.newDonors}</p>
+               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">New Donors</p>
+            </div>
+          </div>
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={donorStats.topRegions} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={80} fill="#3b82f6" label>
+                  {donorStats.topRegions?.map((_: any, i: number) => <Cell key={`c-${i}`} fill={COLORS[i % COLORS.length]} />)}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4">Donor Geographic Distribution</p>
+        </div>
+
+        {/* 2. Donation & Financial */}
+        <div className="bg-white p-10 rounded-[48px] border border-gray-100 shadow-sm">
+          <h2 className="text-2xl font-black text-slate-800 mb-8 uppercase flex items-center gap-3">
+            <span className="p-2 bg-orange-50 text-orange-600 rounded-lg"><IoCashOutline /></span> 02. Financial Growth
+          </h2>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={financials.monthlyFunds}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900 }} />
+                <Tooltip />
+                <Area type="monotone" dataKey="amount" stroke="#f97316" fill="#ffedd5" strokeWidth={3} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-8 p-6 bg-slate-50 rounded-3xl border border-slate-100 flex justify-between items-center">
+             <div>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Avg Donation Value</p>
+               <p className="text-2xl font-black text-slate-800">LKR {summary.avgDonation}</p>
+             </div>
+             <div className="text-right">
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Growth</p>
+               <p className="text-2xl font-black text-green-600">+14.2%</p>
+             </div>
+          </div>
+        </div>
+
+        {/* 3. Operational & Efficiency */}
+        <div className="bg-white p-10 rounded-[48px] border border-gray-100 shadow-sm">
+          <h2 className="text-2xl font-black text-slate-800 mb-8 uppercase flex items-center gap-3">
+            <span className="p-2 bg-green-50 text-green-600 rounded-lg"><IoCubeOutline /></span> 03. Operational Efficiency
+          </h2>
+          <div className="space-y-6">
+            <div>
+              <div className="flex justify-between mb-2">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Fund Allocation Ratio (Direct Cause)</span>
+                <span className="text-sm font-black text-green-600">{financials.efficiency?.allocationRatio}%</span>
+              </div>
+              <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                <div className="bg-green-500 h-full" style={{ width: `${financials.efficiency?.allocationRatio}%` }}></div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 pt-4">
+               <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Inventory Turnover</p>
+                  <p className="text-3xl font-black text-slate-800">{operational.inventoryTurnoverDays} Days</p>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Avg fulfillment speed</p>
+               </div>
+               <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Cost Per LKR Raised</p>
+                  <p className="text-3xl font-black text-slate-800">LKR 0.05</p>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Admin/Marketing efficiency</p>
+               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Impact & Beneficiaries */}
+        <div className="bg-slate-900 p-10 rounded-[48px] text-white">
+          <h2 className="text-2xl font-black mb-8 uppercase flex items-center gap-3">
+            <span className="p-2 bg-white/10 text-red-400 rounded-lg"><IoHeartOutline /></span> 04. Social Impact
+          </h2>
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={impact.metrics}>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 900 }} />
+                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                <Bar dataKey="value" fill="#ef4444" radius={[8, 8, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-8 p-6 bg-white/5 rounded-3xl border border-white/10">
+             <p className="text-sm text-slate-300 font-medium leading-relaxed italic">
+               "Quantitative audit confirms that through the efficient allocation of donated resources, a total of <strong>{summary.beneficiariesServed}</strong> individuals have been directly empowered this period."
+             </p>
           </div>
         </div>
       </div>
