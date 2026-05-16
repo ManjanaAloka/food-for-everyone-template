@@ -136,7 +136,8 @@ router.get('/', requireAuth, ah(async (req: any, res) => {
           listing: true
         }
       },
-      provider: true
+      provider: true,
+      donationRequest: { select: { requestNumber: true } }
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -342,7 +343,8 @@ function canTransition(current: string, next: string, mode: string) {
 }
 async function notifyStatusChange(order: any, status: string, byCenter = false) {
   try {
-    const displayId = order.orderNumber ? `O-${order.orderNumber.toString().padStart(4, '0')}` : order.id;
+    const prefix = order.type === 'DONATION' ? 'D' : 'O';
+    const displayId = order.orderNumber ? `${prefix}-${order.orderNumber.toString().padStart(4, '0')}` : order.id;
     const subject = `Order ${displayId} status: ${status}`;
     const message = `Order <strong>${displayId}</strong> is now <strong>${status}</strong>.`;
     const msg = `<p>Status update for your order <strong>${displayId}</strong>: <strong>${status}</strong>.</p>`;

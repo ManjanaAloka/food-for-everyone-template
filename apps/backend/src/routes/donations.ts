@@ -40,7 +40,8 @@ router.get('/my/history', requireAuth, ah(async (req: any, res) => {
         include: { 
           listing: { 
             include: { provider: true }
-          } 
+          },
+          orders: { select: { orderNumber: true }, take: 1 }
         } 
       } 
     },
@@ -307,7 +308,7 @@ router.post('/webhook/stripe', express.raw({ type: 'application/json' }), ah(asy
           type: 'DONATION_RECEIVED',
           channel: 'IN_APP',
           payload: {
-            message: `❤️ New donation of LKR ${donation.amount} received for "${updatedRequest.title}"!`,
+            message: `❤️ New donation (D-${(donation as any).donationNumber?.toString().padStart(4, '0')}) of LKR ${donation.amount} received for "${updatedRequest.title}" (DR-${(updatedRequest as any).requestNumber?.toString().padStart(4, '0')})!`,
             action: 'VIEW_DONATION_DETAIL',
             requestId: updatedRequest.id
           }
@@ -367,7 +368,7 @@ router.post('/webhook/stripe', express.raw({ type: 'application/json' }), ah(asy
             type: 'DONATION_FULFILLED',
             channel: 'IN_APP',
             payload: {
-              message: `🎉 Your donation request "DR-${updatedRequest.requestNumber?.toString().padStart(4, '0')}" (${updatedRequest.title}) is fully funded!`,
+              message: `🎉 Your donation request "DR-${(updatedRequest as any).requestNumber?.toString().padStart(4, '0')}" (${updatedRequest.title}) is fully funded!`,
               action: 'VIEW_DONATION_DETAIL',
               requestId: updatedRequest.id
             }
@@ -386,7 +387,7 @@ router.post('/webhook/stripe', express.raw({ type: 'application/json' }), ah(asy
                 type: 'DONATION_ORDER_READY',
                 channel: 'IN_APP',
                 payload: {
-                  message: `🎁 Donation order for "${listing.title}" (DR-${updatedRequest.requestNumber?.toString().padStart(4, '0')}) has been fully funded!`,
+                  message: `🎁 Donation order for "${listing.title}" (DR-${(updatedRequest as any).requestNumber?.toString().padStart(4, '0')}) has been fully funded!`,
                   action: 'VIEW_ORDER_DETAIL',
                   requestId: updatedRequest.id
                 }

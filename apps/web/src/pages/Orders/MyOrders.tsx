@@ -211,9 +211,9 @@ export function MyOrdersPage() {
                       <div>
                         <div className="font-bold text-gray-900 line-clamp-1">{title}</div>
                         <div className="text-xs text-orange-500 font-bold font-mono mb-1">
-                          {isCartDonation
-                            ? `O-${o.orderNumber?.toString().padStart(4, '0') || '—'}`
-                            : `D-${o.donationNumber?.toString().padStart(4, '0') || '—'}`
+                          {o.isDonationOnly
+                            ? `D-${o.donationRequest?.orders?.[0]?.orderNumber?.toString().padStart(4, '0') || o.donationNumber?.toString().padStart(4, '0')}`
+                            : `D-${o.orderNumber?.toString().padStart(4, '0') || '—'}`
                           }
                           <span className="text-gray-400 ml-2 font-sans font-normal">
                             {new Date(o.createdAt).toLocaleString()}
