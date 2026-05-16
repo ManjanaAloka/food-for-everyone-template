@@ -8,7 +8,7 @@ import {
   IoBanOutline, IoShieldCheckmarkOutline, IoSettingsOutline, 
   IoStorefrontOutline, IoHeartOutline, IoPersonOutline, 
   IoBarChartOutline, IoCloseOutline, IoTrashOutline, 
-  IoArrowForwardOutline, IoGhostOutline 
+  IoArrowForwardOutline
 } from 'react-icons/io5';
 
 function BanModal({ user, onClose }: { user: any; onClose: () => void }) {
@@ -275,7 +275,7 @@ export function AdminUsersPage() {
             ))
           ) : (
             <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-              <span className="text-6xl mb-4 flex justify-center text-gray-300"><IoGhostOutline /></span>
+              <span className="text-6xl mb-4 flex justify-center text-gray-300"><IoPersonOutline /></span>
               <p className="text-gray-500 font-bold">No users match this role</p>
             </div>
           )}
