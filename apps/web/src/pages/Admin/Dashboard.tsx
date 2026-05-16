@@ -4,6 +4,11 @@ import { useAuth } from '../../state/auth';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { 
+  IoHandRightOutline, IoBarChartOutline, IoPeopleOutline, 
+  IoRestaurantOutline, IoCubeOutline, IoHourglassOutline, 
+  IoFlashOutline, IoStarOutline, IoPersonOutline, IoPlanetOutline 
+} from 'react-icons/io5';
 
 export function AdminDashboardPage() {
   const { accessToken, user } = useAuth();
@@ -190,7 +195,7 @@ export function AdminDashboardPage() {
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-green-600 to-emerald-700 rounded-3xl p-8 text-white shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name}! 👋</h1>
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">Welcome back, {user?.name}! <IoHandRightOutline className="text-yellow-300" /></h1>
           <p className="text-green-100">Here's what's happening on the FreshSave platform today.</p>
         </div>
         <button 
@@ -198,7 +203,7 @@ export function AdminDashboardPage() {
           disabled={isGenerating || statsQ.isLoading}
           className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/30 px-6 py-3 rounded-2xl font-bold transition-all flex items-center gap-2 whitespace-nowrap"
         >
-          {isGenerating ? '⏳ Generating...' : '📊 Generate System Report'}
+          {isGenerating ? <><IoHourglassOutline /> Generating...</> : <><IoBarChartOutline /> Generate System Report</>}
         </button>
       </div>
 
@@ -206,7 +211,7 @@ export function AdminDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-2xl">👥</div>
+            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-2xl text-blue-600"><IoPeopleOutline /></div>
             <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">Users</span>
           </div>
           <p className="text-3xl font-black text-gray-900">{statsQ.isLoading ? '...' : statsQ.data?.totalUsers || 0}</p>
@@ -215,7 +220,7 @@ export function AdminDashboardPage() {
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-2xl">🍽️</div>
+            <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-2xl text-green-600"><IoRestaurantOutline /></div>
             <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">Listings</span>
           </div>
           <p className="text-3xl font-black text-gray-900">{statsQ.isLoading ? '...' : statsQ.data?.totalListings || 0}</p>
@@ -224,7 +229,7 @@ export function AdminDashboardPage() {
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-2xl">📦</div>
+            <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-2xl text-purple-600"><IoCubeOutline /></div>
             <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg">Orders</span>
           </div>
           <p className="text-3xl font-black text-gray-900">{statsQ.isLoading ? '...' : statsQ.data?.totalOrders || 0}</p>
@@ -233,7 +238,7 @@ export function AdminDashboardPage() {
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-orange-100">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-2xl">⏳</div>
+            <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-2xl text-orange-600"><IoHourglassOutline /></div>
             <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-lg">Pending</span>
           </div>
           <p className="text-3xl font-black text-orange-600">{pendingCount}</p>
@@ -244,7 +249,7 @@ export function AdminDashboardPage() {
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Quick Actions / Shortcuts */}
         <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">⚡ Management Shortcuts</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2"><IoFlashOutline className="text-yellow-500" /> Management Shortcuts</h2>
           <div className="grid grid-cols-2 gap-4">
             {user?.role !== 'MANAGER' && (
               <Link 
@@ -261,25 +266,25 @@ export function AdminDashboardPage() {
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
                   </div>
                 )}
-                <div className={`text-2xl mb-2 ${pendingCount > 0 ? 'animate-bounce' : ''}`}>⏳</div>
+                <div className={`text-2xl mb-2 flex justify-center text-orange-600 ${pendingCount > 0 ? 'animate-bounce' : ''}`}><IoHourglassOutline /></div>
                 <p className={`font-bold ${pendingCount > 0 ? 'text-orange-900' : 'text-gray-900'}`}>Approvals</p>
                 <p className={`text-xs ${pendingCount > 0 ? 'text-orange-600 font-black' : 'text-gray-500'}`}>{pendingCount} pending</p>
               </Link>
             )}
             <Link to="/admin/reviews" className="p-4 bg-yellow-50 rounded-2xl border border-yellow-100 hover:shadow-md transition-all">
-              <div className="text-2xl mb-2">⭐</div>
+              <div className="text-2xl mb-2 flex justify-center text-yellow-500"><IoStarOutline /></div>
               <p className="font-bold text-gray-900">Reviews</p>
               <p className="text-xs text-gray-500">{statsQ.data?.pendingReviews || 0} pending</p>
             </Link>
             {user?.role !== 'MANAGER' && (
               <Link to="/admin/users" className="p-4 bg-blue-50 rounded-2xl border border-blue-100 hover:shadow-md transition-all">
-                <div className="text-2xl mb-2">👤</div>
+                <div className="text-2xl mb-2 flex justify-center text-blue-600"><IoPersonOutline /></div>
                 <p className="font-bold text-gray-900">User Base</p>
                 <p className="text-xs text-gray-500">Manage accounts</p>
               </Link>
             )}
             <Link to="/admin/listings" className="p-4 bg-green-50 rounded-2xl border border-green-100 hover:shadow-md transition-all">
-              <div className="text-2xl mb-2">🍽️</div>
+              <div className="text-2xl mb-2 flex justify-center text-green-600"><IoRestaurantOutline /></div>
               <p className="font-bold text-gray-900">Listings</p>
               <p className="text-xs text-gray-500">Platform inventory</p>
             </Link>
@@ -288,7 +293,7 @@ export function AdminDashboardPage() {
 
         {/* Recent Activity / System Status */}
         <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
-           <h2 className="text-xl font-bold text-gray-900 mb-6">🛰️ System Status</h2>
+           <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2"><IoPlanetOutline className="text-blue-500" /> System Status</h2>
            <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
                  <div className="flex items-center gap-3">

@@ -4,6 +4,12 @@ import { useAuth } from '../../state/auth';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { 
+  IoBanOutline, IoShieldCheckmarkOutline, IoSettingsOutline, 
+  IoStorefrontOutline, IoHeartOutline, IoPersonOutline, 
+  IoBarChartOutline, IoCloseOutline, IoTrashOutline, 
+  IoArrowForwardOutline, IoGhostOutline 
+} from 'react-icons/io5';
 
 function BanModal({ user, onClose }: { user: any; onClose: () => void }) {
   const [reason, setReason] = useState('');
@@ -20,7 +26,7 @@ function BanModal({ user, onClose }: { user: any; onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
-        <h3 className="text-lg font-bold text-red-600 mb-2">⛔ Suspend User</h3>
+        <h3 className="text-lg font-bold text-red-600 mb-2 flex items-center gap-2"><IoBanOutline /> Suspend User</h3>
         <p className="text-gray-600 mb-4 text-sm">Suspending <strong>{user.name}</strong> will prevent them from logging in.</p>
         <textarea
           value={reason}
@@ -105,21 +111,21 @@ export function AdminUsersPage() {
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'ADMIN': case 'SYSTEM_ADMIN': return '🛡️';
-      case 'MANAGER': return '⚙️';
-      case 'PROVIDER': return '🏪';
-      case 'DONATION_CENTER': return '❤️';
-      case 'CUSTOMER': return '👤';
-      default: return '👤';
+      case 'ADMIN': case 'SYSTEM_ADMIN': return <IoShieldCheckmarkOutline />;
+      case 'MANAGER': return <IoSettingsOutline />;
+      case 'PROVIDER': return <IoStorefrontOutline />;
+      case 'DONATION_CENTER': return <IoHeartOutline />;
+      case 'CUSTOMER': return <IoPersonOutline />;
+      default: return <IoPersonOutline />;
     }
   };
 
   const tabs = [
-    { key: 'ALL', label: 'All Users', icon: '📊', color: 'text-gray-900' },
-    { key: 'CUSTOMER', label: 'Customers', icon: '👤', color: 'text-green-600' },
-    { key: 'PROVIDER', label: 'Providers', icon: '🏪', color: 'text-blue-600' },
-    { key: 'DONATION_CENTER', label: 'Centers', icon: '❤️', color: 'text-pink-600' },
-    { key: 'ADMIN', label: 'Admins', icon: '🛡️', color: 'text-purple-600' },
+    { key: 'ALL', label: 'All Users', icon: <IoBarChartOutline />, color: 'text-gray-900' },
+    { key: 'CUSTOMER', label: 'Customers', icon: <IoPersonOutline />, color: 'text-green-600' },
+    { key: 'PROVIDER', label: 'Providers', icon: <IoStorefrontOutline />, color: 'text-blue-600' },
+    { key: 'DONATION_CENTER', label: 'Centers', icon: <IoHeartOutline />, color: 'text-pink-600' },
+    { key: 'ADMIN', label: 'Admins', icon: <IoShieldCheckmarkOutline />, color: 'text-purple-600' },
   ];
 
   return (
@@ -134,7 +140,7 @@ export function AdminUsersPage() {
               <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-200 rounded-2xl flex items-center justify-center text-4xl shadow-inner">
                 {getRoleIcon(selectedUser.role)}
               </div>
-              <button onClick={() => setSelectedUser(null)} className="text-gray-400 hover:text-gray-600 text-2xl">✕</button>
+              <button onClick={() => setSelectedUser(null)} className="text-gray-400 hover:text-gray-600 text-3xl"><IoCloseOutline /></button>
             </div>
             
             <div className="mb-6">
@@ -171,7 +177,7 @@ export function AdminUsersPage() {
                   }}
                   className="flex-1 py-3 bg-red-100 text-red-600 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-all"
                 >
-                  🗑️ Delete
+                  <span className="flex items-center justify-center gap-2"><IoTrashOutline /> Delete</span>
                 </button>
               )}
               <button onClick={() => setSelectedUser(null)} className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all">
@@ -263,13 +269,13 @@ export function AdminUsersPage() {
                         </div>
                      )
                    )}
-                   <div className="text-gray-300 group-hover:translate-x-1 transition-transform">→</div>
+                   <div className="text-gray-300 group-hover:translate-x-1 transition-transform"><IoArrowForwardOutline /></div>
                 </div>
               </div>
             ))
           ) : (
             <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-              <span className="text-6xl mb-4 block">👻</span>
+              <span className="text-6xl mb-4 flex justify-center text-gray-300"><IoGhostOutline /></span>
               <p className="text-gray-500 font-bold">No users match this role</p>
             </div>
           )}

@@ -5,6 +5,11 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   BarChart, Bar, PieChart, Pie, Cell, Legend 
 } from 'recharts';
+import { 
+  IoDocumentTextOutline, IoBarChartOutline, IoRocketOutline, 
+  IoStarOutline, IoCashOutline, IoCubeOutline, 
+  IoEarthOutline, IoHeartOutline, IoTrendingUpOutline 
+} from 'react-icons/io5';
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EF4444'];
 
 export function ProviderAnalyticsPage() {
@@ -47,15 +52,15 @@ export function ProviderAnalyticsPage() {
           <div className="flex flex-wrap gap-4 items-center bg-gray-50 p-2 rounded-[28px] border border-gray-100">
              <button 
                onClick={() => setViewMode('summary')}
-               className={`px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${viewMode === 'summary' ? 'bg-white text-green-600 shadow-xl shadow-green-900/5' : 'text-gray-400 hover:text-gray-600'}`}
+               className={`px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'summary' ? 'bg-white text-green-600 shadow-xl shadow-green-900/5' : 'text-gray-400 hover:text-gray-600'}`}
              >
-               📋 Summary
+               <IoDocumentTextOutline className="text-sm" /> Summary
              </button>
              <button 
                onClick={() => setViewMode('charts')}
-               className={`px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${viewMode === 'charts' ? 'bg-white text-blue-600 shadow-xl shadow-blue-900/5' : 'text-gray-400 hover:text-gray-600'}`}
+               className={`px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'charts' ? 'bg-white text-blue-600 shadow-xl shadow-blue-900/5' : 'text-gray-400 hover:text-gray-600'}`}
              >
-               📊 Chart Mode
+               <IoBarChartOutline className="text-sm" /> Chart Mode
              </button>
           </div>
 
@@ -96,8 +101,8 @@ export function ProviderAnalyticsPage() {
            <div className={`p-8 rounded-[40px] border transition-all ${isOverLimit ? 'bg-orange-50 border-orange-100' : 'bg-emerald-50 border-emerald-100'}`}>
               <div className="flex flex-col lg:flex-row justify-between items-center gap-8">
                  <div className="space-y-2 text-center lg:text-left">
-                    <h3 className={`text-xl font-black ${isOverLimit ? 'text-orange-900' : 'text-emerald-900'}`}>
-                       {isOverLimit ? '🚀 Professional Tier' : '🌟 Free Tier'}
+                    <h3 className={`text-xl font-black flex items-center gap-2 ${isOverLimit ? 'text-orange-900' : 'text-emerald-900'}`}>
+                       {isOverLimit ? <><IoRocketOutline className="text-orange-600" /> Professional Tier</> : <><IoStarOutline className="text-yellow-500" /> Free Tier</>}
                     </h3>
                     <p className="text-sm font-medium text-gray-600 max-w-md">
                        {isOverLimit 
@@ -129,10 +134,10 @@ export function ProviderAnalyticsPage() {
            {/* Summary Stats */}
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { label: 'Revenue', value: `LKR ${data?.totalRevenue?.toLocaleString()}`, color: 'text-green-600', icon: '💰' },
-                { label: 'Orders', value: data?.ordersCount, color: 'text-blue-600', icon: '📦' },
-                { label: 'Food Saved', value: `${data?.foodSavedKg} kg`, color: 'text-emerald-600', icon: '🌍' },
-                { label: 'Donations', value: data?.donationCount, color: 'text-indigo-600', icon: '🤝' },
+                { label: 'Revenue', value: `LKR ${data?.totalRevenue?.toLocaleString()}`, color: 'text-green-600', icon: <IoCashOutline /> },
+                { label: 'Orders', value: data?.ordersCount, color: 'text-blue-600', icon: <IoCubeOutline /> },
+                { label: 'Food Saved', value: `${data?.foodSavedKg} kg`, color: 'text-emerald-600', icon: <IoEarthOutline /> },
+                { label: 'Donations', value: data?.donationCount, color: 'text-indigo-600', icon: <IoHeartOutline /> },
               ].map((stat, i) => (
                 <div key={i} className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
                    <div className="flex justify-between items-start mb-4">
@@ -196,7 +201,7 @@ export function ProviderAnalyticsPage() {
                 {/* Main Revenue Chart */}
                 <div className="bg-white p-10 rounded-[48px] border border-gray-100 shadow-xl shadow-green-900/5">
                    <h3 className="text-2xl font-black text-gray-900 mb-12 flex items-center gap-3">
-                     <span className="w-12 h-12 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center text-xl">📈</span>
+                     <span className="w-12 h-12 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center text-xl"><IoTrendingUpOutline /></span>
                      {selectedListingId ? `Revenue Trend: ${selectedItemName}` : 'Store-wide Revenue Performance'}
                    </h3>
                    <div className="h-[400px] w-full">

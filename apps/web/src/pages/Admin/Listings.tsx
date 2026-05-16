@@ -2,6 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
+import { 
+  IoBusinessOutline, 
+  IoSearchOutline, 
+  IoRestaurantOutline, 
+  IoTrashOutline 
+} from 'react-icons/io5';
 
 export function AdminListingsPage() {
   const qc = useQueryClient();
@@ -99,7 +105,9 @@ export function AdminListingsPage() {
                <div className="flex-1 space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Provider</label>
                   <div className="relative">
-                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-xl pointer-events-none">🏢</span>
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xl">
+                      <IoBusinessOutline />
+                    </span>
                     <select 
                       value={selectedProvider}
                       onChange={e => setSelectedProvider(e.target.value)}
@@ -169,7 +177,7 @@ export function AdminListingsPage() {
         </div>
       ) : filteredListings.length === 0 ? (
         <div className="bg-white rounded-[40px] shadow-sm border-2 border-dashed border-gray-100 p-32 text-center">
-          <div className="text-9xl mb-8 opacity-20">🔎</div>
+          <div className="text-9xl mb-8 opacity-20 flex justify-center"><IoSearchOutline /></div>
           <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tighter">No items found</h2>
           <p className="text-gray-400 font-medium text-lg">Try adjusting your filters or search terms.</p>
           <button onClick={() => {setFilter('all'); setSelectedProvider('all'); setDateRange({start:'', end:''})}} className="mt-8 px-8 py-3 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all">Reset All Filters</button>
@@ -189,7 +197,7 @@ export function AdminListingsPage() {
                   {listing.images && listing.images.length > 0 ? (
                     <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-8xl bg-gradient-to-br from-green-50 to-emerald-50">🍱</div>
+                    <div className="w-full h-full flex items-center justify-center text-8xl bg-gradient-to-br from-green-50 to-emerald-50 text-green-300"><IoRestaurantOutline /></div>
                   )}
                   
                   <div className="absolute top-6 left-6 flex flex-col gap-2">
@@ -242,7 +250,7 @@ export function AdminListingsPage() {
                         onClick={() => { if (window.confirm('Delete this listing forever?')) deleteListing.mutate(listing.id) }}
                         className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all border border-red-100 flex items-center justify-center text-xl shadow-sm"
                       >
-                        🗑️
+                        <span className="flex items-center justify-center"><IoTrashOutline className="mr-1" /> Delete</span>
                       </button>
                     </div>
                   </div>

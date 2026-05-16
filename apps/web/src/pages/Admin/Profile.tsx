@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../state/auth';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
+import { IoShieldCheckmarkOutline, IoKeyOutline } from 'react-icons/io5';
 
 export function AdminProfilePage() {
   const { user } = useAuth();
@@ -51,7 +52,7 @@ export function AdminProfilePage() {
           </div>
 
           <div className="bg-indigo-600 rounded-3xl p-6 text-white shadow-xl shadow-indigo-100">
-            <div className="text-2xl mb-2">🛡️</div>
+            <div className="text-2xl mb-2 flex justify-center text-green-600"><IoShieldCheckmarkOutline /></div>
             <h4 className="font-bold mb-1">Security Status</h4>
             <p className="text-indigo-100 text-xs leading-relaxed">
               Your account is protected with administrative-grade encryption. We recommend changing your password every 90 days.
@@ -63,7 +64,7 @@ export function AdminProfilePage() {
         <div className="md:col-span-2 space-y-6">
           <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
             <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center text-sm">🔑</span>
+              <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center text-lg"><IoKeyOutline /></span>
               Update Password
             </h3>
 

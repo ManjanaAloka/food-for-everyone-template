@@ -7,6 +7,8 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
+import { IoTrendingUpOutline, IoDocumentTextOutline, IoCubeOutline, IoCashOutline, IoRestaurantOutline, IoHeartOutline, IoLeafOutline, IoEarthOutline } from 'react-icons/io5';
+import { HiHand } from 'react-icons/hi';
 import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
 
 const COLORS = ['#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444'];
@@ -86,7 +88,7 @@ export function CustomerAnalyticsPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
           <div>
             <h1 className="text-4xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-              <span className="text-5xl">📈</span> Impact & Analytics
+              <span className="text-5xl text-green-600"><IoTrendingUpOutline /></span> Impact & Analytics
             </h1>
             <p className="text-slate-500 font-bold mt-1 italic uppercase tracking-widest text-[11px]">Deep dive into your sustainability footprint</p>
           </div>
@@ -111,7 +113,7 @@ export function CustomerAnalyticsPage() {
               onClick={() => window.print()}
               className="px-8 py-3 bg-gradient-to-r from-slate-800 to-slate-950 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:scale-105 active:scale-95 transition-all shadow-xl flex items-center gap-3 group"
             >
-              <span className="group-hover:animate-bounce">📄</span> Generate Report
+              <span className="group-hover:animate-bounce text-green-400"><IoDocumentTextOutline size={22} /></span> Generate Report
             </button>
             {(fromDate || toDate) && (
               <button onClick={() => { setFromDate(''); setToDate(''); }} className="p-2 text-slate-400 hover:text-red-500 transition-colors">✕</button>
@@ -122,10 +124,10 @@ export function CustomerAnalyticsPage() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-2 print:gap-12 print:mt-10">
           {[
-            { label: 'Orders Completed', value: analytics?.ordersCount || 0, icon: '📦', color: 'text-blue-600', bg: 'bg-blue-50' },
-            { label: 'Money Saved', value: `LKR ${analytics?.moneySaved?.toLocaleString() || 0}`, icon: '💰', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-            { label: 'Food Saved (kg)', value: analytics?.foodSavedKg || 0, icon: '🍽️', color: 'text-green-600', bg: 'bg-green-50' },
-            { label: 'Donations (LKR)', value: `LKR ${analytics?.totalDonationsAmount?.toLocaleString() || 0}`, icon: '❤️', color: 'text-pink-600', bg: 'bg-pink-50' },
+            { label: 'Orders Completed', value: analytics?.ordersCount || 0, icon: <IoCubeOutline />, color: 'text-green-600', bg: 'bg-green-50' },
+            { label: 'Money Saved', value: `LKR ${analytics?.moneySaved?.toLocaleString() || 0}`, icon: <IoCashOutline />, color: 'text-green-600', bg: 'bg-green-50' },
+            { label: 'Food Saved (kg)', value: analytics?.foodSavedKg || 0, icon: <IoRestaurantOutline />, color: 'text-green-600', bg: 'bg-green-50' },
+            { label: 'Donations (LKR)', value: `LKR ${analytics?.totalDonationsAmount?.toLocaleString() || 0}`, icon: <IoHeartOutline />, color: 'text-green-600', bg: 'bg-green-50' },
           ].map((s, idx) => (
             <div key={idx} className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-green-900/5 transition-all group overflow-hidden relative print:p-10 print:border-2 print:border-slate-100 print:rounded-[32px] print:shadow-none">
               <div className={`w-14 h-14 ${s.bg} ${s.color} rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-inner group-hover:scale-110 transition-transform duration-500 print:w-16 print:h-16 print:text-3xl print:mb-6`}>
@@ -152,7 +154,7 @@ export function CustomerAnalyticsPage() {
               <h2 className="text-2xl font-black text-slate-800 tracking-tight print:text-3xl uppercase">01. Environmental Metrics</h2>
               <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1 print:text-xs">Sustainability & Physical contribution audit</p>
             </div>
-            <span className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl print:hidden">🌿</span>
+            <span className="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center text-xl print:hidden"><IoLeafOutline /></span>
           </div>
           
           <div className="w-full h-[400px] print:h-[500px]">
@@ -175,8 +177,8 @@ export function CustomerAnalyticsPage() {
           
           <div className="mt-8 p-8 bg-slate-50 rounded-[32px] border border-slate-100 print:mt-12 print:bg-white print:border-l-[6px] print:border-emerald-500 print:rounded-none print:p-10">
             <h4 className="hidden print:block text-[11px] font-black text-emerald-600 uppercase tracking-[0.3em] mb-4">Executive Summary</h4>
-            <p className="text-sm text-slate-600 font-bold leading-relaxed print:text-xl print:text-slate-800 print:leading-loose">
-              🌍 Quantitative analysis confirms that through rescued food resources, a total atmospheric carbon mitigation of <strong className="text-emerald-600">{analytics?.co2eAvoidedKg || 0}kg</strong> has been achieved. This performance significantly contributes to local environmental targets and demonstrates verified sustainability leadership.
+            <p className="text-sm text-slate-600 font-bold leading-relaxed print:text-xl print:text-slate-800 print:leading-loose flex items-start gap-3">
+              <span className="text-green-600 mt-1"><IoEarthOutline size={20} /></span> Quantitative analysis confirms that through rescued food resources, a total atmospheric carbon mitigation of <strong className="text-emerald-600">{analytics?.co2eAvoidedKg || 0}kg</strong> has been achieved. This performance significantly contributes to local environmental targets and demonstrates verified sustainability leadership.
             </p>
           </div>
         </div>
@@ -314,7 +316,7 @@ export function CustomerAnalyticsPage() {
             <h2 className="hidden print:block text-3xl font-black mb-10 uppercase">05. Community Stewardship</h2>
             <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center print:grid-cols-1 print:gap-10">
               <div>
-                <div className="text-5xl mb-6 print:hidden">❤️</div>
+                <div className="text-5xl mb-6 text-red-500 print:hidden"><IoHeartOutline /></div>
                 <p className="text-slate-400 text-lg leading-relaxed mb-8 print:text-xl print:text-slate-800 print:leading-relaxed print:mb-10">
                   Final verified total for donation-based transactions through the platform. This metric represents direct community empowerment and resource sharing across the network.
                 </p>

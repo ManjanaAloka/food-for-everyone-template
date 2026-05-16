@@ -7,6 +7,7 @@ import { io } from 'socket.io-client';
 import { WS_URL } from '../env';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { ListingsMap } from '../components/ListingsMap';
+import { IoGridOutline, IoMapOutline, IoCartOutline } from 'react-icons/io5';
 
 
 function getUrgencyBadge(expiresAt: string) {
@@ -89,13 +90,13 @@ export function ListingsPage() {
                 onClick={() => setViewMode('grid')}
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${viewMode === 'grid' ? 'bg-green-600 text-white shadow-lg' : 'text-gray-500 hover:text-green-600'}`}
               >
-                <span>📱</span> Grid
+                <span className="text-lg"><IoGridOutline /></span> Grid
               </button>
               <button 
                 onClick={() => setViewMode('map')}
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${viewMode === 'map' ? 'bg-green-600 text-white shadow-lg' : 'text-gray-500 hover:text-green-600'}`}
               >
-                <span>🗺️</span> Map
+                <span className="text-lg"><IoMapOutline /></span> Map
               </button>
             </div>
           </div>
@@ -324,7 +325,7 @@ export function ListingsPage() {
                                   // No navigation here
                                 }}
                               >
-                                🛒 Add to Cart
+                                <IoCartOutline className="text-lg" /> Add to Cart
                               </button>
                             </div>
                              {l.donationRequests?.length > 0 && l.qtyAvailable > 0 && (
@@ -357,4 +358,3 @@ export function ListingsPage() {
     </div>
   );
 }
-

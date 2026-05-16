@@ -5,6 +5,10 @@ import { api } from '../../lib/api';
 import { toast } from 'sonner';
 import { MapPicker } from '../../components/MapPicker';
 import { useAuth } from '../../state/auth';
+import { 
+  IoSettingsOutline, IoBusinessOutline, IoHomeOutline, 
+  IoCameraOutline, IoLocationOutline 
+} from 'react-icons/io5';
 
 type DonationCenterSettingsForm = {
   name: string;
@@ -84,14 +88,14 @@ export function DonationCenterSettingsPage() {
   return (
     <div className="min-h-screen bg-gray-50 pt-20 pb-12">
       <div className="max-w-3xl mx-auto px-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">⚙️ Center Settings</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-3"><IoSettingsOutline /> Center Settings</h1>
         
         <form onSubmit={handleSubmit((d) => updateProfile.mutate(d))} className="space-y-8">
           
           {/* Basic Info */}
           <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
             <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center text-sm">🏢</span>
+              <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center text-lg"><IoBusinessOutline /></span>
               Center Information
             </h2>
 
@@ -103,11 +107,11 @@ export function DonationCenterSettingsPage() {
                     {watchedImage ? (
                       <img src={watchedImage} className="w-full h-full object-cover" alt="Profile" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-300 text-3xl">🏠</div>
+                      <div className="w-full h-full flex items-center justify-center text-gray-300 text-3xl"><IoHomeOutline /></div>
                     )}
                   </div>
                   <label className="absolute -bottom-2 -right-2 w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-700 shadow-lg transition-all">
-                    <span className="text-sm">📸</span>
+                    <span className="text-lg"><IoCameraOutline /></span>
                     <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
                   </label>
                   {isUploading && (
@@ -166,7 +170,7 @@ export function DonationCenterSettingsPage() {
                       }}
                       className="text-[10px] font-black text-orange-600 hover:underline uppercase tracking-widest"
                     >
-                      📍 Sync Map to Address
+                      <span className="flex items-center gap-1"><IoLocationOutline className="text-sm" /> Sync Map to Address</span>
                     </button>
                   </div>
                   <input 
@@ -210,7 +214,7 @@ export function DonationCenterSettingsPage() {
               disabled={updateProfile.isPending}
               className="px-10 py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white font-black rounded-2xl shadow-xl shadow-orange-200 hover:scale-[1.02] active:scale-95 disabled:opacity-50 transition-all uppercase tracking-wider"
             >
-              {updateProfile.isPending ? '⏳ Saving...' : '✅ Update Profile'}
+              {updateProfile.isPending ? 'Saving...' : 'Update Profile'}
             </button>
           </div>
         </form>

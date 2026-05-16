@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { IoStar, IoLeafOutline } from 'react-icons/io5';
 
 export function ProviderReviewsPage() {
   const qc = useQueryClient();
@@ -41,7 +42,7 @@ export function ProviderReviewsPage() {
              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Reviews</p>
              <p className="text-xl font-black text-gray-900">{reviewsQ.data?.reviews?.length || 0}</p>
           </div>
-          <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl">⭐</div>
+          <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl"><IoStar /></div>
         </div>
       </div>
 
@@ -60,7 +61,7 @@ export function ProviderReviewsPage() {
                  onClick={() => setRatingFilter(r as any)}
                  className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${ratingFilter === r ? 'bg-white text-orange-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
                >
-                 {r} ⭐
+                 {r} <IoStar className="inline mb-0.5 text-sm" />
                </button>
              ))}
           </div>
@@ -81,7 +82,7 @@ export function ProviderReviewsPage() {
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Order ID: {r.orderId.slice(-6).toUpperCase()}</p>
                 </div>
                 <div className="md:hidden ml-auto bg-orange-50 text-orange-600 px-3 py-1.5 rounded-full font-black text-sm">
-                  {r.rating} ⭐
+                  {r.rating} <IoStar className="inline mb-1" />
                 </div>
               </div>
 
@@ -104,7 +105,7 @@ export function ProviderReviewsPage() {
 
               <div className="flex flex-col gap-3 min-w-[180px] w-full md:w-auto">
                 <div className="flex items-center justify-center gap-2 bg-orange-50 text-orange-600 px-4 py-4 rounded-2xl font-black text-xl shadow-inner border border-orange-100/50">
-                  {r.rating} <span className="text-sm">Stars ⭐</span>
+                  {r.rating} <span className="text-sm">Stars <IoStar className="inline mb-1" /></span>
                 </div>
                 <div className="text-center">
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Feedback Verified</span>
@@ -113,7 +114,7 @@ export function ProviderReviewsPage() {
             </div>
           )) : (
             <div className="col-span-full text-center py-32 bg-gray-50 rounded-[60px] border-4 border-dashed border-gray-100">
-              <span className="text-8xl mb-6 block">🍂</span>
+              <span className="text-8xl mb-6 block flex justify-center text-gray-300"><IoLeafOutline /></span>
               <h3 className="text-2xl font-black text-gray-900 mb-2">No {status.toLowerCase()} reviews</h3>
               <p className="text-gray-400 font-medium">Try changing the filters to see other feedback</p>
             </div>

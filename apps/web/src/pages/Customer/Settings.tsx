@@ -5,6 +5,11 @@ import { api } from '../../lib/api';
 import { toast } from 'sonner';
 import { useAuth } from '../../state/auth';
 import { MapPicker } from '../../components/MapPicker';
+import { 
+  IoPersonOutline, IoDocumentTextOutline, IoLocationOutline, 
+  IoCardOutline, IoBusinessOutline, IoTrashOutline, 
+  IoAddCircleOutline, IoHelpBuoyOutline, IoHeadsetOutline 
+} from 'react-icons/io5';
 
 type CustomerSettingsForm = {
   name: string;
@@ -94,8 +99,8 @@ export function CustomerSettingsPage() {
       <div className="bg-white border-b border-gray-100 mb-8 pt-10">
         <div className="max-w-5xl mx-auto px-6 py-8">
           <div className="flex items-center gap-4 mb-2">
-            <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
-               👤
+            <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner text-green-600">
+               <IoPersonOutline />
             </div>
             <div>
               <h1 className="text-3xl font-black text-gray-900 tracking-tight">Account Settings</h1>
@@ -112,7 +117,7 @@ export function CustomerSettingsPage() {
             {/* Personal Info Card */}
             <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-md transition-all">
               <h2 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-3">
-                <span className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-sm">📝</span>
+                <span className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg"><IoDocumentTextOutline /></span>
                 Personal Information
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -134,7 +139,7 @@ export function CustomerSettingsPage() {
             {/* Location & Map Card */}
             <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden">
               <h2 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-3">
-                <span className="w-8 h-8 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center text-sm">📍</span>
+                <span className="w-8 h-8 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center text-lg"><IoLocationOutline /></span>
                 Delivery Location
               </h2>
               <div className="space-y-6">
@@ -178,7 +183,7 @@ export function CustomerSettingsPage() {
         <div className="space-y-8">
           <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-md transition-all">
             <h2 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 bg-pink-50 text-pink-600 rounded-lg flex items-center justify-center text-sm">💳</span>
+              <span className="w-8 h-8 bg-pink-50 text-pink-600 rounded-lg flex items-center justify-center text-lg"><IoCardOutline /></span>
               Payments
             </h2>
             
@@ -192,13 +197,13 @@ export function CustomerSettingsPage() {
               {methodsData?.methods?.map((m: any) => (
                 <div key={m.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl bg-gray-50 group hover:bg-white hover:shadow-md transition-all">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{m.cardType === 'Visa' ? '💳' : '🏦'}</span>
+                    <span className="text-2xl text-gray-600">{m.cardType === 'Visa' ? <IoCardOutline /> : <IoBusinessOutline />}</span>
                     <div>
                       <div className="font-black text-gray-800 text-sm">{m.cardType} •••• {m.last4}</div>
                       <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Expires {m.expiry}</div>
                     </div>
                   </div>
-                  <button onClick={() => { if(confirm('Remove this card?')) deleteMethod.mutate(m.id); }} className="text-gray-300 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100">🗑️</button>
+                  <button onClick={() => { if(confirm('Remove this card?')) deleteMethod.mutate(m.id); }} className="text-gray-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100 text-xl"><IoTrashOutline /></button>
                 </div>
               ))}
 
@@ -207,7 +212,7 @@ export function CustomerSettingsPage() {
                   onClick={() => setShowAddCard(true)} 
                   className="w-full p-4 border-2 border-dashed border-gray-200 rounded-2xl text-[10px] font-black text-gray-400 uppercase tracking-widest hover:border-green-500 hover:text-green-600 transition-all flex items-center justify-center gap-2"
                 >
-                  <span>➕</span> Add New Card
+                  <span className="text-base"><IoAddCircleOutline /></span> Add New Card
                 </button>
               ) : (
                 <div className="p-6 border border-green-100 rounded-2xl bg-green-50/30 space-y-4 animate-in fade-in slide-in-from-top-2">
@@ -233,11 +238,11 @@ export function CustomerSettingsPage() {
 
           <div className="bg-emerald-900 p-8 rounded-[32px] text-white shadow-xl relative overflow-hidden">
              <div className="relative z-10">
-                <h3 className="text-lg font-black mb-2">Need Help? 🆘</h3>
+                <h3 className="text-lg font-black mb-2 flex items-center gap-2">Need Help? <IoHelpBuoyOutline className="text-xl" /></h3>
                 <p className="text-emerald-200 text-xs leading-relaxed mb-6">Our support team is available 24/7 for any account or order related issues.</p>
                 <button className="w-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Contact Support</button>
              </div>
-             <div className="absolute bottom-[-20%] right-[-10%] text-8xl opacity-10">🎧</div>
+             <div className="absolute bottom-[-20%] right-[-10%] text-8xl opacity-10"><IoHeadsetOutline /></div>
           </div>
         </div>
       </div>

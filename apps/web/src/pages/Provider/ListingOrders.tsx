@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useParams, Link } from 'react-router-dom';
+import { IoCubeOutline, IoCardOutline, IoCalendarOutline } from 'react-icons/io5';
 
 export function ListingOrdersPage() {
   const { id } = useParams<{ id: string }>();
@@ -54,7 +55,7 @@ export function ListingOrdersPage() {
             </div>
           ) : orders.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-200 border-dashed">
-              <div className="text-5xl mb-4">📦</div>
+              <div className="text-5xl mb-4 flex justify-center text-gray-300"><IoCubeOutline /></div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">No orders yet</h3>
               <p className="text-gray-500">Orders for this listing will appear here.</p>
             </div>
@@ -98,8 +99,8 @@ export function ListingOrdersPage() {
                   <div className="flex flex-col items-end gap-2 text-right">
                     <div className="text-2xl font-black text-gray-900">LKR {Number(o.total).toLocaleString()}</div>
                     <div className="text-xs font-medium text-gray-500 flex items-center gap-3">
-                      <span>💳 {o.paymentMethod || 'Online'}</span>
-                      <span>📅 {new Date(o.createdAt).toLocaleDateString()}</span>
+                      <span className="flex items-center gap-1"><IoCardOutline /> {o.paymentMethod || 'Online'}</span>
+                      <span className="flex items-center gap-1"><IoCalendarOutline /> {new Date(o.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
                 </div>

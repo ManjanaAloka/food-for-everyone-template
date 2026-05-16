@@ -5,6 +5,7 @@ import { api } from '../../lib/api';
 import { toast } from 'sonner';
 import { MapPicker } from '../../components/MapPicker';
 import { useAuth } from '../../state/auth';
+import { IoSettingsOutline, IoPlanetOutline } from 'react-icons/io5';
 
 
 type ProviderSettingsForm = {
@@ -95,7 +96,7 @@ export function ProviderSettingsPage() {
   return (
     <div className="min-h-screen bg-gray-50 pt-20 pb-12">
       <div className="max-w-3xl mx-auto px-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">⚙️ Provider Settings</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-3"><IoSettingsOutline /> Provider Settings</h1>
         
         <form onSubmit={handleSubmit((d) => updateProfile.mutate(d))} className="space-y-8">
           
@@ -166,7 +167,7 @@ export function ProviderSettingsPage() {
                   />
                   <div className="absolute top-4 left-4 pointer-events-none">
                     <span className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold text-green-600 shadow-sm border border-green-100">
-                      LIVE SYNC ACTIVE 🛰️
+                      <span className="flex items-center gap-1">LIVE SYNC ACTIVE <IoPlanetOutline className="text-sm" /></span>
                     </span>
                   </div>
                 </div>

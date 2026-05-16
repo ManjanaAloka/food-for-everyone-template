@@ -6,6 +6,8 @@ import { useMemo } from 'react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
+import { IoRestaurantOutline, IoEarthOutline, IoCashOutline, IoHeartOutline, IoBagHandleOutline, IoLeafOutline } from 'react-icons/io5';
+import { HiHand } from 'react-icons/hi';
 
 export function CustomerDashboardPage() {
   const { user } = useAuth();
@@ -48,10 +50,10 @@ export function CustomerDashboardPage() {
   }
 
   const impactCards = [
-    { label: 'Meals Saved', value: stats?.ordersCount || 0, icon: '🍽️', color: 'text-orange-600', bg: 'bg-orange-50' },
-    { label: 'Food Saved', value: `${stats?.foodSavedKg || 0} kg`, icon: '🌍', color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Money Saved', value: `LKR ${stats?.moneySaved?.toLocaleString() || 0}`, icon: '💰', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Donations', value: `LKR ${stats?.totalDonationsAmount?.toLocaleString() || 0}`, icon: '❤️', color: 'text-pink-600', bg: 'bg-pink-50' },
+    { label: 'Meals Saved', value: stats?.ordersCount || 0, icon: <IoRestaurantOutline />, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Food Saved', value: `${stats?.foodSavedKg || 0} kg`, icon: <IoEarthOutline />, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Money Saved', value: `LKR ${stats?.moneySaved?.toLocaleString() || 0}`, icon: <IoCashOutline />, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Donations', value: `LKR ${stats?.totalDonationsAmount?.toLocaleString() || 0}`, icon: <IoHeartOutline />, color: 'text-green-600', bg: 'bg-green-50' },
   ];
 
   return (
@@ -59,7 +61,9 @@ export function CustomerDashboardPage() {
       {/* Welcome Banner */}
       <div className="relative overflow-hidden bg-gradient-to-br from-green-600 to-emerald-800 rounded-[40px] p-10 text-white shadow-2xl">
         <div className="relative z-10">
-          <h1 className="text-4xl font-black mb-2">Ayubowan, {user?.name}! 👋</h1>
+          <h1 className="text-4xl font-black mb-2 flex items-center gap-3">
+            Ayubowan, {user?.name}! <HiHand className="text-green-300 animate-bounce" />
+          </h1>
           <p className="text-green-100 font-medium opacity-90 max-w-lg">
             You're making a real difference. Every meal you rescue helps reduce food waste and feed our community.
           </p>
@@ -109,7 +113,7 @@ export function CustomerDashboardPage() {
                 const isOrder = act.activityType === 'ORDER';
                 const linkTo = isOrder ? `/orders/${act.id}` : `/give-back`;
                 const title = isOrder ? (act.items?.[0]?.listing?.title || 'Food Order') : (act.donationRequest?.title || 'Monetary Donation');
-                const icon = isOrder ? '🛍️' : '❤️';
+                const icon = isOrder ? <IoBagHandleOutline className="text-green-600" /> : <IoHeartOutline className="text-green-600" />;
                 const status = isOrder ? act.status : 'DONATED';
                 const statusColor = isOrder 
                   ? (act.status === 'DELIVERED' || act.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600')
@@ -146,7 +150,9 @@ export function CustomerDashboardPage() {
         {/* Environmental Impact Box */}
         <div className="bg-emerald-900 rounded-[40px] p-10 text-white shadow-2xl relative overflow-hidden">
           <div className="relative z-10">
-            <div className="text-4xl mb-6">🌱</div>
+            <div className="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center text-3xl mb-6 text-green-400 border border-green-500/20">
+              <IoLeafOutline />
+            </div>
             <h2 className="text-2xl font-black mb-4">Planet Impact</h2>
             <p className="text-emerald-200 text-sm leading-relaxed mb-8">
               By rescuing surplus food, you've prevented approximately <strong className="text-white text-lg">{stats?.co2eAvoidedKg || 0}kg</strong> of CO2 equivalent from being released into the atmosphere.
@@ -157,7 +163,9 @@ export function CustomerDashboardPage() {
             </div>
           </div>
           
-          <div className="absolute bottom-[-10%] right-[-10%] text-9xl opacity-10">🌍</div>
+          <div className="absolute bottom-[-10%] right-[-10%] text-9xl opacity-10 text-green-400">
+            <IoEarthOutline />
+          </div>
         </div>
       </div>
     </div>
