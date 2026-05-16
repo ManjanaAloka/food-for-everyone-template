@@ -4,7 +4,7 @@ import Stripe from 'stripe';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { ah } from '../utils/asyncHandler.js';
-import { notifyEmail } from '../services/notifications.js';
+import { notifyEmail, createNotification } from '../services/notifications.js';
 import { getPaymentProvider } from '../services/payments/index.js';
 
 export const router = Router();
@@ -267,9 +267,26 @@ router.post('/webhook/stripe', express.raw({ type: 'application/json' }), ah(asy
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     const donationId = session.metadata?.donationId || session.client_reference_id;
-    if (!donationId) return res.json({ received: true });
+    
+    // DEBUG: Log webhook receipt to DB
+    if (donationId) {
+      const tempDonation = await prisma.donation.findUnique({ where: { id: donationId } });
+      if (tempDonation) {
+        await prisma.notification.create({
+          data: {
+            userId: tempDonation.customerId,
+            type: 'DEBUG',
+            channel: 'IN_APP',
+            payload: { message: `🔔 Stripe Webhook Received for Donation ${donationId}` }
+          }
+        }).catch(() => {});
+      }
+    }
 
-    await prisma.$transaction(async (tx) => {
+    if (!donationId) return res.json({ received: true });
+    
+    const transactionResult = await prisma.$transaction(async (tx) => {
+      let isFulfilled = false;
       const donation = await tx.donation.update({
         where: { id: donationId },
         data: { status: 'SUCCEEDED', stripePaymentId: session.payment_intent as string }
@@ -280,24 +297,37 @@ router.post('/webhook/stripe', express.raw({ type: 'application/json' }), ah(asy
         data: {
           raisedAmount: { increment: donation.amount },
           donorCount: { increment: 1 }
-        },
-        include: {
-          center: { include: { user: true } },
-          donations: { where: { status: 'SUCCEEDED' }, include: { customer: true } }
         }
       });
 
-      // Check if target reached
-      if (Number(updatedRequest.raisedAmount) >= Number(updatedRequest.targetAmount) && updatedRequest.status === 'OPEN') {
+      // 1. ALWAYS create a "Donation Received" notification for the Center
+      await tx.notification.create({
+        data: {
+          userId: updatedRequest.centerId,
+          type: 'DONATION_RECEIVED',
+          channel: 'IN_APP',
+          payload: {
+            message: `❤️ New donation of LKR ${donation.amount} received for "${updatedRequest.title}"!`,
+            action: 'VIEW_DONATION_DETAIL',
+            requestId: updatedRequest.id
+          }
+        }
+      });
+
+      // 2. Check for fulfillment (more permissive check)
+      const raised = Number(updatedRequest.raisedAmount);
+      const target = Number(updatedRequest.targetAmount);
+
+      if (raised >= (target - 1) && updatedRequest.status === 'OPEN') {
         await tx.donationRequest.update({ where: { id: updatedRequest.id }, data: { status: 'FULFILLED' } });
+        isFulfilled = true;
 
         // Auto-create an order for the Donation Center if a listing was linked
         if (updatedRequest.listingId) {
           const listing = await tx.listing.findUnique({ where: { id: updatedRequest.listingId } });
           if (listing && listing.qtyAvailable > 0) {
             const price = Number(listing.discountPrice);
-            // Calculate how many items the raised amount can buy
-            const qty = Math.max(1, Math.min(listing.qtyAvailable, Math.floor(Number(updatedRequest.raisedAmount) / price)));
+            const qty = Math.max(1, Math.min(listing.qtyAvailable, Math.floor(raised / price)));
             
             const o = await tx.order.create({
               data: {
@@ -306,7 +336,7 @@ router.post('/webhook/stripe', express.raw({ type: 'application/json' }), ah(asy
                 type: 'DONATION',
                 fulfillmentMode: 'PICKUP',
                 paymentMethod: 'ONLINE',
-                status: 'PAID', // Already funded by donors
+                status: 'PAID',
                 donationCenterId: updatedRequest.centerId,
                 donationRequestId: updatedRequest.id,
                 subtotal: price * qty,
@@ -330,35 +360,105 @@ router.post('/webhook/stripe', express.raw({ type: 'application/json' }), ah(asy
           }
         }
 
-        // Notify donation center
-        await notifyEmail(
-          updatedRequest.center.user.email,
-          `🎉 Donation Request Fully Funded: ${updatedRequest.title}`,
-          `<p>Your donation request "<strong>${updatedRequest.title}</strong>" has been fully funded! Total raised: LKR ${updatedRequest.raisedAmount}.</p>`
-        );
-
-        // Notify all donors
-        for (const d of updatedRequest.donations) {
-          await notifyEmail(
-            d.customer.email,
-            '❤️ Your donation made it happen!',
-            `<p>Great news! The donation request "<strong>${updatedRequest.title}</strong>" has been fully funded thanks to you and other generous donors!</p>`
-          );
-        }
-
-        // Emit socket event
-        const io = (global as any).__io;
-        if (io) io.emit('donation:fulfilled', { requestId: updatedRequest.id });
-      } else {
-        // Real-time progress update
-        const io = (global as any).__io;
-        if (io) io.emit('donation:progress', {
-          requestId: donation.donationRequestId,
-          raisedAmount: Number(updatedRequest.raisedAmount),
-          donorCount: updatedRequest.donorCount
+        // Full Funding Notification
+        await tx.notification.create({
+          data: {
+            userId: updatedRequest.centerId,
+            type: 'DONATION_FULFILLED',
+            channel: 'IN_APP',
+            payload: {
+              message: `🎉 Your donation request "DR-${updatedRequest.requestNumber?.toString().padStart(4, '0')}" (${updatedRequest.title}) is fully funded!`,
+              action: 'VIEW_DONATION_DETAIL',
+              requestId: updatedRequest.id
+            }
+          }
         });
+
+        if (updatedRequest.listingId) {
+          const listing = await tx.listing.findUnique({ 
+            where: { id: updatedRequest.listingId },
+            include: { provider: true }
+          });
+          if (listing?.provider?.userId) {
+            await tx.notification.create({
+              data: {
+                userId: listing.provider.userId,
+                type: 'DONATION_ORDER_READY',
+                channel: 'IN_APP',
+                payload: {
+                  message: `🎁 Donation order for "${listing.title}" (DR-${updatedRequest.requestNumber?.toString().padStart(4, '0')}) has been fully funded!`,
+                  action: 'VIEW_ORDER_DETAIL',
+                  requestId: updatedRequest.id
+                }
+              }
+            });
+          }
+        }
+      }
+
+      return { requestId: updatedRequest.id, isFulfilled, amount: donation.amount };
+    });
+
+    if (!transactionResult) return res.json({ received: true });
+
+    // 3. Handle External Side-Effects AFTER Transaction Success
+    const dr = await prisma.donationRequest.findUnique({
+      where: { id: transactionResult.requestId },
+      include: {
+        center: { include: { user: true } },
+        listing: { include: { provider: true } },
+        donations: { where: { status: 'SUCCEEDED' }, include: { customer: true } }
       }
     });
+
+    if (dr) {
+      const io = req.app.get('io') || (global as any).__io;
+      if (io) {
+        // Real-time progress update for the progress bar
+        io.emit('donation:progress', {
+          requestId: dr.id,
+          raisedAmount: Number(dr.raisedAmount),
+          donorCount: dr.donorCount
+        });
+
+        // Alert Center about the NEW donation
+        const receiveMsg = `❤️ New donation of LKR ${transactionResult.amount} received!`;
+        io.to(`user:${dr.centerId}`).emit('notification', { 
+          type: 'DONATION_RECEIVED', 
+          message: receiveMsg,
+          requestId: dr.id
+        });
+
+        // If fully funded, send alerts
+        if (transactionResult.isFulfilled) {
+          // Notify Center
+          const centerMsg = `🎉 Your donation request "${dr.title}" is fully funded!`;
+          await notifyEmail(dr.center.user.email, `🎉 Funded: ${dr.title}`, `<p>${centerMsg}</p>`).catch(() => {});
+          io.to(`user:${dr.centerId}`).emit('notification', { 
+            type: 'DONATION_FULFILLED', 
+            message: centerMsg,
+            requestId: dr.id
+          });
+
+          // Notify Provider
+          if (dr.listing?.provider?.userId) {
+            const providerMsg = `🎁 Donation order for "${dr.listing.title}" is ready!`;
+            io.to(`user:${dr.listing.provider.userId}`).emit('notification', { 
+              type: 'DONATION_ORDER_READY', 
+              message: providerMsg,
+              requestId: dr.id
+            });
+          }
+
+          // Notify Donors
+          for (const d of dr.donations) {
+            await notifyEmail(d.customer.email, '❤️ Thank you!', `<p>The request "${dr.title}" is funded!</p>`).catch(() => {});
+          }
+          
+          io.emit('donation:fulfilled', { requestId: dr.id });
+        }
+      }
+    }
   }
 
   res.json({ received: true });

@@ -17,6 +17,7 @@ export function MyOrdersPage() {
   const itemsPerPage = 8;
   const [activeTab, setActiveTab] = useState<'PERSONAL' | 'DONATION'>('PERSONAL');
   const isDonationAccount = user?.role === 'DONATION_CENTER';
+  const isProvider = user?.role === 'PROVIDER';
 
   const downloadStory = async () => {
     if (!storyRef.current) return;
@@ -50,6 +51,15 @@ export function MyOrdersPage() {
   if (ordersLoading || donationsLoading) return <div className="pt-20 text-center">Loading history...</div>;
 
   const orders = ordersData?.orders || [];
+  
+  // Calculate active counts
+  const activeStatuses = ['PAID', 'PENDING', 'READY_FOR_PICKUP', 'READY_FOR_DELIVERY', 'OUT_FOR_DELIVERY'];
+  const personalActiveCount = orders.filter((o: any) => 
+    (o.type === 'PERSONAL' || o.type === 'REGULAR') && activeStatuses.includes(o.status)
+  ).length;
+  const donationActiveCount = orders.filter((o: any) => 
+    (o.type === 'DONATION' || o.isDonationOnly) && activeStatuses.includes(o.status)
+  ).length;
   const donations = (donationsData?.donations || []).map((d: any) => ({
     ...d,
     isDonationOnly: true,
@@ -115,23 +125,33 @@ export function MyOrdersPage() {
           <div className="flex gap-2 mb-6 bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100">
             <button
               onClick={() => { setActiveTab('PERSONAL'); setCurrentPage(1); }}
-              className={`flex-1 py-4 px-6 rounded-xl text-sm font-black transition-all duration-300 flex items-center justify-center gap-2 ${
+              className={`flex-1 py-4 px-6 rounded-xl text-sm font-black transition-all duration-300 flex items-center justify-center gap-2 relative ${
                 activeTab === 'PERSONAL' 
                   ? 'bg-green-600 text-white shadow-xl shadow-green-100' 
                   : 'text-slate-400 hover:bg-slate-50'
               }`}
             >
               <IoBagHandleOutline className="text-xl" /> Order History
+              {personalActiveCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-full border-2 border-white shadow-lg animate-pulse">
+                  {personalActiveCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => { setActiveTab('DONATION'); setCurrentPage(1); }}
-              className={`flex-1 py-4 px-6 rounded-xl text-sm font-black transition-all duration-300 flex items-center justify-center gap-2 ${
+              className={`flex-1 py-4 px-6 rounded-xl text-sm font-black transition-all duration-300 flex items-center justify-center gap-2 relative ${
                 activeTab === 'DONATION' 
                   ? 'bg-orange-500 text-white shadow-xl shadow-orange-100' 
                   : 'text-slate-400 hover:bg-slate-50'
               }`}
             >
               <IoHeartOutline className="text-xl" /> Donation History
+              {donationActiveCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-full border-2 border-white shadow-lg animate-pulse">
+                  {donationActiveCount}
+                </span>
+              )}
             </button>
           </div>
         )}
@@ -146,65 +166,94 @@ export function MyOrdersPage() {
                   : o.donationRequest?.title;
                 const itemsCount = isCartDonation
                   ? o.items.reduce((acc: number, it: any) => acc + (it.qty || 0), 0)
-                  : (o.amount / (o.donationRequest?.listing?.discountPrice || 150)).toFixed(0);
+                  : Math.max(1, Math.round(Number(o.amount) / (Number(o.donationRequest?.listing?.discountPrice) || 150)));
+
+                // Get real product image
+                const donationFirstItem = o.items?.[0];
+                const donationListing = donationFirstItem?.listing || o.donationRequest?.listing;
+                const donationImages = donationListing?.images
+                  ? (typeof donationListing.images === 'string' ? JSON.parse(donationListing.images) : donationListing.images)
+                  : [];
+                const donationImage = donationImages[0];
+
+                // Status color
+                const statusColor = 
+                  o.status === 'DELIVERED' || o.status === 'SUCCEEDED' ? 'bg-green-100 text-green-700' :
+                  o.status === 'CANCELED' ? 'bg-red-100 text-red-700' :
+                  o.status === 'PAID' ? 'bg-orange-100 text-orange-700' :
+                  'bg-blue-100 text-blue-700';
 
                 return (
                   <div
                     key={o.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-orange-100 rounded-xl bg-orange-50/30 gap-4"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-orange-100 rounded-xl hover:shadow-md transition-all hover:border-orange-300 bg-white gap-4 cursor-pointer"
+                    onClick={() => {
+                      if (user?.role === 'PROVIDER' || user?.role === 'DONATION_CENTER') {
+                        nav(`/orders/${o.id}`);
+                        return;
+                      }
+                      if (isCartDonation) {
+                        setSelectedDonation({ ...o, amount: o.total, donationRequest: { title, listing: { discountPrice: o.items[0]?.unitPrice || 150 } } });
+                      } else {
+                        setSelectedDonation(o);
+                      }
+                    }}
                   >
+                    {/* Left: Image + Info */}
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-lg bg-orange-100 flex items-center justify-center text-3xl flex-shrink-0">
-                        💝
+                      <div className="w-16 h-16 rounded-lg overflow-hidden border border-orange-100 flex-shrink-0 bg-orange-50">
+                        {donationImage ? (
+                          <img src={donationImage} alt={title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-2xl">💝</div>
+                        )}
                       </div>
                       <div>
-                        <div className="font-bold text-gray-900 line-clamp-1">
-                          Donated: {title}
+                        <div className="font-bold text-gray-900 line-clamp-1">{title}</div>
+                        <div className="text-xs text-orange-500 font-bold font-mono mb-1">
+                          {isCartDonation
+                            ? `O-${o.orderNumber?.toString().padStart(4, '0') || '—'}`
+                            : `D-${o.donationNumber?.toString().padStart(4, '0') || '—'}`
+                          }
+                          <span className="text-gray-400 ml-2 font-sans font-normal">
+                            {new Date(o.createdAt).toLocaleString()}
+                          </span>
                         </div>
-                        <div className="text-xs text-orange-600 font-bold mb-1">Impact Donation</div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] px-2 py-0.5 font-bold rounded-full uppercase bg-orange-600 text-white">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[10px] px-2 py-0.5 font-bold rounded-full uppercase ${statusColor}`}>
                             {o.status}
                           </span>
-                          <span className="text-sm text-orange-700 font-black">
-                            {itemsCount} Items Donated
+                          <span className="text-sm text-orange-700 font-black flex items-center gap-1">
+                            💝 {itemsCount} Items Donated
                           </span>
-                          <span className="text-[10px] text-gray-400 font-medium">
-                            {new Date(o.createdAt).toLocaleString()}
+                          <span className="text-sm text-gray-500 font-medium">
+                            LKR {Number(o.total || o.amount || 0).toFixed(2)}
                           </span>
                         </div>
                       </div>
                     </div>
 
+                    {/* Center: Provider */}
                     {o.provider?.businessName && (
                       <div className="hidden md:flex flex-1 items-center justify-center">
-                        <div className="px-3 py-1 bg-orange-100/50 rounded-lg border border-orange-100 flex items-center gap-2">
-                          <span className="text-orange-600 text-sm">🏪</span>
+                        <div className="px-3 py-1 bg-orange-50 rounded-lg border border-orange-100 flex items-center gap-2">
+                          <span className="text-orange-400 text-sm">🏪</span>
                           <span className="text-[11px] text-orange-700 font-black uppercase tracking-wider">{o.provider.businessName}</span>
                         </div>
                       </div>
                     )}
 
-                    <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-orange-100">
-                      {isDonationAccount ? (
-                        <button
-                          onClick={() => nav(`/orders/${o.id}`)}
-                          className="text-orange-600 font-bold text-sm flex items-center gap-1 hover:underline"
-                        >
-                          View Receipt <span className="text-lg">→</span>
+                    {/* Right: Action */}
+                    <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-orange-100" onClick={e => e.stopPropagation()}>
+                      {user?.role === 'PROVIDER' || user?.role === 'DONATION_CENTER' ? (
+                        <button onClick={() => nav(`/orders/${o.id}`)} className="text-orange-600 font-bold text-sm flex items-center gap-1 hover:underline">
+                          {user?.role === 'PROVIDER' ? 'View Order' : 'View Receipt'} <span className="text-lg">→</span>
                         </button>
                       ) : (
                         <button
                           onClick={() => {
                             if (isCartDonation) {
-                              setSelectedDonation({
-                                ...o,
-                                amount: o.total,
-                                donationRequest: {
-                                  title: title,
-                                  listing: { discountPrice: o.items[0]?.price || 150 }
-                                }
-                              });
+                              setSelectedDonation({ ...o, amount: o.total, donationRequest: { title, listing: { discountPrice: o.items[0]?.unitPrice || 150 } } });
                             } else {
                               setSelectedDonation(o);
                             }
@@ -214,9 +263,7 @@ export function MyOrdersPage() {
                           View Impact <span className="text-lg">→</span>
                         </button>
                       )}
-                      <div className="text-[10px] text-orange-400 font-medium italic">
-                        Thank You! ❤️
-                      </div>
+                      <div className="text-[10px] text-orange-300 font-medium italic">Thank You! ❤️</div>
                     </div>
                   </div>
                 );

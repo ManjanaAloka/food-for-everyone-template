@@ -83,7 +83,13 @@ export function OrderDetailPage() {
   return (
     <div>
       <div className="flex justify-between items-start mb-2 print:hidden">
-        <h1 className="text-xl font-semibold">Order OR_{o.orderNumber}</h1>
+        <h1 className="text-xl font-semibold">
+          {o.type === 'DONATION' ? 'Donation' : 'Order'} #
+          {o.type === 'DONATION' 
+            ? `D-${o.orderNumber?.toString().padStart(4, '0') || o.id.slice(-4)}` 
+            : `O-${o.orderNumber?.toString().padStart(4, '0') || o.id.slice(-4)}`
+          }
+        </h1>
 
         <button 
           onClick={() => window.print()}
@@ -292,17 +298,53 @@ export function OrderDetailPage() {
         })}
       </div>
 
+      {user?.role === 'PROVIDER' && o.type === 'DONATION' && (
+        <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-3xl p-6 mb-6 shadow-sm print:hidden">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-2xl">💝</div>
+            <div>
+              <h3 className="text-lg font-black text-orange-800 uppercase tracking-tight">Donation Order</h3>
+              <p className="text-sm text-orange-600 font-medium">This order was fully funded by community donors</p>
+            </div>
+          </div>
+          {o.donationCenter && (
+            <div className="bg-white/70 rounded-2xl p-4 border border-orange-100 space-y-2">
+              <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest">Deliver To — Donation Center</p>
+              <p className="text-lg font-black text-slate-800">{o.donationCenter?.name}</p>
+              {o.donationCenter?.user?.phone && (
+                <a href={`tel:${o.donationCenter.user.phone}`} className="flex items-center gap-2 text-blue-600 font-bold text-sm hover:underline">
+                  📞 {o.donationCenter.user.phone}
+                </a>
+              )}
+              {o.donationCenter?.address && (
+                <p className="text-sm text-slate-500 font-medium">📍 {o.donationCenter.address}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {user?.role === 'PROVIDER' && (
-        <div className="bg-white rounded-3xl p-8 mb-8 shadow-xl shadow-green-900/5 border border-slate-100 print:hidden overflow-hidden relative">
-          <div className="absolute top-0 left-0 w-2 h-full bg-green-600" />
+        <div className={`bg-white rounded-3xl p-8 mb-8 shadow-xl border border-slate-100 print:hidden overflow-hidden relative ${
+          o.type === 'DONATION' ? 'shadow-orange-900/5' : 'shadow-green-900/5'
+        }`}>
+          <div className={`absolute top-0 left-0 w-2 h-full ${
+            o.type === 'DONATION' ? 'bg-orange-500' : 'bg-green-600'
+          }`} />
           
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-2xl">⚡</div>
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${
+                  o.type === 'DONATION' ? 'bg-orange-50' : 'bg-green-50'
+                }`}>⚡</div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-800">Fulfillment Workflow</h3>
-                  <p className="text-sm text-slate-500 font-medium italic">Complete each step to finalize the order</p>
+                  <h3 className="text-xl font-black text-slate-800">
+                    {o.type === 'DONATION' ? 'Donation Fulfillment' : 'Fulfillment Workflow'}
+                  </h3>
+                  <p className="text-sm text-slate-500 font-medium italic">
+                    {o.type === 'DONATION' ? 'Prepare and deliver to the donation center' : 'Complete each step to finalize the order'}
+                  </p>
                 </div>
               </div>
 
@@ -313,15 +355,20 @@ export function OrderDetailPage() {
                     ? ['PENDING', 'READY_FOR_PICKUP', 'DELIVERED']
                     : ['PENDING', 'READY_FOR_DELIVERY', 'OUT_FOR_DELIVERY', 'DELIVERED'];
                   
-                  const currentIndex = steps.indexOf(o.status);
+                  // Treat PAID same as PENDING for stepper display
+                  const displayStatus = o.status === 'PAID' ? 'PENDING' : o.status;
+                  const currentIndex = steps.indexOf(displayStatus);
+                  const isDonation = o.type === 'DONATION';
                   
                   return steps.map((step, idx) => (
                     <React.Fragment key={step}>
                       <div className="flex flex-col items-center min-w-[100px]">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black transition-all ${
-                          idx < currentIndex ? 'bg-green-600 text-white' : 
-                          idx === currentIndex ? 'bg-green-100 text-green-700 ring-4 ring-green-50' : 
-                          'bg-slate-100 text-slate-400'
+                          idx < currentIndex 
+                            ? (isDonation ? 'bg-orange-500 text-white' : 'bg-green-600 text-white')
+                            : idx === currentIndex 
+                              ? (isDonation ? 'bg-orange-100 text-orange-700 ring-4 ring-orange-50' : 'bg-green-100 text-green-700 ring-4 ring-green-50')
+                              : 'bg-slate-100 text-slate-400'
                         }`}>
                           {idx < currentIndex ? '✓' : idx + 1}
                         </div>
@@ -332,7 +379,11 @@ export function OrderDetailPage() {
                         </span>
                       </div>
                       {idx < steps.length - 1 && (
-                        <div className={`h-[2px] w-12 mb-6 ${idx < currentIndex ? 'bg-green-600' : 'bg-slate-100'}`} />
+                        <div className={`h-[2px] w-12 mb-6 ${
+                          idx < currentIndex 
+                            ? (isDonation ? 'bg-orange-500' : 'bg-green-600') 
+                            : 'bg-slate-100'
+                        }`} />
                       )}
                     </React.Fragment>
                   ));
@@ -387,7 +438,11 @@ export function OrderDetailPage() {
                           }
                         }}
                         disabled={updateStatus.isPending}
-                        className="w-full bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white font-black py-4 px-6 rounded-2xl shadow-xl shadow-green-200 hover:shadow-green-300 transform hover:-translate-y-1 active:translate-y-0 transition-all flex items-center justify-center gap-3 text-sm uppercase tracking-wider"
+                        className={`w-full text-white font-black py-4 px-6 rounded-2xl shadow-xl transform hover:-translate-y-1 active:translate-y-0 transition-all flex items-center justify-center gap-3 text-sm uppercase tracking-wider ${
+                          o.type === 'DONATION'
+                            ? 'bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-orange-200 hover:shadow-orange-300'
+                            : 'bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 shadow-green-200 hover:shadow-green-300'
+                        }`}
                       >
                         <span className="text-xl">{icon}</span>
                         {updateStatus.isPending ? 'Processing...' : label}

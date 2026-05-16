@@ -112,11 +112,22 @@ router.get('/:id', requireAuth, ah(async (req: any, res) => {
 }));
 
 router.get('/', requireAuth, ah(async (req: any, res) => {
+  const userId = req.user!.sub;
   const orders = await prisma.order.findMany({
-    where: { 
+    where: {
       OR: [
-        { buyerId: req.user!.sub },
-        { providerId: req.user!.sub }
+        // Buyer sees all their own orders
+        { buyerId: userId },
+        // Provider sees PERSONAL orders always, but DONATION orders only when fully funded (PAID+)
+        {
+          providerId: userId,
+          type: 'PERSONAL'
+        },
+        {
+          providerId: userId,
+          type: 'DONATION',
+          status: { in: ['PAID', 'PENDING', 'READY_FOR_PICKUP', 'READY_FOR_DELIVERY', 'OUT_FOR_DELIVERY', 'DELIVERED'] }
+        }
       ]
     },
     include: {

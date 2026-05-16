@@ -8,6 +8,8 @@ import {
   IoAddCircleOutline, IoBagHandleOutline, IoStarOutline, IoPersonOutline, 
   IoEarthOutline, IoLogOutOutline, IoCartOutline, IoStorefrontOutline, IoHeartOutline, IoTimeOutline
 } from 'react-icons/io5';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api';
 
 interface UserLayoutProps {
   children: React.ReactNode;
@@ -18,6 +20,16 @@ export function UserLayout({ children }: UserLayoutProps) {
   const { items: cartItems } = useCart();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const { data: ordersData } = useQuery({
+    queryKey: ['myOrders', 'count'],
+    queryFn: async () => (await api.get('/orders')).data,
+    enabled: !!user,
+    refetchInterval: 30000 // Refresh every 30s
+  });
+
+  const activeStatuses = ['PAID', 'PENDING', 'READY_FOR_PICKUP', 'READY_FOR_DELIVERY', 'OUT_FOR_DELIVERY'];
+  const totalActiveOrders = (ordersData?.orders || []).filter((o: any) => activeStatuses.includes(o.status)).length;
 
   const menuItems = [
     // 1. Dashboards / Overviews
@@ -69,14 +81,23 @@ export function UserLayout({ children }: UserLayoutProps) {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all duration-300 ${
+                className={`flex items-center justify-between px-4 py-3.5 rounded-2xl text-sm font-bold transition-all duration-300 relative ${
                   isActive
                     ? 'bg-green-600 text-white shadow-xl shadow-green-100 translate-x-2'
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
-                <span className={`text-xl ${isActive ? 'scale-110' : 'opacity-70'}`}>{item.icon}</span>
-                {item.label}
+                <div className="flex items-center gap-3">
+                  <span className={`text-xl ${isActive ? 'scale-110' : 'opacity-70'}`}>{item.icon}</span>
+                  {item.label}
+                </div>
+                {item.path === '/orders' && totalActiveOrders > 0 && (
+                  <span className={`min-w-[20px] h-[20px] flex items-center justify-center text-[10px] font-black rounded-full border-2 ${
+                    isActive ? 'bg-white text-green-600 border-green-600' : 'bg-red-500 text-white border-white animate-pulse'
+                  }`}>
+                    {totalActiveOrders}
+                  </span>
+                )}
               </Link>
             );
           })}

@@ -44,7 +44,16 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const server = http.createServer(app);
 const io = new SocketIOServer(server, {
-  cors: { origin: process.env.CORS_ORIGIN || '*', credentials: true }
+  cors: { 
+    origin: [
+      process.env.CORS_ORIGIN || '*',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:5174'
+    ],
+    credentials: true 
+  }
 });
 registerSockets(io);
 

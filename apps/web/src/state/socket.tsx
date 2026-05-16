@@ -27,7 +27,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     const s = io(WS_URL, {
       withCredentials: true,
-      transports: ['websocket', 'polling']
+      transports: ['polling', 'websocket']
     });
 
     s.on('connect', () => {
