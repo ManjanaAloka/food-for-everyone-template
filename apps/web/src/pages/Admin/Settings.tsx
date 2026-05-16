@@ -4,6 +4,10 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../state/auth';
+import { 
+  IoShieldOutline, IoCloseOutline, IoCheckmarkOutline, 
+  IoAddOutline, IoTrashOutline, IoPersonOutline, IoBulbOutline 
+} from 'react-icons/io5';
 
 type AdminForm = {
   name: string;
@@ -55,8 +59,8 @@ function CreateAdminModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl animate-fadeInUp max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-2xl font-bold text-gray-900">🛡️ Create New Admin</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+          <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><IoShieldOutline className="text-blue-500" /> Create New Admin</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-3xl"><IoCloseOutline /></button>
         </div>
         
         <form onSubmit={handleSubmit((d) => create(d))} className="space-y-4">
@@ -120,7 +124,7 @@ function CreateAdminModal({ onClose }: { onClose: () => void }) {
                     <div className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-all ${
                       selectedTabs.includes(tab.id) ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300'
                     }`}>
-                      {selectedTabs.includes(tab.id) && <span className="text-[10px]">✓</span>}
+                      {selectedTabs.includes(tab.id) && <span className="text-lg"><IoCheckmarkOutline /></span>}
                     </div>
                     <span className="text-xs font-bold">{tab.icon} {tab.label}</span>
                   </div>
@@ -185,7 +189,7 @@ export function AdminSettingsPage() {
             onClick={() => setShowModal(true)}
             className="bg-green-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-100 flex items-center gap-2 self-start"
           >
-            <span>➕</span> Add New Admin
+            <span className="flex items-center gap-1"><IoAddOutline /> Add New Admin</span>
           </button>
         )}
       </div>
@@ -193,7 +197,7 @@ export function AdminSettingsPage() {
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-8 border-b border-gray-50 bg-gray-50/50">
           <h2 className="font-bold text-gray-900 flex items-center gap-2">
-            <span className="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-sm">🛡️</span>
+            <span className="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-lg"><IoShieldOutline /></span>
             Administrative Team
           </h2>
         </div>
@@ -264,7 +268,7 @@ export function AdminSettingsPage() {
                           disabled={isDeleting}
                           className="text-red-500 hover:text-red-700 font-bold text-xs hover:underline decoration-2 underline-offset-4"
                         >
-                          🗑️ Remove
+                          <span className="flex items-center gap-1"><IoTrashOutline /> Remove</span>
                         </button>
                       ) : (
                         <span className="text-xs text-gray-300 italic">No actions</span>
@@ -275,7 +279,7 @@ export function AdminSettingsPage() {
               ) : (
                 <tr>
                   <td colSpan={4} className="px-8 py-20 text-center">
-                    <div className="text-4xl mb-2">👤</div>
+                    <div className="text-4xl mb-2 flex justify-center text-gray-300"><IoPersonOutline /></div>
                     <p className="text-gray-500 font-bold">No administrative users found.</p>
                   </td>
                 </tr>
@@ -286,7 +290,7 @@ export function AdminSettingsPage() {
       </div>
 
       <div className="bg-blue-50 border border-blue-100 p-6 rounded-3xl flex items-start gap-4">
-        <span className="text-2xl">💡</span>
+        <span className="text-2xl flex items-center justify-center text-yellow-500"><IoBulbOutline /></span>
         <div>
           <h4 className="font-bold text-blue-900 text-sm mb-1">Super Admin Exclusive</h4>
           <p className="text-blue-700 text-xs leading-relaxed">

@@ -3,6 +3,7 @@ import { api } from '../../lib/api';
 import { useState } from 'react';
 import { useAuth } from '../../state/auth';
 import { Link } from 'react-router-dom';
+import { IoDocumentTextOutline } from 'react-icons/io5';
 
 export function DonationCentersPage() {
   const { user } = useAuth();
@@ -45,7 +46,7 @@ export function DonationCentersPage() {
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
-            📝 Active Requests
+            <IoDocumentTextOutline className="inline mr-2" /> Active Requests
           </button>
           <button
             onClick={() => setActiveTab('stories')}
@@ -122,7 +123,7 @@ export function DonationCentersPage() {
               </div>
             ) : requests.data?.requests?.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                <div className="text-6xl mb-4">📝</div>
+                <div className="text-6xl mb-4 text-emerald-500 flex justify-center"><IoDocumentTextOutline /></div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-2">No active requests</h2>
                 <p className="text-gray-600">There are no donation requests at the moment.</p>
               </div>

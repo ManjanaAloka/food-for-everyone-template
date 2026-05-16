@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { IoLocationOutline } from 'react-icons/io5';
 
 export function ApprovalsPage() {
   const qc = useQueryClient();
@@ -112,7 +113,7 @@ export function ApprovalsPage() {
                         rel="noreferrer"
                         className="text-[10px] text-green-600 font-bold hover:underline flex items-center gap-1 mt-1"
                       >
-                        📍 View on Map
+                        <span className="flex items-center gap-1"><IoLocationOutline /> View on Map</span>
                       </a>
                     )}
                   </td>
@@ -154,7 +155,7 @@ export function ApprovalsPage() {
                         rel="noreferrer"
                         className="text-[10px] text-green-600 font-bold hover:underline flex items-center gap-1 mt-1"
                       >
-                        📍 View on Map
+                        <span className="flex items-center gap-1"><IoLocationOutline /> View on Map</span>
                       </a>
                     )}
                   </td>

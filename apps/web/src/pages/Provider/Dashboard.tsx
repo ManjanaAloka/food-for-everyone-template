@@ -2,6 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { 
+  IoStorefrontOutline, IoCalendarOutline, IoSettingsOutline, 
+  IoRestaurantOutline, IoCubeOutline, IoTimeOutline, 
+  IoCloseOutline, IoReceiptOutline, IoCardOutline, IoCarOutline
+} from 'react-icons/io5';
 
 export function ProviderDashboardPage() {
   const qc = useQueryClient();
@@ -48,15 +53,15 @@ export function ProviderDashboardPage() {
         <div className="flex justify-between items-end mb-8">
           <div>
             <div className="inline-block bg-green-100 rounded-full px-6 py-2 mb-4">
-              <span className="text-green-700 font-semibold text-sm">🏪 Provider Dashboard</span>
+              <span className="text-green-700 font-semibold text-sm flex items-center gap-2"><IoStorefrontOutline /> Provider Dashboard</span>
             </div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">Business Dashboard</h1>
             <div className="flex items-center gap-3">
               <p className="text-xl text-gray-600">Manage your sales, listings, and profile</p>
               {(startDate || endDate) && (
                 <div className="flex items-center gap-2 bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-sm font-bold animate-in fade-in zoom-in duration-300">
-                  <span>📅 {startDate || '...'} to {endDate || 'Today'}</span>
-                  <button onClick={() => { setStartDate(''); setEndDate(''); }} className="hover:text-orange-900">✕</button>
+                  <span className="flex items-center gap-1"><IoCalendarOutline /> {startDate || '...'} to {endDate || 'Today'}</span>
+                  <button onClick={() => { setStartDate(''); setEndDate(''); }} className="hover:text-orange-900"><IoCloseOutline /></button>
                 </div>
               )}
             </div>
@@ -66,13 +71,13 @@ export function ProviderDashboardPage() {
               onClick={() => setShowDateModal(true)}
               className="px-6 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-all shadow-md flex items-center gap-2"
             >
-              <span>📅</span> Set Date Range
+              <IoCalendarOutline /> Set Date Range
             </button>
             <Link 
               to="/profile" 
               className="px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all shadow-sm flex items-center gap-2"
             >
-              <span>⚙️</span> Edit Bank/Profile Details
+              <IoSettingsOutline /> Edit Bank/Profile Details
             </Link>
           </div>
         </div>
@@ -102,7 +107,7 @@ export function ProviderDashboardPage() {
           <div className="lg:col-span-2 space-y-8">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2"><span>🍽️</span> Manage Listings</h2>
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2"><span><IoRestaurantOutline /></span> Manage Listings</h2>
                 <Link 
                   to="/provider/listings/new" 
                   className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-700 text-white font-medium rounded-lg hover:shadow-lg transition-all"
@@ -152,13 +157,13 @@ export function ProviderDashboardPage() {
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:ring-2 focus:ring-green-500 outline-none hover:bg-white transition-all cursor-pointer shadow-sm"
                 >
-                  <option value="ALL">📦 All Categories</option>
-                  <option value="Bakery">🥖 Bakery</option>
-                  <option value="Produce">🥬 Produce</option>
-                  <option value="Dairy">🥛 Dairy</option>
-                  <option value="Prepared Meals">🍱 Prepared Meals</option>
-                  <option value="Beverages">🥤 Beverages</option>
-                  <option value="Other">📦 Other</option>
+                  <option value="ALL">All Categories</option>
+                  <option value="Bakery">Bakery</option>
+                  <option value="Produce">Produce</option>
+                  <option value="Dairy">Dairy</option>
+                  <option value="Prepared Meals">Prepared Meals</option>
+                  <option value="Beverages">Beverages</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
 
@@ -177,7 +182,7 @@ export function ProviderDashboardPage() {
                           {l.images && l.images.length > 0 ? (
                             <img src={l.images[0]} alt={l.title} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-4xl">🍽️</div>
+                            <div className="w-full h-full flex items-center justify-center text-4xl text-gray-300"><IoRestaurantOutline /></div>
                           )}
                           {/* Badges on Image */}
                           <div className="absolute top-2 left-2 flex flex-col gap-1">
@@ -211,10 +216,10 @@ export function ProviderDashboardPage() {
                             
                             <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 text-sm">
                               <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-bold ${isOutOfStock ? 'bg-orange-100 text-orange-700' : 'bg-blue-50 text-blue-700'}`}>
-                                📦 {l.qtyAvailable} Left
+                                <IoCubeOutline /> {l.qtyAvailable} Left
                               </span>
                               <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium ${isExpired ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-gray-50 border border-gray-200 text-gray-700'}`}>
-                                ⏰ {isExpired ? 'Expired' : 'Expires'}: {new Date(l.expiresAt).toLocaleDateString()}
+                                <IoTimeOutline /> {isExpired ? 'Expired' : 'Expires'}: {new Date(l.expiresAt).toLocaleDateString()}
                               </span>
                             </div>
                           </div>
@@ -249,7 +254,7 @@ export function ProviderDashboardPage() {
                   );
                 }) : (
                   <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-3xl bg-gray-50/50">
-                    <div className="text-5xl mb-4 opacity-50">🍽️</div>
+                    <div className="text-5xl mb-4 opacity-50 text-emerald-500 flex justify-center"><IoRestaurantOutline /></div>
                     <p className="text-gray-900 font-bold text-xl mb-1">No {selectedCategory !== 'ALL' ? selectedCategory : activeTab.toLowerCase().replace('_', ' ')} listings found</p>
                     {activeTab === 'ACTIVE' && <p className="text-gray-500">Create a new listing to start selling to the community.</p>}
                   </div>
@@ -262,7 +267,7 @@ export function ProviderDashboardPage() {
           <div className="space-y-8">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2"><span>📦</span> Recent Orders</h2>
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2"><span><IoCubeOutline /></span> Recent Orders</h2>
                 <Link to="/orders" className="text-sm text-green-600 font-medium hover:underline">View All</Link>
               </div>
               <div className="space-y-4">
@@ -281,8 +286,8 @@ export function ProviderDashboardPage() {
                     </div>
                     <div className="font-bold text-gray-900 group-hover:text-green-700 transition-colors">LKR {Number(o.total).toFixed(2)}</div>
                     <div className="text-xs font-medium text-gray-500 mt-2 flex justify-between">
-                      <span className="flex items-center gap-1">💳 {o.paymentMethod || 'Online'}</span>
-                      <span className="flex items-center gap-1">🚚 {o.fulfillmentMode}</span>
+                      <span className="flex items-center gap-1"><IoCardOutline /> {o.paymentMethod || 'Online'}</span>
+                      <span className="flex items-center gap-1"><IoCarOutline /> {o.fulfillmentMode}</span>
                     </div>
                   </Link>
                 )) : (
@@ -302,7 +307,7 @@ export function ProviderDashboardPage() {
           <div className="bg-white rounded-[2rem] max-w-md w-full shadow-2xl p-8 animate-in zoom-in-95 duration-500">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <span>📅</span> Select Date Range
+                <span><IoCalendarOutline /></span> Select Date Range
               </h2>
               <button onClick={() => setShowDateModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl">✕</button>
             </div>

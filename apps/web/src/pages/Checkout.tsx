@@ -4,6 +4,7 @@ import { useCart } from '../state/cart';
 import { useForm } from 'react-hook-form';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { IoCartOutline } from 'react-icons/io5';
 
 import { AutoSubmitForm } from '../components/AutoSubmitForm';
 import { useTranslation } from 'react-i18next';
@@ -113,7 +114,7 @@ export function CheckoutPage() {
       <div className="min-h-screen bg-gray-50 pt-20 pb-12">
         <div className="max-w-4xl mx-auto px-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-            <div className="text-6xl mb-4">🛒</div>
+            <div className="text-6xl mb-4 text-green-500 flex justify-center"><IoCartOutline /></div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
             <p className="text-gray-600">Add some items to your cart to checkout</p>
           </div>

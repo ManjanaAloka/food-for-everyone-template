@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { IoCartOutline, IoDocumentTextOutline } from 'react-icons/io5';
 import { api } from '../../lib/api';
 import { useState, useEffect } from 'react';
 import { AutoSubmitForm } from '../../components/AutoSubmitForm';
@@ -94,7 +95,7 @@ export function ListingDetailPage() {
   const [reqForm, setReqForm] = useState({
     title: '',
     description: '',
-    targetQty: '10',
+    targetQty: '',
     closesAt: ''
   });
 
@@ -118,7 +119,7 @@ export function ListingDetailPage() {
       setReqForm(f => ({
         ...f,
         title: `Request for: ${listing.title}`,
-        description: `We need ${f.targetQty} units of ${listing.title} to help our community.`,
+        description: `We are requesting ${listing.title} to help provide meals for our community.`,
         closesAt: new Date(listing.expiresAt).toISOString().split('T')[0]
       }));
     }
@@ -508,7 +509,7 @@ export function ListingDetailPage() {
             <div className="p-8">
               <div className="flex justify-between items-center mb-8">
                 <div>
-                  <h3 className="text-2xl font-black text-slate-800">📝 Create Donation Request</h3>
+                  <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2"><IoDocumentTextOutline className="text-blue-600" /> Create Donation Request</h3>
                   <p className="text-sm text-slate-500 font-medium italic">Requesting: {listing.title}</p>
                 </div>
                 <button 
@@ -549,9 +550,14 @@ export function ListingDetailPage() {
                         type="number"
                         value={reqForm.targetQty}
                         onChange={e => setReqForm({ ...reqForm, targetQty: e.target.value })}
-                        className="w-full border-2 border-slate-100 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-orange-500 transition-all font-bold text-slate-800"
+                        className={`w-full border-2 rounded-2xl px-5 py-3.5 focus:outline-none transition-all font-bold ${Number(reqForm.targetQty) > listing.qtyAvailable ? 'border-red-400 focus:border-red-500 bg-red-50 text-red-700' : 'border-slate-100 focus:border-orange-500 text-slate-800'}`}
                       />
-                      <p className="text-[10px] text-slate-400 mt-1 font-bold italic">Max Available: {listing.qtyAvailable}</p>
+                      <div className="flex justify-between items-start mt-1">
+                        <p className="text-[10px] text-slate-400 font-bold italic">Max Available: {listing.qtyAvailable}</p>
+                        {Number(reqForm.targetQty) > listing.qtyAvailable && (
+                          <span className="text-[10px] text-red-500 font-bold">⚠️ Exceeds max limit</span>
+                        )}
+                      </div>
                     </div>
 
                     <div>
@@ -588,7 +594,7 @@ export function ListingDetailPage() {
                   </button>
                   <button
                     onClick={() => createRequest()}
-                    disabled={!reqForm.title || !reqForm.targetQty || isRequesting}
+                    disabled={!reqForm.title || !reqForm.targetQty || Number(reqForm.targetQty) > listing.qtyAvailable || isRequesting}
                     className="flex-[2] py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white font-black rounded-2xl shadow-xl shadow-orange-200 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                   >
                     {isRequesting ? '⏳ Creating...' : '🚀 Create Request'}

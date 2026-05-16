@@ -5,6 +5,12 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../state/cart';
+import { 
+  IoBusinessOutline, IoClipboardOutline, IoCheckmarkCircleOutline, 
+  IoCashOutline, IoCubeOutline, IoFlameOutline, IoAddCircleOutline, 
+  IoDocumentTextOutline, IoFastFoodOutline, IoCreateOutline, IoCameraOutline,
+  IoTimeOutline
+} from 'react-icons/io5';
 
 function ProgressBar({ raised, target, fulfilledQty, targetQty }: { raised: number; target: number; fulfilledQty?: number; targetQty?: number }) {
   const displayTargetQty = Math.max(1, targetQty || 0);
@@ -77,7 +83,7 @@ function CreateRequestModal({ onClose }: { onClose: () => void }) {
           <div className="flex justify-between items-center mb-8">
              <div>
                <h3 className="text-2xl font-black text-slate-800">
-                 {selectedListing ? '📝 Complete Your Request' : '🍱 Select Food to Request'}
+                 {selectedListing ? <span className="flex items-center gap-2"><IoDocumentTextOutline /> Complete Your Request</span> : <span className="flex items-center gap-2"><IoFastFoodOutline /> Select Food to Request</span>}
                </h3>
                <p className="text-sm text-slate-500 font-medium">
                  {selectedListing ? `Requesting: ${selectedListing.title}` : 'Choose an available food item from local providers'}
@@ -118,20 +124,19 @@ function CreateRequestModal({ onClose }: { onClose: () => void }) {
                           <div key={l.id} className="bg-slate-50 rounded-2xl p-4 border border-slate-100 hover:border-green-500 transition-all group flex flex-col h-full">
                              <div className="relative aspect-video rounded-xl overflow-hidden mb-4">
                                 <img src={displayImg} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                <span className="absolute top-2 right-2 px-2 py-1 bg-white/90 backdrop-blur rounded-lg text-[10px] font-black text-green-600 shadow-sm uppercase">-{l.discount}%</span>
                              </div>
                              <h4 className="font-bold text-slate-800 mb-1">{l.title}</h4>
                              <div className="text-[11px] text-slate-500 mb-3 flex items-center gap-1.5 font-bold uppercase tracking-wider">
-                               📦 {l.qtyAvailable} Available
+                               <IoCubeOutline className="text-sm" /> {l.qtyAvailable} Available
                              </div>
                              <button
                                onClick={() => {
                                  setSelectedListing(l);
-                                 setForm(f => ({ ...f, title: `Request for: ${l.title}`, targetAmount: '10' }));
+                                 setForm(f => ({ ...f, title: `Request for: ${l.title}`, targetAmount: '' }));
                                }}
                                className="mt-auto w-full py-2.5 bg-orange-50 text-orange-600 font-black text-xs rounded-xl border border-orange-100 hover:bg-orange-500 hover:text-white transition-all flex items-center justify-center gap-2"
                              >
-                               📇 Request Donation
+                               <IoDocumentTextOutline className="text-lg" /> Request Donation
                              </button>
                           </div>
                         );
@@ -195,9 +200,14 @@ function CreateRequestModal({ onClose }: { onClose: () => void }) {
                       onChange={e => setForm({ ...form, targetAmount: e.target.value })}
                       placeholder="e.g., 50"
                       max={selectedListing.qtyAvailable}
-                      className="w-full border-2 border-slate-100 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-green-500 transition-all font-bold text-slate-800"
+                      className={`w-full border-2 rounded-2xl px-5 py-3.5 focus:outline-none transition-all font-bold ${Number(form.targetAmount) > selectedListing.qtyAvailable ? 'border-red-400 focus:border-red-500 bg-red-50 text-red-700' : 'border-slate-100 focus:border-green-500 text-slate-800'}`}
                     />
-                    <p className="text-[10px] text-slate-400 mt-1 font-bold">Max: {selectedListing.qtyAvailable}</p>
+                    <div className="flex justify-between items-start mt-1">
+                      <p className="text-[10px] text-slate-400 font-bold">Max: {selectedListing.qtyAvailable}</p>
+                      {Number(form.targetAmount) > selectedListing.qtyAvailable && (
+                        <span className="text-[10px] text-red-500 font-bold">⚠️ Exceeds max limit</span>
+                      )}
+                    </div>
                   </div>
 
                   <div>
@@ -211,7 +221,7 @@ function CreateRequestModal({ onClose }: { onClose: () => void }) {
                       className="w-full border-2 border-slate-100 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-green-500 transition-all font-bold text-slate-800"
                     />
                     <p className="text-[10px] text-red-500 mt-1 font-bold italic flex items-center gap-1">
-                      <span>⏰ Item Expiry:</span>
+                      <IoTimeOutline className="text-sm" /><span>Item Expiry:</span>
                       <span>{new Date(selectedListing.expiresAt).toLocaleString()}</span>
                     </p>
                   </div>
@@ -224,7 +234,7 @@ function CreateRequestModal({ onClose }: { onClose: () => void }) {
                 </button>
                 <button
                   onClick={() => create()}
-                  disabled={!form.title || !form.targetAmount || isPending}
+                  disabled={!form.title || !form.targetAmount || Number(form.targetAmount) > selectedListing.qtyAvailable || isPending}
                   className="flex-[2] py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white font-black rounded-2xl shadow-xl shadow-orange-200 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                 >
                   {isPending ? '⏳ Creating...' : '✅ Create Request'}
@@ -242,7 +252,7 @@ export function DonationCenterDashboardPage() {
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [creatingStoryFor, setCreatingStoryFor] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'REQUESTS' | 'ACTIVITIES'>('REQUESTS');
+  const [activeTab, setActiveTab] = useState<'REQUESTS' | 'ACTIVITIES' | 'POST_ACTIVITY'>('REQUESTS');
   const qc = useQueryClient();
   const { items: cartItems } = useCart();
 
@@ -282,14 +292,14 @@ export function DonationCenterDashboardPage() {
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   
   const stats = [
-    { label: 'Active Requests', value: requests.filter((r: any) => r.status === 'OPEN').length, icon: '📋' },
-    { label: 'Requests Fulfilled', value: requests.filter((r: any) => r.status === 'FULFILLED').length, icon: '✅' },
-    { label: 'Total Raised', value: `LKR ${requests.reduce((s: number, r: any) => s + Number(r.raisedAmount), 0).toFixed(0)}`, icon: '💰' },
-    { label: 'Items Received', value: incomingOrders.filter((o: any) => o.status === 'DELIVERED').length, icon: '📦' },
+    { label: 'Active Requests', value: requests.filter((r: any) => r.status === 'OPEN').length, icon: <IoClipboardOutline /> },
+    { label: 'Requests Fulfilled', value: requests.filter((r: any) => r.status === 'FULFILLED').length, icon: <IoCheckmarkCircleOutline /> },
+    { label: 'Total Raised', value: `LKR ${requests.reduce((s: number, r: any) => s + Number(r.raisedAmount), 0).toFixed(0)}`, icon: <IoCashOutline /> },
+    { label: 'Items Received', value: incomingOrders.filter((o: any) => o.status === 'DELIVERED').length, icon: <IoCubeOutline /> },
   ];
 
   const shareToFB = (activity: any) => {
-    const url = `${window.location.origin}/donation-centers/${user?.sub}`;
+    const url = `${window.location.origin}/donation-centers/${user?.id}`;
     const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(activity.title + ': ' + activity.content.slice(0, 100))}`;
     window.open(fbUrl, '_blank', 'width=600,height=400');
   };
@@ -324,7 +334,7 @@ export function DonationCenterDashboardPage() {
         <div className="flex justify-between items-center mb-10">
           <div>
             <h1 className="text-4xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-              <span>🏥</span> Donation Center Dashboard
+              <span className="text-rose-500"><IoBusinessOutline /></span> Donation Center Dashboard
             </h1>
             <p className="text-slate-500 font-bold mt-1 italic uppercase tracking-widest text-[11px]">Manage requests and track impact</p>
           </div>
@@ -333,7 +343,7 @@ export function DonationCenterDashboardPage() {
               onClick={() => setShowModal(true)}
               className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white font-black rounded-2xl shadow-xl shadow-orange-200 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
             >
-              <span>➕</span>
+              <span className="text-lg"><IoAddCircleOutline /></span>
               <span>New Request</span>
             </button>
           </div>
@@ -411,10 +421,10 @@ export function DonationCenterDashboardPage() {
           <div className="space-y-12">
             {/* Active Requests Section */}
             <section>
-              <div className="flex items-center gap-3 mb-6">
-                 <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center text-sm">🔥</span>
-                 <h3 className="text-lg font-black text-gray-900 uppercase tracking-wider">Active Requests</h3>
-              </div>
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3 mb-6">
+                 <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center text-lg"><IoFlameOutline /></span>
+                 Active Requests
+              </h3>
               
               <div className="grid md:grid-cols-2 gap-6">
                 {requests.filter((r: any) => r.status === 'OPEN').length === 0 ? (
@@ -431,10 +441,10 @@ export function DonationCenterDashboardPage() {
 
             {/* Completed Requests Section */}
             <section>
-              <div className="flex items-center gap-3 mb-6">
-                 <span className="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-sm">✅</span>
-                 <h3 className="text-lg font-black text-gray-500 uppercase tracking-wider">Completed Requests</h3>
-              </div>
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3 mb-6">
+                 <span className="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-lg"><IoCheckmarkCircleOutline /></span>
+                 Completed Requests
+              </h3>
               
               <div className="grid md:grid-cols-2 gap-6 opacity-80 hover:opacity-100 transition-opacity">
                 {requests.filter((r: any) => r.status === 'FULFILLED').map((r: any) => (
@@ -759,7 +769,7 @@ function ActivityFormModal({ isOpen, onClose, editingActivity, defaultTitle, req
       return api.post('/activities', form);
     },
     onSuccess: () => {
-      toast.success(editingActivity ? '✅ Story updated!' : '🎉 Story shared!');
+      toast.success(editingActivity ? 'Story updated!' : 'Story shared!');
       qc.invalidateQueries({ queryKey: ['center-activities'] });
       onClose();
     },
@@ -772,7 +782,9 @@ function ActivityFormModal({ isOpen, onClose, editingActivity, defaultTitle, req
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh]">
         <div className="flex justify-between items-center mb-5">
-          <h3 className="text-xl font-bold text-gray-900">{editingActivity ? '✏️ Edit Story' : '📸 Share Story'}</h3>
+          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            {editingActivity ? <><IoCreateOutline /> Edit Story</> : <><IoCameraOutline /> Share Story</>}
+          </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
         </div>
 

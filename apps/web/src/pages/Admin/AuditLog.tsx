@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { useState, useMemo } from 'react';
+import { IoArrowBackOutline, IoDocumentTextOutline, IoSearchOutline } from 'react-icons/io5';
 
 export function AdminAuditLogPage() {
   const navigate = useNavigate();
@@ -47,12 +48,12 @@ export function AdminAuditLogPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
         <button onClick={() => navigate('/admin')} className="flex items-center gap-2 text-gray-700 hover:text-green-600 mb-6 font-medium transition-colors">
-          <span className="text-xl">←</span><span>Back to Dashboard</span>
+          <span className="text-xl"><IoArrowBackOutline /></span><span>Back to Dashboard</span>
         </button>
 
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">📜 System Audit Logs</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2"><IoDocumentTextOutline className="text-blue-500" /> System Audit Logs</h1>
             <p className="text-gray-600">Track all administrative actions and system changes</p>
           </div>
           <div className="flex items-center gap-2 bg-green-50 px-4 py-2 rounded-xl border border-green-100">
@@ -149,7 +150,7 @@ export function AdminAuditLogPage() {
                   <tr>
                     <td colSpan={4} className="px-6 py-20 text-center">
                       <div className="flex flex-col items-center">
-                        <span className="text-4xl mb-2">🔍</span>
+                        <span className="text-4xl mb-2 flex justify-center text-gray-300"><IoSearchOutline /></span>
                         <p className="text-gray-500 font-medium">No audit logs match your filters.</p>
                         <button 
                           onClick={() => { setFilterAction('ALL'); setFilterEntity('ALL'); setSearchQuery(''); }}

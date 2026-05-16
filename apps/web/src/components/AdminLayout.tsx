@@ -3,6 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../state/auth';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
+import { 
+  IoWarningOutline, IoBarChartOutline, IoPeopleOutline, 
+  IoHourglassOutline, IoStarOutline, IoRestaurantOutline, 
+  IoDocumentTextOutline, IoPersonOutline, IoSettingsOutline, 
+  IoHomeOutline, IoLogOutOutline, IoShieldCheckmarkOutline 
+} from 'react-icons/io5';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -35,7 +41,7 @@ function PasswordForceModal({ onClose }: { onClose: () => void }) {
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-500 via-orange-500 to-red-500" />
         
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-4 shadow-inner">🚨</div>
+          <div className="w-20 h-20 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-4 shadow-inner"><IoWarningOutline /></div>
           <h3 className="text-3xl font-black text-gray-900 mb-2">Security Action</h3>
           <p className="text-gray-500">Your account was created by an administrator. For your security, you must change your temporary password.</p>
         </div>
@@ -102,14 +108,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const isManager = user?.role === 'MANAGER' || user?.role === 'ADMIN';
 
   const menuItems = [
-    { id: 'overview', label: 'Overview', path: '/admin', icon: '📊', show: true },
-    { id: 'users', label: 'Users', path: '/admin/users', icon: '👥', show: true },
-    { id: 'approvals', label: 'Approvals', path: '/admin/approvals', icon: '⏳', show: true },
-    { id: 'reviews', label: 'Reviews', path: '/admin/reviews', icon: '⭐', show: true },
-    { id: 'listings', label: 'Listings', path: '/admin/listings', icon: '🍽️', show: true },
-    { id: 'audit', label: 'Audit Log', path: '/admin/audit', icon: '📜', show: isSystemAdmin },
-    { id: 'profile', label: 'My Profile', path: '/admin/profile', icon: '👤', show: true },
-    { id: 'settings', label: 'Settings', path: '/admin/settings', icon: '⚙️', show: isSystemAdmin },
+    { id: 'overview', label: 'Overview', path: '/admin', icon: <IoBarChartOutline />, show: true },
+    { id: 'users', label: 'Users', path: '/admin/users', icon: <IoPeopleOutline />, show: true },
+    { id: 'approvals', label: 'Approvals', path: '/admin/approvals', icon: <IoHourglassOutline />, show: true },
+    { id: 'reviews', label: 'Reviews', path: '/admin/reviews', icon: <IoStarOutline />, show: true },
+    { id: 'listings', label: 'Listings', path: '/admin/listings', icon: <IoRestaurantOutline />, show: true },
+    { id: 'audit', label: 'Audit Log', path: '/admin/audit', icon: <IoDocumentTextOutline />, show: isSystemAdmin },
+    { id: 'profile', label: 'My Profile', path: '/admin/profile', icon: <IoPersonOutline />, show: true },
+    { id: 'settings', label: 'Settings', path: '/admin/settings', icon: <IoSettingsOutline />, show: isSystemAdmin },
   ];
 
   const allowedTabs = (user?.permissions as any)?.allowedTabs || [];
@@ -161,7 +167,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             onClick={() => navigate('/')}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all"
           >
-            <span className="text-xl">🏠</span>
+            <span className="text-xl flex items-center justify-center"><IoHomeOutline /></span>
             Back to Site
           </button>
           
@@ -169,7 +175,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-all"
           >
-            <span className="text-xl">🚪</span>
+            <span className="text-xl flex items-center justify-center"><IoLogOutOutline /></span>
             Logout
           </button>
         </div>
@@ -187,7 +193,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                  onClick={() => setShowForceModal(true)}
                  className="flex items-center gap-2 bg-red-50 text-red-600 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-red-100 transition-all border border-red-100 animate-pulse"
                >
-                 <span className="text-xs">⚠️</span> Security Alert
+                 <span className="text-xs flex items-center justify-center"><IoWarningOutline /></span> Security Alert
                </div>
              )}
           </div>
@@ -197,7 +203,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 <p className="text-xs text-gray-500">{user?.email}</p>
              </div>
              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-xl">
-                🛡️
+                <IoShieldCheckmarkOutline className="text-green-600" />
              </div>
           </div>
         </header>

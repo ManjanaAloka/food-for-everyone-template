@@ -3,6 +3,7 @@ import { api } from '../../lib/api';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { IoCameraOutline, IoCloseOutline } from 'react-icons/io5';
 
 type Form = { 
   title: string; 
@@ -65,10 +66,10 @@ export function ListingCreatePage() {
       };
 
       await api.post('/listings', payload);
-      toast.success('✅ Listing published successfully!');
+      toast.success('Listing published successfully!');
       nav('/provider/dashboard');
     } catch (error: any) {
-      toast.error('❌ Error: ' + (error.response?.data?.error || 'Failed to create listing'));
+      toast.error('Error: ' + (error.response?.data?.error || 'Failed to create listing'));
     } finally {
       setLoading(false);
     }
@@ -121,12 +122,12 @@ export function ListingCreatePage() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
               >
                 <option value="">Select category...</option>
-                <option value="Bakery">🥖 Bakery</option>
-                <option value="Produce">🥬 Produce</option>
-                <option value="Dairy">🥛 Dairy</option>
-                <option value="Prepared Meals">🍱 Prepared Meals</option>
-                <option value="Beverages">🥤 Beverages</option>
-                <option value="Other">📦 Other</option>
+                <option value="Bakery">Bakery</option>
+                <option value="Produce">Produce</option>
+                <option value="Dairy">Dairy</option>
+                <option value="Prepared Meals">Prepared Meals</option>
+                <option value="Beverages">Beverages</option>
+                <option value="Other">Other</option>
               </select>
               {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category.message}</p>}
             </div>
@@ -226,7 +227,7 @@ export function ListingCreatePage() {
                 id="image-upload"
               />
               <label htmlFor="image-upload" className="cursor-pointer">
-                <div className="text-4xl mb-2">📸</div>
+                <div className="text-4xl mb-2 flex justify-center text-gray-400"><IoCameraOutline /></div>
                 <p className="text-gray-600 font-medium">Click to upload images</p>
                 <p className="text-sm text-gray-500 mt-1">PNG, JPG up to 10MB</p>
               </label>
@@ -245,9 +246,9 @@ export function ListingCreatePage() {
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
-                      className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-sm"
+                      className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-lg"
                     >
-                      ✕
+                      <IoCloseOutline />
                     </button>
                   </div>
                 ))}
@@ -269,7 +270,7 @@ export function ListingCreatePage() {
               disabled={loading}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white font-medium rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105"
             >
-              {loading ? 'Publishing...' : '✨ Publish Listing'}
+              {loading ? 'Publishing...' : 'Publish Listing'}
             </button>
           </div>
         </form>

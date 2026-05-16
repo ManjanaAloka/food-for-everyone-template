@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../state/auth';
 import { useCart } from '../state/cart';
 import { useState } from 'react';
+import { IoCartOutline } from 'react-icons/io5';
 import { AdminLogoutModal } from './AdminLogoutModal';
 import { NotificationsDropdown } from './NotificationsDropdown';
 
@@ -44,7 +45,7 @@ export function ModernNavbar() {
                 to="/checkout" 
                 className="relative px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 flex items-center gap-2 group"
               >
-                <span className="text-2xl group-hover:scale-110 transition-transform">🛒</span>
+                <span className="text-2xl group-hover:scale-110 transition-transform"><IoCartOutline /></span>
                 {items.length > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-green-500 to-emerald-600 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse">
                     {items.length}

@@ -2,6 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { 
+  IoSearchOutline, IoStar, IoRefreshOutline, 
+  IoTrashOutline, IoChatbubbleOutline 
+} from 'react-icons/io5';
 
 export function ReviewModerationPage() {
   const qc = useQueryClient();
@@ -103,8 +107,8 @@ export function ReviewModerationPage() {
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
         <div className="flex flex-col lg:flex-row gap-6 mb-8 items-start lg:items-center">
           <div className="flex-1 w-full lg:max-w-md relative group">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors">
-              🔍
+            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 text-xl pointer-events-none">
+              <IoSearchOutline />
             </span>
             <input 
               type="text"
@@ -146,7 +150,7 @@ export function ReviewModerationPage() {
                  onClick={() => setRatingFilter(r as any)}
                  className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${ratingFilter === r ? 'bg-white text-orange-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
                >
-                 {r} ⭐
+                 {r} <IoStar className="inline mb-0.5 text-sm" />
                </button>
              ))}
           </div>
@@ -167,7 +171,7 @@ export function ReviewModerationPage() {
                   )}
                 </div>
                 <div className="md:hidden ml-auto flex items-center gap-1 bg-orange-50 text-orange-600 px-3 py-1.5 rounded-full font-black text-xs">
-                  {r.rating} ⭐
+                  {r.rating} <span className="text-sm">Stars <IoStar className="inline mb-1" /></span>
                 </div>
               </div>
               
@@ -209,7 +213,7 @@ export function ReviewModerationPage() {
                       onClick={() => { if(confirm(`${r.status === 'REJECTED' ? 'Restore' : 'Hide'} this ${moderationTab === 'SITE' ? 'site' : 'provider'} review?`)) remove.mutate(r) }}
                       className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all text-[10px] uppercase tracking-wider flex items-center justify-center gap-2 ${r.status === 'REJECTED' ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
                     >
-                      {r.status === 'REJECTED' ? '🔄 Restore Review' : '🗑️ Hide Review'}
+                      {r.status === 'REJECTED' ? <span className="flex justify-center items-center gap-2"><IoRefreshOutline /> Restore Review</span> : <span className="flex justify-center items-center gap-2"><IoTrashOutline /> Hide Review</span>}
                     </button>
                   )}
                 </div>
@@ -217,7 +221,7 @@ export function ReviewModerationPage() {
             </div>
           )) : (
             <div className="col-span-full text-center py-24 bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-200">
-              <span className="text-6xl mb-4 block">💬</span>
+              <span className="text-6xl mb-4 flex justify-center text-gray-300"><IoChatbubbleOutline /></span>
               <p className="text-gray-500 font-bold">No site reviews found for this filter</p>
             </div>
           )}
